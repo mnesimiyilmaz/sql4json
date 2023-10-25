@@ -89,7 +89,7 @@ SELECT fullname,
 FROM $r       
 ```
 The example above will be give output like below
-```json
+```
 [
     {
         fullname: "Mucahit Nesimi YILMAZ",
@@ -115,7 +115,7 @@ The example above will be give output like below
 `$r` is reserved keyword for SQL4Json. You must add `$r` to from section of your query. You can expand `$r` for scenarios for like below.
 
 Let's say you have json like this
-```json
+```
 {
     responseStatus: 200,
     errors: null,
