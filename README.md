@@ -25,6 +25,8 @@ HAVING total > 5 OR avg_val < 3
 
 ORDER BY total DESC, userName
 ```
+### Requirements
+Java 1.8 or above.
 
 # Get it!
 
