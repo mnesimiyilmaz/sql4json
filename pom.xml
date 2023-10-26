@@ -8,6 +8,7 @@
     <artifactId>sql4json</artifactId>
     <version>0.0.1</version>
     <packaging>jar</packaging>
+    <name>SQL4Json</name>
     <description>Filter, aggregate and select data from json using SQL like query.</description>
     <url>https://github.com/mnesimiyilmaz/sql4json</url>
 
@@ -26,13 +27,11 @@
         </developer>
     </developers>
 
-    <distributionManagement>
-        <repository>
-            <id>github</id>
-            <name>GitHub mnesimiyilmaz Apache Maven Packages</name>
-            <url>https://maven.pkg.github.com/mnesimiyilmaz/sql4json</url>
-        </repository>
-    </distributionManagement>
+    <scm>
+        <connection>scm:git:https://github.com/mnesimiyilmaz/sql4json.git</connection>
+        <developerConnection>scm:git:https://github.com/mnesimiyilmaz/sql4json.git</developerConnection>
+        <url>https://github.com/mnesimiyilmaz/sql4json</url>
+    </scm>
 
     <properties>
         <java.version>1.8</java.version>
@@ -93,6 +92,90 @@
         </dependency>
     </dependencies>
 
+    <profiles>
+        <profile>
+            <id>ossrh-snapshot</id>
+            <distributionManagement>
+                <snapshotRepository>
+                    <id>ossrh</id>
+                    <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+                </snapshotRepository>
+            </distributionManagement>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.sonatype.plugins</groupId>
+                        <artifactId>nexus-staging-maven-plugin</artifactId>
+                        <version>1.6.13</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <serverId>ossrh</serverId>
+                            <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
+                            <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>github</id>
+            <distributionManagement>
+                <repository>
+                    <id>github</id>
+                    <name>GitHub mnesimiyilmaz Apache Maven Packages</name>
+                    <url>https://maven.pkg.github.com/mnesimiyilmaz/sql4json</url>
+                </repository>
+            </distributionManagement>
+        </profile>
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>2.9.1</version>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>3.3.0</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
     <build>
         <plugins>
             <plugin>
@@ -137,19 +220,6 @@
                         <phase>package</phase>
                         <goals>
                             <goal>attached</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>3.3.0</version>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar</goal>
                         </goals>
                     </execution>
                 </executions>
