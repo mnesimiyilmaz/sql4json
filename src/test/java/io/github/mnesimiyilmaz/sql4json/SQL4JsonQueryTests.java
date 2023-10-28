@@ -430,4 +430,58 @@ class SQL4JsonQueryTests {
         );
     }
 
+    @Test
+    void when_use_proper_nested_query_then_expect_no_error() {
+        Person person = new Person();
+        person.setName("Mücahit");
+        person.setSurname("YILMAZ");
+        person.setAge(26);
+
+        String jql = "SELECT " +
+                "user.name AS username " +
+                "FROM (" +
+                "SELECT " +
+                "name AS user.name, " +
+                "surname AS user.surname, " +
+                "age AS user.age " +
+                "FROM $r.data)";
+        SQL4JsonInput input = SQL4JsonInput.fromObject(jql, Collections.singletonMap("data", person));
+        SQL4JsonProcessor processor = new SQL4JsonProcessor(input);
+        JsonNode result = processor.getResult().get(0);
+
+        assertAll(
+                () -> assertEquals("Mücahit", result.get("username").asText())
+        );
+    }
+
+    @Test
+    void when_use_proper_nested_query_withBothInnerAndOuterWhereClause_then_expect_no_error() {
+        Person personOne = new Person();
+        personOne.setName("Mücahit");
+        personOne.setSurname("YILMAZ");
+        personOne.setAge(26);
+
+        Person personTwo = new Person();
+        personTwo.setName("Hayanesh");
+        personTwo.setSurname("Kamalan");
+        personTwo.setAge(18);
+
+        String jql = "SELECT " +
+                "user.name AS username," +
+                "user.age AS age " +
+                "FROM (" +
+                "SELECT " +
+                "name AS user.name, " +
+                "surname AS user.surname, " +
+                "age AS user.age " +
+                "FROM $r WHERE age > 10) WHERE user.age > 16";
+        SQL4JsonInput input = SQL4JsonInput.fromObject(jql, Arrays.asList(personOne, personTwo));
+        SQL4JsonProcessor processor = new SQL4JsonProcessor(input);
+        JsonNode result = processor.getResult();
+
+        assertAll(
+                () -> assertEquals("Mücahit", result.get(0).get("username").asText())
+        );
+    }
+
 }
