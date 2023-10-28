@@ -1,11 +1,12 @@
 grammar SQL4Json;
 
 sql4json
-    : SELECT selectedColumns FROM rootNode (WHERE whereConditions)? (GROUP BY groupByColumns)? (HAVING havingConditions)? (ORDER BY orderByColumns)? (SEMI_COLON)? EOF
+    : SELECT selectedColumns FROM rootNode (WHERE whereConditions)? (GROUP BY groupByColumns)? (HAVING havingConditions)? (ORDER BY orderByColumns)? (SEMI_COLON)? EOF?
     ;
 
 rootNode
     : ROOT (DOT IDENTIFIER (DOT IDENTIFIER)*)?
+    | LPAREN sql4json RPAREN
     ;
 
 jsonColumn
