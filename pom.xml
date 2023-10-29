@@ -6,7 +6,7 @@
 
     <groupId>io.github.mnesimiyilmaz</groupId>
     <artifactId>sql4json</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2</version>
     <packaging>jar</packaging>
     <name>SQL4Json</name>
     <description>Filter, aggregate and select data from json using SQL like query.</description>

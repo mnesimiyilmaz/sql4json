@@ -18,7 +18,7 @@ public class JsonColumnWithNonAggFunctionDefinion {
 
     private final SQL4JsonParser.JsonColumnWithNonAggFunctionContext columnContext;
     private final String                                             columnName;
-    private final Function<Object, Object>                       valueDecorator;
+    private final Function<Object, Object>                           valueDecorator;
 
     public JsonColumnWithNonAggFunctionDefinion(SQL4JsonParser.JsonColumnWithNonAggFunctionContext columnContext) {
         this.columnContext = columnContext;

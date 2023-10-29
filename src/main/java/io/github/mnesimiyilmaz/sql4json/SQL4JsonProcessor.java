@@ -3,6 +3,7 @@ package io.github.mnesimiyilmaz.sql4json;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.github.mnesimiyilmaz.sql4json.generated.SQL4JsonLexer;
 import io.github.mnesimiyilmaz.sql4json.generated.SQL4JsonParser;
+import io.github.mnesimiyilmaz.sql4json.utils.AntlrSyntaxErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
@@ -16,7 +17,7 @@ public class SQL4JsonProcessor {
 
     private SQL4JsonInput sql4JsonInput;
     private int           currentQuery;
-    private JsonNode  result;
+    private JsonNode      result;
 
     public SQL4JsonProcessor(SQL4JsonInput sql4JsonInput) {
         this.queries = sql4JsonInput.getSql().split(">>>");
@@ -28,8 +29,11 @@ public class SQL4JsonProcessor {
         if (result != null) return result;
 
         do {
+            AntlrSyntaxErrorListener errorListener = new AntlrSyntaxErrorListener();
             SQL4JsonLexer lexer = new SQL4JsonLexer(CharStreams.fromString(sql4JsonInput.getSql()));
+            lexer.addErrorListener(errorListener);
             SQL4JsonParser parser = new SQL4JsonParser(new CommonTokenStream(lexer));
+            parser.addErrorListener(errorListener);
             SQL4JsonListenerImpl listener = new SQL4JsonListenerImpl(sql4JsonInput.getRootNode());
             new ParseTreeWalker().walk(listener, parser.sql4json());
             result = listener.getResult();

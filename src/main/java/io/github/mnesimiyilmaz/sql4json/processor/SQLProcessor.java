@@ -14,18 +14,18 @@ public class SQLProcessor {
         this.mapOfSQLBuilders = new LinkedHashMap<>();
     }
 
-    public SQLBuilder getBuilder(String name){
-       return mapOfSQLBuilders.computeIfAbsent(name, n -> new SQLBuilder());
+    public SQLBuilder getBuilder(String name) {
+        return mapOfSQLBuilders.computeIfAbsent(name, n -> new SQLBuilder());
     }
 
 
-    public JsonNode process(JsonNode dataNode, String rootPath){
+    public JsonNode process(JsonNode dataNode, String rootPath) {
         dataNode = JsonUtils.peelJsonNode(dataNode, rootPath);
         List<Map<FieldKey, Object>> flattenedData = JsonUtils.convertJsonToFlattenedListOfKeyValue(dataNode);
 
         Iterator<String> names = new LinkedList<>(mapOfSQLBuilders.keySet()).descendingIterator();
 
-        while (names.hasNext()){
+        while (names.hasNext()) {
             SQLConstruct sqlConstruct = SQLConstruct.newInstance(mapOfSQLBuilders.get(names.next()));
             flattenedData = sqlConstruct.apply(flattenedData);
         }

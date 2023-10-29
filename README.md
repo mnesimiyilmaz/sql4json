@@ -36,7 +36,7 @@ To use the package, you need to add following dependency:
 <dependency>
     <groupId>io.github.mnesimiyilmaz</groupId>
     <artifactId>sql4json</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2</version>
 </dependency>
 ```
 
@@ -185,6 +185,10 @@ SELECT name, COUNT(*) as userCount FROM $r GROUP BY name ORDER BY userCount DESC
 SELECT name, age FROM $r WHERE id > 0
     >>>
 SELECT objectField FROM $r.data WHERE groupName = 'users'
+```
+Or
+```sql
+SELECT name, age FROM (SELECT objectField FROM $r.data WHERE groupName = 'users') WHERE id > 0
 ```
 
 ## Functions

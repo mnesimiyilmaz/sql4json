@@ -12,8 +12,8 @@ public class JsonColumnWithAggFunctionDefinion {
 
     private final SQL4JsonParser.JsonColumnWithAggFunctionContext ctx;
     private final JsonColumnWithNonAggFunctionDefinion            columnDefinition;
-    private final AggregateFunction                           aggregateFunction;
-    private final boolean                                     isAsterisk;
+    private final AggregateFunction                               aggregateFunction;
+    private final boolean                                         isAsterisk;
 
     public JsonColumnWithAggFunctionDefinion(SQL4JsonParser.JsonColumnWithAggFunctionContext ctx) {
         this.ctx = ctx;

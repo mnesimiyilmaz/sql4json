@@ -9,10 +9,10 @@ import lombok.Getter;
 @Getter
 public class SelectColumnDefinition {
 
-    private final SQL4JsonParser.SelectColumnContext    ctx;
-    private final JsonColumnWithAggFunctionDefinion columnDefinition;
-    private final String                            alias;
-    private final boolean                           isAsterisk;
+    private final SQL4JsonParser.SelectColumnContext ctx;
+    private final JsonColumnWithAggFunctionDefinion  columnDefinition;
+    private final String                             alias;
+    private final boolean                            isAsterisk;
 
     private SelectColumnDefinition() {
         this.ctx = null;

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.github.mnesimiyilmaz.sql4json.dataclasses.Account;
 import io.github.mnesimiyilmaz.sql4json.dataclasses.Person;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -449,9 +450,7 @@ class SQL4JsonQueryTests {
         SQL4JsonProcessor processor = new SQL4JsonProcessor(input);
         JsonNode result = processor.getResult().get(0);
 
-        assertAll(
-                () -> assertEquals("Mücahit", result.get("username").asText())
-        );
+        assertEquals("Mücahit", result.get("username").asText());
     }
 
     @Test
@@ -479,9 +478,23 @@ class SQL4JsonQueryTests {
         SQL4JsonProcessor processor = new SQL4JsonProcessor(input);
         JsonNode result = processor.getResult();
 
-        assertAll(
-                () -> assertEquals("Mücahit", result.get(0).get("username").asText())
-        );
+        assertEquals("Mücahit", result.get(0).get("username").asText());
+    }
+
+    @Test
+    void when_try_to_execute_incorrect_query_then_expect_error() {
+        Executable executable = () -> {
+            Person personOne = new Person();
+            personOne.setName("Mücahit");
+            personOne.setSurname("YILMAZ");
+            personOne.setAge(26);
+
+            String jql = "select from $r";
+            SQL4JsonInput input = SQL4JsonInput.fromObject(jql, personOne);
+            SQL4JsonProcessor processor = new SQL4JsonProcessor(input);
+            processor.getResult();
+        };
+        assertThrows(IllegalStateException.class, executable);
     }
 
 }

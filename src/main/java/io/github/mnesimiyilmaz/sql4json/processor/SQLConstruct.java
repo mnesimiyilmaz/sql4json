@@ -11,20 +11,23 @@ import io.github.mnesimiyilmaz.sql4json.utils.FieldKey;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 class SQLConstruct {
-    private List<SelectColumnDefinition> selectedColumns;
-    private CriteriaNode whereClause;
+    private List<SelectColumnDefinition>               selectedColumns;
+    private CriteriaNode                               whereClause;
     private List<JsonColumnWithNonAggFunctionDefinion> groupByColumns;
-    private CriteriaNode havingClause;
-    private List<OrderByColumnDefinion> orderByColumns;
+    private CriteriaNode                               havingClause;
+    private List<OrderByColumnDefinion>                orderByColumns;
 
-    public static SQLConstruct newInstance(SQLBuilder builder){
-        SQLConstruct sqlConstruct =  new SQLConstruct();
+    public static SQLConstruct newInstance(SQLBuilder builder) {
+        SQLConstruct sqlConstruct = new SQLConstruct();
         sqlConstruct.selectedColumns = builder.getSelectedColumns();
         sqlConstruct.whereClause = builder.getWhereClause();
         sqlConstruct.groupByColumns = builder.getGroupByColumns();

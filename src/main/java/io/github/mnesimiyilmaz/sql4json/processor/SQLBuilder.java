@@ -14,23 +14,23 @@ import java.util.List;
 public class SQLBuilder {
 
     @Setter
-    private List<SelectColumnDefinition> selectedColumns;
+    private List<SelectColumnDefinition>               selectedColumns;
     @Setter
-    private CriteriaNode whereClause;
+    private CriteriaNode                               whereClause;
     private List<JsonColumnWithNonAggFunctionDefinion> groupByColumns;
     @Setter
-    private CriteriaNode havingClause;
-    private List<OrderByColumnDefinion> orderByColumns;
+    private CriteriaNode                               havingClause;
+    private List<OrderByColumnDefinion>                orderByColumns;
 
-    public void addGroupByColumn(JsonColumnWithNonAggFunctionDefinion groupByColumn){
-        if(this.groupByColumns == null)
+    public void addGroupByColumn(JsonColumnWithNonAggFunctionDefinion groupByColumn) {
+        if (this.groupByColumns == null)
             this.groupByColumns = new ArrayList<>();
 
         this.groupByColumns.add(groupByColumn);
     }
 
-    public void addOrderByColumn(OrderByColumnDefinion orderByColumn){
-        if(this.orderByColumns == null)
+    public void addOrderByColumn(OrderByColumnDefinion orderByColumn) {
+        if (this.orderByColumns == null)
             this.orderByColumns = new ArrayList<>();
 
         this.orderByColumns.add(orderByColumn);

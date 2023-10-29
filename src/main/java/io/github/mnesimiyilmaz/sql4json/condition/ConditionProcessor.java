@@ -1,7 +1,7 @@
 package io.github.mnesimiyilmaz.sql4json.condition;
 
-import io.github.mnesimiyilmaz.sql4json.generated.SQL4JsonParser;
 import io.github.mnesimiyilmaz.sql4json.definitions.JsonColumnWithNonAggFunctionDefinion;
+import io.github.mnesimiyilmaz.sql4json.generated.SQL4JsonParser;
 import io.github.mnesimiyilmaz.sql4json.utils.ComparisonUtils;
 import io.github.mnesimiyilmaz.sql4json.utils.FieldKey;
 import io.github.mnesimiyilmaz.sql4json.utils.ValueUtils;
