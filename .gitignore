@@ -24,3 +24,7 @@ build/
 !**/src/test/**/build/
 .vscode/
 .DS_Store
+.worktrees/
+/src/test/resources/data-files/*.json
+.claude
+.mvn/wrapper/maven-wrapper.jar
