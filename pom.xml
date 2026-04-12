@@ -61,7 +61,7 @@
         <!-- excludes @Tag("large") tests by default; override to empty to include them -->
         <surefire.excludedGroups.default>large</surefire.excludedGroups.default>
         <surefire.groups.default/>
-        <dependency-check-maven.version>12.1.0</dependency-check-maven.version>
+        <dependency-check-maven.version>12.2.1</dependency-check-maven.version>
         <maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
         <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
     </properties>
