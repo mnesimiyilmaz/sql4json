@@ -62,7 +62,7 @@
         <surefire.excludedGroups.default>large</surefire.excludedGroups.default>
         <surefire.groups.default/>
         <dependency-check-maven.version>12.1.0</dependency-check-maven.version>
-        <maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
+        <maven-surefire-plugin.version>3.5.5</maven-surefire-plugin.version>
         <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
     </properties>
 
