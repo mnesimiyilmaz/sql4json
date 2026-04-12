@@ -27,12 +27,15 @@ jobs:
           cache: maven
 
       - name: Generate Javadoc
-        run: ./mvnw javadoc:javadoc -q
+        run: >-
+          ./mvnw javadoc:javadoc -q
+          -Dmaven.javadoc.legacyMode=true
+          -DsourceFileExcludes=module-info.java
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: target/site/apidocs
+          path: target/reports/apidocs
 
   deploy:
     needs: build
