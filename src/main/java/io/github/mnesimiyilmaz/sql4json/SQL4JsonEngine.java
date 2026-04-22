@@ -1,5 +1,6 @@
 package io.github.mnesimiyilmaz.sql4json;
 
+import io.github.mnesimiyilmaz.sql4json.engine.ParameterSubstitutor;
 import io.github.mnesimiyilmaz.sql4json.engine.QueryExecutor;
 import io.github.mnesimiyilmaz.sql4json.engine.Row;
 import io.github.mnesimiyilmaz.sql4json.parser.QueryDefinition;
@@ -136,6 +137,107 @@ public final class SQL4JsonEngine {
             return codec.parse(rawJson);
         }
         return null;
+    }
+
+    /**
+     * Execute a query against bound data and map the single-row result to {@code type}.
+     * Unwrap rules match {@link SQL4Json#queryAs(String, String, Class)}.
+     *
+     * @param sql  SQL SELECT query
+     * @param type target class
+     * @param <T>  target type
+     * @return mapped instance
+     * @since 1.1.0
+     */
+    public <T> T queryAs(String sql, Class<T> type) {
+        JsonValue raw = queryAsJsonValue(sql);
+        return SQL4Json.unwrapAndMap(raw, type, settings);
+    }
+
+    /**
+     * Execute a query against bound data and map each row to {@code type}.
+     *
+     * @param sql  SQL SELECT query
+     * @param type target class
+     * @param <T>  target type
+     * @return unmodifiable list of mapped instances
+     * @since 1.1.0
+     */
+    public <T> List<T> queryAsList(String sql, Class<T> type) {
+        JsonValue raw = queryAsJsonValue(sql);
+        return SQL4Json.mapList(raw, type, settings);
+    }
+
+    /**
+     * Executes a parameterised SQL query against the bound data. Parameterised queries
+     * always bypass the result cache: parse reuse is already delivered by
+     * {@link PreparedQuery}, and result caching across distinct bind sets is low-value
+     * given the near-unbounded key space.
+     *
+     * @param sql    SQL SELECT query with {@code ?} / {@code :name} placeholders
+     * @param params bound parameter values
+     * @return result serialised as a JSON string
+     * @throws io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonBindException      if binding fails
+     * @throws io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonParseException     if SQL is invalid
+     * @throws io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException on exec errors
+     * @since 1.1.0
+     */
+    public String query(String sql, BoundParameters params) {
+        return codec.serialize(queryAsJsonValue(sql, params));
+    }
+
+    /**
+     * Executes a parameterised SQL query and returns the result as a {@link JsonValue}.
+     * See {@link #query(String, BoundParameters)} for caching semantics.
+     *
+     * @param sql    SQL SELECT query with placeholders
+     * @param params bound parameter values
+     * @return result as a {@code JsonValue}
+     * @since 1.1.0
+     */
+    public JsonValue queryAsJsonValue(String sql, BoundParameters params) {
+        SQL4Json.validateQuery(sql);
+        QueryDefinition definition = QueryParser.parse(sql, settings);
+        boolean hasParams = definition.positionalCount() > 0
+                || !definition.namedParameters().isEmpty()
+                || definition.limitParam() != null
+                || definition.offsetParam() != null;
+        if (!hasParams) {
+            // No placeholders detected — fall through to the cached path for parity with query(sql).
+            return queryAsJsonValue(sql);
+        }
+        QueryDefinition resolved = ParameterSubstitutor.substitute(definition, params, settings);
+        return executeQuery(resolved);
+    }
+
+    /**
+     * Executes a parameterised SQL query and maps the single-row result to {@code type}.
+     *
+     * @param sql    SQL SELECT query with placeholders
+     * @param type   target class
+     * @param params bound parameter values
+     * @param <T>    target type
+     * @return mapped instance
+     * @since 1.1.0
+     */
+    public <T> T queryAs(String sql, Class<T> type, BoundParameters params) {
+        JsonValue raw = queryAsJsonValue(sql, params);
+        return SQL4Json.unwrapAndMap(raw, type, settings);
+    }
+
+    /**
+     * Executes a parameterised SQL query and maps each result row to {@code type}.
+     *
+     * @param sql    SQL SELECT query with placeholders
+     * @param type   target class
+     * @param params bound parameter values
+     * @param <T>    element type
+     * @return unmodifiable list of mapped instances
+     * @since 1.1.0
+     */
+    public <T> List<T> queryAsList(String sql, Class<T> type, BoundParameters params) {
+        JsonValue raw = queryAsJsonValue(sql, params);
+        return SQL4Json.mapList(raw, type, settings);
     }
 
     /**

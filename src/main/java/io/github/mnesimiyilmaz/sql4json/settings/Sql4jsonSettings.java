@@ -8,7 +8,7 @@ import java.util.function.Consumer;
 
 /**
  * Top-level immutable configuration for SQL4Json: composes security policy,
- * numeric limits, cache configuration, and the JSON codec instance.
+ * numeric limits, cache configuration, object-mapping behavior, and the JSON codec instance.
  *
  * <p>Obtain via {@link #defaults()} for safe defaults, or {@link #builder()}
  * to customize specific subsections.</p>
@@ -33,21 +33,20 @@ import java.util.function.Consumer;
  * @param security security policy subsection (LIKE wildcard limits, error redaction)
  * @param limits   SQL parser and pipeline limits subsection (SQL length, row caps, etc.)
  * @param cache    cache configuration subsection (LIKE-pattern cache, query-result cache)
+ * @param mapping  object-mapping subsection (missing-field policy, etc.)
  * @param codec    JSON codec used for parsing and serialization
  * @see SecuritySettings
  * @see LimitsSettings
  * @see CacheSettings
+ * @see MappingSettings
  * @see DefaultJsonCodecSettings
  * @see DefaultJsonCodec
  */
 public record Sql4jsonSettings(
-        /** Security policy (LIKE wildcard limits, error redaction). */
         SecuritySettings security,
-        /** SQL parser and pipeline limits (SQL length, row caps, etc.). */
         LimitsSettings limits,
-        /** LIKE-pattern cache and optional query-result cache configuration. */
         CacheSettings cache,
-        /** JSON codec used for parsing and serialization. */
+        MappingSettings mapping,
         JsonCodec codec) {
 
     /**
@@ -56,12 +55,14 @@ public record Sql4jsonSettings(
      * @param security security policy subsection
      * @param limits   SQL parser and pipeline limits subsection
      * @param cache    cache configuration subsection
+     * @param mapping  object-mapping subsection
      * @param codec    JSON codec for parsing and serialization
      */
     public Sql4jsonSettings {
         Objects.requireNonNull(security, "security");
         Objects.requireNonNull(limits, "limits");
         Objects.requireNonNull(cache, "cache");
+        Objects.requireNonNull(mapping, "mapping");
         Objects.requireNonNull(codec, "codec");
     }
 
@@ -69,6 +70,7 @@ public record Sql4jsonSettings(
             SecuritySettings.defaults(),
             LimitsSettings.defaults(),
             CacheSettings.defaults(),
+            MappingSettings.defaults(),
             new DefaultJsonCodec());
 
     /**
@@ -105,12 +107,14 @@ public record Sql4jsonSettings(
         private final SecuritySettings.Builder security;
         private final LimitsSettings.Builder   limits;
         private final CacheSettings.Builder    cache;
+        private final MappingSettings.Builder  mapping;
         private       JsonCodec                codec;
 
         Builder(Sql4jsonSettings src) {
             this.security = src.security.toBuilder();
             this.limits = src.limits.toBuilder();
             this.cache = src.cache.toBuilder();
+            this.mapping = src.mapping.toBuilder();
             this.codec = src.codec;
         }
 
@@ -154,6 +158,20 @@ public record Sql4jsonSettings(
         }
 
         /**
+         * Customizes the {@link MappingSettings} subsection.
+         *
+         * @param fn consumer that receives the mutable builder; call setters on it to
+         *           override mapping defaults
+         * @return this builder
+         * @see MappingSettings
+         * @since 1.1.0
+         */
+        public Builder mapping(Consumer<MappingSettings.Builder> fn) {
+            fn.accept(mapping);
+            return this;
+        }
+
+        /**
          * Replaces the JSON codec used by this settings instance.
          *
          * <p>The default codec is {@link DefaultJsonCodec} with its own safe defaults.
@@ -176,7 +194,8 @@ public record Sql4jsonSettings(
          * @return a new settings instance
          */
         public Sql4jsonSettings build() {
-            return new Sql4jsonSettings(security.build(), limits.build(), cache.build(), codec);
+            return new Sql4jsonSettings(security.build(), limits.build(), cache.build(),
+                    mapping.build(), codec);
         }
     }
 }

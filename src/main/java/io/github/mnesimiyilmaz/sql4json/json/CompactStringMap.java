@@ -14,6 +14,10 @@ import java.util.*;
  *
  * <p>This map is unmodifiable: all mutation methods throw {@link UnsupportedOperationException}.
  */
+// NullableProblems: JDK's Map/AbstractMap contract annotates return types with @NotNull; this
+//                   library avoids a nullability-annotation dependency, so overrides inherit
+//                   the contract implicitly (none of the overridden methods return null).
+@SuppressWarnings("NullableProblems")
 final class CompactStringMap<V> extends AbstractMap<String, V> {
 
     private final String[] keys;

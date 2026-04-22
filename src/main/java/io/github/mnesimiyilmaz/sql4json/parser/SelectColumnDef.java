@@ -104,6 +104,7 @@ public record SelectColumnDef(
             case Expression.LiteralVal ignored -> null;
             case Expression.WindowFnCall ignored -> null;
             case Expression.NowRef() -> null;
+            case Expression.ParameterRef ignored -> null;
         };
     }
 

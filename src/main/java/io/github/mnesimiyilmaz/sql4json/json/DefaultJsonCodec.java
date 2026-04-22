@@ -10,6 +10,7 @@ import java.util.Objects;
  * Built-in {@link JsonCodec} backed by the library's own JSON parser and serializer.
  * This is the default used when no custom codec is provided.
  */
+@SuppressWarnings("ClassCanBeRecord")
 public final class DefaultJsonCodec implements JsonCodec {
 
     private final DefaultJsonCodecSettings settings;

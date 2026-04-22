@@ -64,6 +64,7 @@ public record DefaultJsonCodecSettings(
         Objects.requireNonNull(duplicateKeyPolicy, "duplicateKeyPolicy");
     }
 
+    @SuppressWarnings("PointlessArithmeticExpression")
     private static final DefaultJsonCodecSettings DEFAULTS = new DefaultJsonCodecSettings(
             10 * 1024 * 1024,           // maxInputLength          — 10 MiB total JSON input
             64,                         // maxNestingDepth         — object/array nesting

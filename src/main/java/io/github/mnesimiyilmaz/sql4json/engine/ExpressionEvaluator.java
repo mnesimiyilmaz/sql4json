@@ -80,6 +80,8 @@ public final class ExpressionEvaluator {
                 yield elseExpr != null ? evaluate(elseExpr, row, registry) : SqlNull.INSTANCE;
             }
             case NowRef() -> new SqlDateTime(LocalDateTime.now());
+            case Expression.ParameterRef ignored -> throw new IllegalStateException(
+                    "ParameterRef reached evaluator — parameter substitution was skipped");
         };
     }
 
@@ -136,6 +138,8 @@ public final class ExpressionEvaluator {
             case SearchedCaseWhen(var clauses, var elseExpr) ->
                     aggregateSearchedCase(clauses, elseExpr, group, registry);
             case NowRef() -> new SqlDateTime(LocalDateTime.now());
+            case Expression.ParameterRef ignored -> throw new IllegalStateException(
+                    "ParameterRef reached evaluator — parameter substitution was skipped");
         };
     }
 

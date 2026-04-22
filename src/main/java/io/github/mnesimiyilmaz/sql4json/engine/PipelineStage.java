@@ -3,7 +3,7 @@ package io.github.mnesimiyilmaz.sql4json.engine;
 import java.util.stream.Stream;
 
 /**
- * A stage in the v2 query execution pipeline.
+ * A stage in the query execution pipeline.
  * Lazy stages do not buffer rows; materializing stages must collect the full stream.
  * <p>
  * Sealed: only LazyPipelineStage and MaterializingPipelineStage are permitted.

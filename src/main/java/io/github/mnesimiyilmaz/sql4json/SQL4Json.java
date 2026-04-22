@@ -12,6 +12,7 @@ import io.github.mnesimiyilmaz.sql4json.types.JsonCodec;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -42,7 +43,20 @@ import java.util.Objects;
  *     .data(jsonString)
  *     .build();
  * String result = engine.query(sql);
+ *
+ * // Parameterised execution — use prepare() then execute with BoundParameters
+ * String r = SQL4Json.prepare("SELECT * FROM $r WHERE age > :min")
+ *     .execute(jsonString, BoundParameters.named().bind("min", 25));
  * }</pre>
+ *
+ * <p>Parameter binding ({@code ?} / {@code :name} placeholders) is only exposed on
+ * {@link PreparedQuery} and {@link SQL4JsonEngine} — there is no
+ * {@code SQL4Json.query(..., BoundParameters)} overload. For one-off parameterised
+ * execution, use {@code SQL4Json.prepare(sql).execute(json, params)}.
+ *
+ * @see PreparedQuery
+ * @see SQL4JsonEngine
+ * @see BoundParameters
  */
 public final class SQL4Json {
 
@@ -296,6 +310,182 @@ public final class SQL4Json {
         });
         QueryDefinition definition = QueryParser.parse(sql, settings);
         return EXECUTOR.execute(definition, parsed, settings);
+    }
+
+    /**
+     * Execute a query and map the result to {@code type}. Unwrap rules:
+     * single-element array collapses to the scalar/record target; zero or
+     * multiple rows for non-collection target throws
+     * {@link io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonMappingException}.
+     *
+     * @param sql      SQL SELECT query
+     * @param jsonData input JSON data
+     * @param type     target class
+     * @param <T>      target type
+     * @return mapped instance
+     * @since 1.1.0
+     */
+    public static <T> T queryAs(String sql, String jsonData, Class<T> type) {
+        return queryAs(sql, jsonData, type, Sql4jsonSettings.defaults());
+    }
+
+    /**
+     * Execute a query with explicit settings and map the result to {@code type}.
+     *
+     * @param sql      SQL SELECT query
+     * @param jsonData input JSON data
+     * @param type     target class
+     * @param settings settings controlling limits, codec, mapping, and other behaviour
+     * @param <T>      target type
+     * @return mapped instance
+     * @since 1.1.0
+     */
+    public static <T> T queryAs(String sql, String jsonData, Class<T> type,
+                                Sql4jsonSettings settings) {
+        Objects.requireNonNull(type, "type");
+        JsonValue raw = queryAsJsonValue(sql, jsonData, settings);
+        return unwrapAndMap(raw, type, settings);
+    }
+
+    /**
+     * Execute a query and map each result row to {@code type}.
+     *
+     * @param sql      SQL SELECT query
+     * @param jsonData input JSON data
+     * @param type     target class
+     * @param <T>      target type
+     * @return immutable list of mapped instances
+     * @since 1.1.0
+     */
+    public static <T> List<T> queryAsList(String sql, String jsonData, Class<T> type) {
+        return queryAsList(sql, jsonData, type, Sql4jsonSettings.defaults());
+    }
+
+    /**
+     * Execute a query with explicit settings and map each result row to {@code type}.
+     *
+     * @param sql      SQL SELECT query
+     * @param jsonData input JSON data
+     * @param type     target class
+     * @param settings settings controlling limits, codec, mapping, and other behaviour
+     * @param <T>      target type
+     * @return immutable list of mapped instances
+     * @since 1.1.0
+     */
+    public static <T> List<T> queryAsList(String sql, String jsonData, Class<T> type,
+                                          Sql4jsonSettings settings) {
+        Objects.requireNonNull(type, "type");
+        JsonValue raw = queryAsJsonValue(sql, jsonData, settings);
+        return mapList(raw, type, settings);
+    }
+
+    /**
+     * Execute a multi-source JOIN query and map the single-row result.
+     *
+     * @param sql         SQL SELECT query (may contain JOINs)
+     * @param dataSources map from table name to JSON data
+     * @param type        target class
+     * @param <T>         target type
+     * @return mapped instance
+     * @since 1.1.0
+     */
+    public static <T> T queryAs(String sql, Map<String, String> dataSources, Class<T> type) {
+        return queryAs(sql, dataSources, type, Sql4jsonSettings.defaults());
+    }
+
+    /**
+     * Execute a multi-source JOIN query with explicit settings and map the single-row result.
+     *
+     * @param sql         SQL SELECT query (may contain JOINs)
+     * @param dataSources map from table name to JSON data
+     * @param type        target class
+     * @param settings    settings controlling limits, codec, mapping, and other behaviour
+     * @param <T>         target type
+     * @return mapped instance
+     * @since 1.1.0
+     */
+    public static <T> T queryAs(String sql, Map<String, String> dataSources, Class<T> type,
+                                Sql4jsonSettings settings) {
+        Objects.requireNonNull(type, "type");
+        JsonValue raw = queryAsJsonValue(sql, dataSources, settings);
+        return unwrapAndMap(raw, type, settings);
+    }
+
+    /**
+     * Execute a multi-source JOIN query and map each result row to {@code type}.
+     *
+     * @param sql         SQL SELECT query (may contain JOINs)
+     * @param dataSources map from table name to JSON data
+     * @param type        target class
+     * @param <T>         target type
+     * @return immutable list of mapped instances
+     * @since 1.1.0
+     */
+    public static <T> List<T> queryAsList(String sql, Map<String, String> dataSources, Class<T> type) {
+        return queryAsList(sql, dataSources, type, Sql4jsonSettings.defaults());
+    }
+
+    /**
+     * Execute a multi-source JOIN query with explicit settings and map each result row to {@code type}.
+     *
+     * @param sql         SQL SELECT query (may contain JOINs)
+     * @param dataSources map from table name to JSON data
+     * @param type        target class
+     * @param settings    settings controlling limits, codec, mapping, and other behaviour
+     * @param <T>         target type
+     * @return immutable list of mapped instances
+     * @since 1.1.0
+     */
+    public static <T> List<T> queryAsList(String sql, Map<String, String> dataSources, Class<T> type,
+                                          Sql4jsonSettings settings) {
+        Objects.requireNonNull(type, "type");
+        JsonValue raw = queryAsJsonValue(sql, dataSources, settings);
+        return mapList(raw, type, settings);
+    }
+
+    static <T> T unwrapAndMap(JsonValue raw, Class<T> type, Sql4jsonSettings settings) {
+        // Passthrough for JsonValue targets
+        if (JsonValue.class.isAssignableFrom(type) && type.isInstance(raw)) {
+            return type.cast(raw);
+        }
+        // Collection-target paths don't unwrap
+        if (java.util.Collection.class.isAssignableFrom(type)
+                || java.util.Map.class.isAssignableFrom(type)
+                || type.isArray()) {
+            return io.github.mnesimiyilmaz.sql4json.mapper.JsonValueMapper.INSTANCE
+                    .map(raw, type, settings.mapping());
+        }
+        // Array result: apply unwrap rules
+        if (raw instanceof io.github.mnesimiyilmaz.sql4json.json.JsonArrayValue(List<JsonValue> elements)) {
+            int n = elements.size();
+            if (n == 0) {
+                throw new io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonMappingException(
+                        "queryAs expected single row, got 0 — use queryAsList or adjust the query");
+            }
+            if (n > 1) {
+                throw new io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonMappingException(
+                        "queryAs expected single row, got " + n + " — use queryAsList or adjust the query");
+            }
+            return io.github.mnesimiyilmaz.sql4json.mapper.JsonValueMapper.INSTANCE
+                    .map(elements.getFirst(), type, settings.mapping());
+        }
+        // Object / scalar result — direct
+        return io.github.mnesimiyilmaz.sql4json.mapper.JsonValueMapper.INSTANCE
+                .map(raw, type, settings.mapping());
+    }
+
+    static <T> List<T> mapList(JsonValue raw, Class<T> type, Sql4jsonSettings settings) {
+        if (!(raw instanceof io.github.mnesimiyilmaz.sql4json.json.JsonArrayValue(List<JsonValue> elements))) {
+            throw new io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonMappingException(
+                    "queryAsList requires an array result");
+        }
+        if (elements.isEmpty()) return List.of();
+        List<T> out = new java.util.ArrayList<>(elements.size());
+        for (JsonValue el : elements) {
+            out.add(io.github.mnesimiyilmaz.sql4json.mapper.JsonValueMapper.INSTANCE
+                    .map(el, type, settings.mapping()));
+        }
+        return java.util.Collections.unmodifiableList(out);
     }
 
     /**

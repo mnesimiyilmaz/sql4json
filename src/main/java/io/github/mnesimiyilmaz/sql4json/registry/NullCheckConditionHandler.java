@@ -14,6 +14,7 @@ public final class NullCheckConditionHandler implements ConditionHandler {
      * Creates a new {@code NullCheckConditionHandler}.
      */
     public NullCheckConditionHandler() {
+        // Stateless handler; behaviour is provided by canHandle/handle.
     }
 
     @Override

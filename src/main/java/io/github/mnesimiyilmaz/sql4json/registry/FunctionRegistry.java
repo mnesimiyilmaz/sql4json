@@ -28,6 +28,7 @@ public final class FunctionRegistry {
      * Creates a new empty function registry.
      */
     public FunctionRegistry() {
+        // Function maps are initialized eagerly; callers populate them via the register* methods.
     }
 
 

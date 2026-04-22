@@ -10,7 +10,7 @@ sql4json
       (GROUP BY groupByColumns)?
       (HAVING havingConditions)?
       (ORDER BY orderByColumns)?
-      (LIMIT NUMBER (OFFSET NUMBER)?)?
+      (LIMIT limitValue (OFFSET limitValue)?)?
       (SEMI_COLON)? EOF?
     ;
 
@@ -127,7 +127,17 @@ selectedColumns
     ;
 
 value
-    : STRING | NUMBER | BOOLEAN | NULL | VALUE_FUNCTION
+    : STRING | NUMBER | BOOLEAN | NULL | VALUE_FUNCTION | parameter
+    ;
+
+limitValue
+    : NUMBER
+    | parameter
+    ;
+
+parameter
+    : POSITIONAL_PARAM
+    | NAMED_PARAM
     ;
 
 // Right-hand side of a comparison: a plain value or a function applied to a value
@@ -283,9 +293,11 @@ DOT         : '.';
 ASTERISK    : '*';
 LPAREN      : '(';
 RPAREN      : ')';
-NUMBER      : '-'? DIGIT+ ('.' DIGIT+)?;
-STRING      : '\'' ( ~('\'') | '\'\'' )* '\'';
-IDENTIFIER  : (LETTER | '_') (LETTER | DIGIT | '_' | '-')*;
+NUMBER           : '-'? DIGIT+ ('.' DIGIT+)?;
+STRING           : '\'' ( ~('\'') | '\'\'' )* '\'';
+POSITIONAL_PARAM : '?';
+NAMED_PARAM      : ':' (LETTER | '_') (LETTER | DIGIT | '_')* ;
+IDENTIFIER       : (LETTER | '_') (LETTER | DIGIT | '_' | '-')*;
 ESC         : [ \t\r\n]+ -> skip;
 
 fragment DIGIT  : [0-9];

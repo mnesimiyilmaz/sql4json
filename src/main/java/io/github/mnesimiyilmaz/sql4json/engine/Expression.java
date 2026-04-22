@@ -17,7 +17,8 @@ import java.util.Set;
 public sealed interface Expression
         permits Expression.ColumnRef, Expression.ScalarFnCall, Expression.AggregateFnCall,
         Expression.LiteralVal, Expression.WindowFnCall,
-        Expression.SimpleCaseWhen, Expression.SearchedCaseWhen, Expression.NowRef {
+        Expression.SimpleCaseWhen, Expression.SearchedCaseWhen, Expression.NowRef,
+        Expression.ParameterRef {
 
     /**
      * Column/field reference: {@code name}, {@code address.city}
@@ -158,6 +159,16 @@ public sealed interface Expression
     record NowRef() implements Expression {
     }
 
+    /**
+     * Unresolved parameter placeholder. Substituted with a {@link LiteralVal} at execute
+     * time by {@code ParameterSubstitutor}. Never seen by {@code ExpressionEvaluator}.
+     *
+     * @param name  named-parameter name, or {@code null} for positional
+     * @param index positional index (0-based), or {@code -1} for named
+     */
+    record ParameterRef(String name, int index) implements Expression {
+    }
+
     // ── Utility methods ───────────────────────────────────────────────────
 
     /**
@@ -193,6 +204,7 @@ public sealed interface Expression
                 if (elseExpr != null) elseExpr.collectReferencedFields(fields);
             }
             case NowRef() -> { /* no fields */ }
+            case ParameterRef ignored -> { /* no fields — unresolved placeholder */ }
         }
     }
 
@@ -212,6 +224,7 @@ public sealed interface Expression
             case SimpleCaseWhen ignored -> null;
             case SearchedCaseWhen ignored -> null;
             case NowRef() -> null;
+            case ParameterRef ignored -> null;
         };
     }
 
@@ -234,6 +247,7 @@ public sealed interface Expression
                     clauses.stream().anyMatch(wc -> wc.result().containsAggregate())
                             || (elseExpr != null && elseExpr.containsAggregate());
             case NowRef() -> false;
+            case ParameterRef ignored -> false;
         };
     }
 
@@ -258,6 +272,7 @@ public sealed interface Expression
                     clauses.stream().anyMatch(wc -> wc.result().containsWindow())
                             || (elseExpr != null && elseExpr.containsWindow());
             case NowRef() -> false;
+            case ParameterRef ignored -> false;
         };
     }
 }

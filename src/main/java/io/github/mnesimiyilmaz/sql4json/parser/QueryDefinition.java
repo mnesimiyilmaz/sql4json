@@ -13,9 +13,9 @@ import java.util.Set;
  * @param selectedColumns          SELECT columns (may include aggregate and alias)
  * @param rootPath                 FROM path, e.g. "$r", "$r.data.items"
  * @param fromSubQuery             raw SQL of inner FROM (SELECT ...) subquery, or null
- * @param whereClause              v2 CriteriaNode (registry package), or null
+ * @param whereClause              CriteriaNode (registry package), or null
  * @param groupBy                  GROUP BY expressions, or null
- * @param havingClause             v2 CriteriaNode for HAVING, or null
+ * @param havingClause             CriteriaNode for HAVING, or null
  * @param orderBy                  ORDER BY column defs, or null
  * @param referencedFields         all field paths referenced anywhere in the query
  * @param distinct                 true iff SELECT DISTINCT was specified
@@ -24,6 +24,12 @@ import java.util.Set;
  * @param containsNonDeterministic true iff the query references non-deterministic functions (e.g. NOW())
  * @param rootAlias                alias for the root FROM source, or null for plain $r queries
  * @param joins                    JOIN definitions, or null when no JOINs are present
+ * @param limitParam               non-null when LIMIT uses a placeholder; substitution resolves it
+ * @param offsetParam              non-null when OFFSET uses a placeholder; substitution resolves it
+ * @param positionalCount          total {@code ?} placeholders across this def and captured subqueries
+ * @param namedParameters          all {@code :name} placeholders seen across this def and subqueries
+ * @param subqueryPositionalOffset the global offset to pass when re-parsing the inner subquery
+ *                                 (0 for top-level parse without subqueries)
  */
 public record QueryDefinition(
         List<SelectColumnDef> selectedColumns,
@@ -39,7 +45,12 @@ public record QueryDefinition(
         Integer offset,
         boolean containsNonDeterministic,
         String rootAlias,
-        List<JoinDef> joins
+        List<JoinDef> joins,
+        Expression.ParameterRef limitParam,
+        Expression.ParameterRef offsetParam,
+        int positionalCount,
+        Set<String> namedParameters,
+        int subqueryPositionalOffset
 ) {
     /**
      * True iff this is a bare SELECT * (no projection).

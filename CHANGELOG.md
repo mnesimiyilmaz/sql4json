@@ -5,6 +5,39 @@ All notable changes to SQL4Json are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-04-23
+
+### Added — Object Mapping
+- `SQL4Json.queryAs` and `queryAsList` — map query results directly to Java records, POJOs, or basic types (both single-source and JOIN variants).
+- `PreparedQuery.executeAs` and `executeAsList` (`String` and `JsonValue` overloads).
+- `SQL4JsonEngine.queryAs` and `queryAsList`.
+- `JsonValue.as(Class)` and `JsonValue.as(Class, Sql4jsonSettings)` default methods on the sealed interface.
+- `MappingSettings` subsection of `Sql4jsonSettings` with `MissingFieldPolicy` enum (`IGNORE` / `FAIL`).
+- `SQL4JsonMappingException` (new sealed subclass of `SQL4JsonException`).
+
+### Added — Parameter Binding
+- `PreparedQuery.execute(String json, BoundParameters params)` and `execute(JsonValue, BoundParameters)`.
+- `PreparedQuery.execute(String json, Object... positionalParams)` shortcut.
+- `PreparedQuery.execute(String json, Map<String, ?> namedParams)` shortcut.
+- `PreparedQuery.executeAs` / `executeAsList` with `BoundParameters` overloads.
+- `SQL4JsonEngine.query` / `queryAsJsonValue` / `queryAs` / `queryAsList` with `BoundParameters` overloads.
+- `BoundParameters` immutable carrier (named & positional modes, `named()` / `positional()` / `of(Object...)` / `of(Map)` factories, `bind` / `bindAll`, `EMPTY` singleton).
+- Grammar support for `?` (positional) and `:name` (named) placeholders throughout WHERE / SELECT / GROUP BY / HAVING / JOIN / function arguments.
+- Dynamic `LIMIT` / `OFFSET` binding (placeholders accepted in both positions).
+- IN-list expansion: `IN (?)` + collection bound → expanded to N literals; empty collection → zero-row predicate.
+- `LimitsSettings.maxParameters` (default `1024`) — DoS guard against placeholder flooding.
+- `SQL4JsonBindException` (new sealed subclass of `SQL4JsonException`) — surfaced at substitute time for missing / extra / type-mismatch bindings, IN-list overflow, and LIMIT/OFFSET validation failures.
+
+### Changed
+- `Sql4jsonSettings` gains a `mapping` component (all existing construction paths preserved via builder).
+- Grammar now recognizes `?` and `:name` as placeholders in value positions.
+- `LimitsSettings` canonical-constructor signature extended (`maxParameters`) — public callers using `.builder()` unaffected.
+- `SQL4JsonEngine` bypasses `QueryResultCache` for parameterized queries.
+- Internal: ISO date/datetime/instant parsing consolidated into `json.IsoTemporals`; `registry.DateCoercion` delegates.
+
+### Dependencies
+- No new runtime dependencies — zero-dep philosophy preserved.
+
 ## [1.0.0] - 2026-04-10
 
 Initial public release.
@@ -76,4 +109,5 @@ Initial public release.
 - OWASP dependency-check plugin
 - Dependabot for automated dependency updates
 
+[1.1.0]: https://github.com/mnesimiyilmaz/sql4json/releases/tag/v1.1.0
 [1.0.0]: https://github.com/mnesimiyilmaz/sql4json/releases/tag/v1.0.0

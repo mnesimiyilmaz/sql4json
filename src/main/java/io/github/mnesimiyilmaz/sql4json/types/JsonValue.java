@@ -1,6 +1,8 @@
 package io.github.mnesimiyilmaz.sql4json.types;
 
 import io.github.mnesimiyilmaz.sql4json.json.*;
+import io.github.mnesimiyilmaz.sql4json.mapper.JsonValueMapper;
+import io.github.mnesimiyilmaz.sql4json.settings.Sql4jsonSettings;
 
 import java.util.List;
 import java.util.Map;
@@ -111,4 +113,39 @@ public sealed interface JsonValue
      * @return the boolean if this is a boolean value, or {@link Optional#empty()} otherwise
      */
     Optional<Boolean> asBoolean();
+
+    /**
+     * Maps this {@code JsonValue} to an instance of {@code type} using default settings.
+     *
+     * <p>Equivalent to {@code as(type, Sql4jsonSettings.defaults())}.
+     *
+     * @param <T>  target type
+     * @param type target class; must not be {@code null}
+     * @return mapped instance; may be {@code null} if this value is JSON {@code null}
+     * and {@code type} is a reference type
+     * @throws io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonMappingException if the value cannot be converted to {@code type}
+     * @since 1.1.0
+     */
+    default <T> T as(Class<T> type) {
+        return as(type, Sql4jsonSettings.defaults());
+    }
+
+    /**
+     * Maps this {@code JsonValue} to an instance of {@code type} using the supplied settings.
+     *
+     * <p>The {@link io.github.mnesimiyilmaz.sql4json.settings.MappingSettings} subsection
+     * of {@code settings} controls behaviour for missing record/POJO fields
+     * (see {@link io.github.mnesimiyilmaz.sql4json.settings.MissingFieldPolicy}).
+     *
+     * @param <T>      target type
+     * @param type     target class; must not be {@code null}
+     * @param settings mapping configuration; must not be {@code null}
+     * @return mapped instance; may be {@code null} if this value is JSON {@code null}
+     * and {@code type} is a reference type
+     * @throws io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonMappingException if the value cannot be converted to {@code type}
+     * @since 1.1.0
+     */
+    default <T> T as(Class<T> type, Sql4jsonSettings settings) {
+        return JsonValueMapper.INSTANCE.map(this, type, settings.mapping());
+    }
 }

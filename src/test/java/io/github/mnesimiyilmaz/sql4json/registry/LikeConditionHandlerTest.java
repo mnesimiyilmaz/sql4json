@@ -37,7 +37,8 @@ class LikeConditionHandlerTest {
         SqlString patternVal = new SqlString(pattern);
         return new ConditionContext(ConditionContext.ConditionType.LIKE,
                 new ColumnRef(col), "LIKE", patternVal,
-                new Expression.LiteralVal(patternVal), null, null, null);
+                new Expression.LiteralVal(patternVal), null, null, null,
+                null, null, null);
     }
 
     private CriteriaNode nodeFor(String col, String pattern) {
@@ -55,7 +56,8 @@ class LikeConditionHandlerTest {
     void canHandle_comparison_false() {
         ConditionContext ctx = new ConditionContext(ConditionContext.ConditionType.COMPARISON,
                 new ColumnRef("age"), ">", SqlNumber.of(1),
-                new Expression.LiteralVal(SqlNumber.of(1)), null, null, null);
+                new Expression.LiteralVal(SqlNumber.of(1)), null, null, null,
+                null, null, null);
         assertFalse(handler.canHandle(ctx));
     }
 

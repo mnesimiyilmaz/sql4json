@@ -24,6 +24,7 @@ public final class OperatorRegistry {
      * Creates a new empty {@code OperatorRegistry}.
      */
     public OperatorRegistry() {
+        // Operator map is initialized eagerly; callers populate it via register().
     }
 
     /**

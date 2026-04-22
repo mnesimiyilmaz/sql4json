@@ -6,7 +6,7 @@
 
     <groupId>io.github.mnesimiyilmaz</groupId>
     <artifactId>sql4json</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <packaging>jar</packaging>
     <name>SQL4Json</name>
     <description>Query JSON data using SQL — filter, aggregate, sort, and project without a database.</description>

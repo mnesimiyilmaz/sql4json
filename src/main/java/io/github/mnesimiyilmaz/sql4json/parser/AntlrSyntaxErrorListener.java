@@ -14,6 +14,7 @@ public class AntlrSyntaxErrorListener extends BaseErrorListener {
      * Creates a new ANTLR syntax error listener.
      */
     public AntlrSyntaxErrorListener() {
+        // No state to initialize; behaviour is provided by the overridden syntaxError hook.
     }
 
     @Override

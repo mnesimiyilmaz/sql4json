@@ -16,7 +16,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 /**
- * Top-level query orchestrator for the v2 pipeline.
+ * Top-level query orchestrator for the pipeline.
  * <p>
  * Responsibilities:
  * - Parse SQL to QueryDefinition (via QueryParser)
@@ -144,7 +144,8 @@ public final class QueryExecutor {
         }
         // Resolve FROM subquery recursively — pre-flattened rows don't apply to derived data
         if (query.fromSubQuery() != null) {
-            data = executeWithDepth(QueryParser.parse(query.fromSubQuery(), settings),
+            data = executeWithDepth(
+                    QueryParser.parse(query.fromSubQuery(), settings, query.subqueryPositionalOffset()),
                     data, List.of(), currentDepth + 1, settings);
             preFlattenedRows = List.of();
         }
@@ -248,7 +249,8 @@ public final class QueryExecutor {
         // Handle FROM subquery: inner query streams and materializes to JsonValue,
         // outer query uses tree path on the smaller result.
         if (query.fromSubQuery() != null) {
-            QueryDefinition innerQuery = QueryParser.parse(query.fromSubQuery(), settings);
+            QueryDefinition innerQuery = QueryParser.parse(
+                    query.fromSubQuery(), settings, query.subqueryPositionalOffset());
             JsonValue innerResult = executeStreamingAsJsonValueInternal(
                     innerQuery, jsonString, settings, currentDepth + 1);
             return JsonFlattener.streamLazy(innerResult, null, interner);

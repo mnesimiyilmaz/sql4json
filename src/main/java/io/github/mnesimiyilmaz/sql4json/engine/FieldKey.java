@@ -25,6 +25,7 @@ public final class FieldKey {
          * Creates a new empty interner.
          */
         public Interner() {
+            // Pools are initialized eagerly via field initializers.
         }
 
         /**

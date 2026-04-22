@@ -6,7 +6,8 @@ package io.github.mnesimiyilmaz.sql4json.exception;
  * @see SQL4JsonParseException
  * @see SQL4JsonExecutionException
  */
-public sealed class SQL4JsonException extends RuntimeException permits SQL4JsonParseException, SQL4JsonExecutionException {
+public sealed class SQL4JsonException extends RuntimeException
+        permits SQL4JsonParseException, SQL4JsonExecutionException, SQL4JsonMappingException, SQL4JsonBindException {
 
     /**
      * Creates an exception with the given message.

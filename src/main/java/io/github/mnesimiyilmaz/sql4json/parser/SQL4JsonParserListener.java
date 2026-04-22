@@ -21,7 +21,7 @@ import java.util.Set;
 
 /**
  * ANTLR listener that walks a parsed sql4json tree and produces a QueryDefinition.
- * Uses ConditionHandlerRegistry to build v2 registry.CriteriaNode for WHERE/HAVING.
+ * Uses ConditionHandlerRegistry to build registry.CriteriaNode for WHERE/HAVING.
  * <p>
  * One instance per parse — not thread-safe, not reusable.
  * <p>
@@ -56,14 +56,33 @@ class SQL4JsonParserListener extends SQL4JsonBaseListener {
     // The inner SQL is reparsed independently by QueryExecutor.
     private boolean insideSubquery = false;
 
+    // Parameter-binding state
+    private       boolean                         sawPositional          = false;
+    private       boolean                         sawNamed               = false;
+    private       int                             positionalCount        = 0;
+    private final java.util.LinkedHashSet<String> namedParameters        = new java.util.LinkedHashSet<>();
+    private       Expression.ParameterRef         limitParam             = null;
+    private       Expression.ParameterRef         offsetParam            = null;
+    private final int                             positionalOffset;  // injected via constructor — starting offset for subquery re-parse
+    private       int                             capturedSubqueryOffset = 0;  // set when entering a FROM subquery (Task 8 uses this)
+
     SQL4JsonParserListener(CommonTokenStream tokenStream,
                            ConditionHandlerRegistry conditionHandlerRegistry,
                            FunctionRegistry functionRegistry,
                            Sql4jsonSettings settings) {
+        this(tokenStream, conditionHandlerRegistry, functionRegistry, settings, 0);
+    }
+
+    SQL4JsonParserListener(CommonTokenStream tokenStream,
+                           ConditionHandlerRegistry conditionHandlerRegistry,
+                           FunctionRegistry functionRegistry,
+                           Sql4jsonSettings settings,
+                           int positionalOffset) {
         this.tokenStream = tokenStream;
         this.conditionHandlerRegistry = conditionHandlerRegistry;
         this.functionRegistry = functionRegistry;
         this.settings = settings;
+        this.positionalOffset = positionalOffset;
     }
 
     // ── Listener overrides ────────────────────────────────────────────────────
@@ -89,8 +108,14 @@ class SQL4JsonParserListener extends SQL4JsonBaseListener {
             // FROM (SELECT ...) subquery — capture raw SQL text preserving original whitespace.
             // tokenStream.getText() strips hidden whitespace tokens; use the char stream instead.
             var inner = ctx.sql4json();
+            // Capture outer's positional count BEFORE the pre-scan — this is the offset the inner
+            // re-parse will use (Task 9). Must happen before preScanSubqueryTokens advances it.
+            this.capturedSubqueryOffset = this.positionalCount;
             this.fromSubQuery = inner.start.getInputStream()
                     .getText(new Interval(inner.start.getStartIndex(), inner.stop.getStopIndex()));
+            // Pre-scan the subquery's token range to advance the outer's global counters as if
+            // those placeholders were consumed — JDBC numbers positional params globally.
+            preScanSubqueryTokens(inner.start.getTokenIndex(), inner.stop.getTokenIndex());
             this.insideSubquery = true; // suppress callbacks for the inner sql4json subtree
         } else if (ctx.ROOT() != null) {
             // FROM $r or FROM $r.path
@@ -121,41 +146,44 @@ class SQL4JsonParserListener extends SQL4JsonBaseListener {
     @Override
     public void exitSql4json(SQL4JsonParser.Sql4jsonContext ctx) {
         if (insideSubquery) return;
-        if (ctx.LIMIT() != null) {
-            this.limit = parseNonNegativeToken(ctx.LIMIT().getSymbol().getTokenIndex(), "LIMIT");
-            if (ctx.OFFSET() != null) {
-                this.offset = parseNonNegativeToken(ctx.OFFSET().getSymbol().getTokenIndex(), "OFFSET");
+        if (ctx.LIMIT() != null && !ctx.limitValue().isEmpty()) {
+            processLimitValue(ctx.limitValue(0), true);
+            if (ctx.OFFSET() != null && ctx.limitValue().size() > 1) {
+                processLimitValue(ctx.limitValue(1), false);
             }
         }
     }
 
     /**
-     * Finds the NUMBER token immediately following the given keyword token and validates it
-     * is non-negative.
+     * Processes a single {@code limitValue} rule context (LIMIT or OFFSET). A literal NUMBER
+     * is assigned directly to {@link #limit} / {@link #offset} (after non-negativity validation);
+     * a parameter placeholder is captured as {@link Expression.ParameterRef} into
+     * {@link #limitParam} / {@link #offsetParam} for later substitution.
+     *
+     * @param lvCtx   the {@code limitValue} rule context from the parse tree
+     * @param isLimit {@code true} if this is LIMIT, {@code false} if OFFSET (affects which
+     *                field is populated and which clause name appears in error messages)
      */
-    private Integer parseNonNegativeToken(int keywordTokenIndex, String clauseName) {
-        org.antlr.v4.runtime.Token numToken = nextNonHiddenToken(keywordTokenIndex + 1);
-        if (numToken == null) return null;
-        int parsed = Integer.parseInt(numToken.getText());
-        if (parsed < 0) {
-            throw new SQL4JsonExecutionException(
-                    clauseName + " must be non-negative, got: " + parsed);
-        }
-        return parsed;
-    }
-
-    /**
-     * Returns the first non-hidden-channel token at or after the given index.
-     */
-    private org.antlr.v4.runtime.Token nextNonHiddenToken(int startIndex) {
-        var tokens = tokenStream.getTokens();
-        for (int i = startIndex; i < tokens.size(); i++) {
-            var t = tokens.get(i);
-            if (t.getChannel() == org.antlr.v4.runtime.Token.DEFAULT_CHANNEL) {
-                return t;
+    private void processLimitValue(SQL4JsonParser.LimitValueContext lvCtx, boolean isLimit) {
+        if (lvCtx.NUMBER() != null) {
+            int v = Integer.parseInt(lvCtx.NUMBER().getText());
+            if (v < 0) {
+                throw new SQL4JsonExecutionException(
+                        (isLimit ? "LIMIT" : "OFFSET") + " must be non-negative, got: " + v);
+            }
+            if (isLimit) {
+                this.limit = v;
+            } else {
+                this.offset = v;
+            }
+        } else if (lvCtx.parameter() != null) {
+            Expression.ParameterRef p = toParameterRef(lvCtx.parameter());
+            if (isLimit) {
+                this.limitParam = p;
+            } else {
+                this.offsetParam = p;
             }
         }
-        return null;
     }
 
     @Override
@@ -231,6 +259,14 @@ class SQL4JsonParserListener extends SQL4JsonBaseListener {
     // ── Build result ──────────────────────────────────────────────────────────
 
     QueryDefinition buildQueryDefinition() {
+        int maxParams = settings.limits().maxParameters();
+        int totalParams = positionalCount + namedParameters.size();
+        if (totalParams > maxParams) {
+            throw new SQL4JsonParseException(
+                    "Query parameter count " + totalParams
+                            + " exceeds configured maximum (" + maxParams + ")",
+                    0, 0);
+        }
         return new QueryDefinition(
                 List.copyOf(selectedColumns),
                 rootPath,
@@ -245,10 +281,15 @@ class SQL4JsonParserListener extends SQL4JsonBaseListener {
                 offset,
                 containsNonDeterministic,
                 rootAlias,
-                joins != null ? List.copyOf(joins) : null);
+                joins != null ? List.copyOf(joins) : null,
+                limitParam,
+                offsetParam,
+                positionalCount,
+                Set.copyOf(namedParameters),
+                capturedSubqueryOffset);
     }
 
-    // ── Conditions tree → v2 CriteriaNode ────────────────────────────────────
+    // ── Conditions tree → CriteriaNode ────────────────────────────────────
 
     private CriteriaNode buildCriteriaNode(SQL4JsonParser.ConditionsContext ctx) {
         if (ctx instanceof SQL4JsonParser.OrConditionsContext orCtx) {
@@ -266,7 +307,7 @@ class SQL4JsonParserListener extends SQL4JsonBaseListener {
             if (cc.lhsExpression() != null) {
                 trackReferencedFields(cc.lhsExpression());
             }
-            return conditionHandlerRegistry.resolve(cc);
+            return new SingleConditionNode(cc, conditionHandlerRegistry.resolve(cc));
         }
         throw new SQL4JsonExecutionException(
                 "Unsupported conditions context: " + ctx.getClass().getSimpleName());
@@ -279,40 +320,34 @@ class SQL4JsonParserListener extends SQL4JsonBaseListener {
             Expression rhs = buildRhsExpression(comp.rhsValue());
             SqlValue testVal = (rhs instanceof Expression.LiteralVal(var val)) ? val : null;
             return new ConditionContext(ConditionContext.ConditionType.COMPARISON,
-                    lhs, comp.COMPARISON_OPERATOR().getText(), testVal, rhs, null, null, null);
+                    lhs, comp.COMPARISON_OPERATOR().getText(), testVal, rhs, null, null, null,
+                    null, null, null);
         } else if (ctx instanceof SQL4JsonParser.LikeConditionContext likeCtx) {
             Expression lhs = buildExpression(likeCtx.like().columnExpr());
             Expression rhs = buildRhsExpression(likeCtx.like().rhsValue());
             SqlValue testVal = (rhs instanceof Expression.LiteralVal(var val)) ? val : null;
             enforceLikeWildcardLimit(testVal);
             return new ConditionContext(ConditionContext.ConditionType.LIKE,
-                    lhs, "LIKE", testVal, rhs, null, null, null);
+                    lhs, "LIKE", testVal, rhs, null, null, null,
+                    null, null, null);
         } else if (ctx instanceof SQL4JsonParser.IsNullConditionContext nullCtx) {
             Expression lhs = buildExpression(nullCtx.isNull().columnExpr());
             return new ConditionContext(ConditionContext.ConditionType.IS_NULL,
-                    lhs, null, null, null, null, null, null);
+                    lhs, null, null, null, null, null, null,
+                    null, null, null);
         } else if (ctx instanceof SQL4JsonParser.IsNotNullConditionContext notNullCtx) {
             Expression lhs = buildExpression(notNullCtx.isNotNull().columnExpr());
             return new ConditionContext(ConditionContext.ConditionType.IS_NOT_NULL,
-                    lhs, null, null, null, null, null, null);
+                    lhs, null, null, null, null, null, null,
+                    null, null, null);
         } else if (ctx instanceof SQL4JsonParser.InConditionContext inCtx) {
             var inRule = inCtx.in();
-            Expression lhs = buildExpression(inRule.columnExpr());
-            List<SqlValue> values = inRule.rhsValue().stream()
-                    .map(this::getRhsSqlValue)
-                    .toList();
-            enforceInListSizeLimit(values.size());
-            return new ConditionContext(ConditionContext.ConditionType.IN,
-                    lhs, null, null, null, values, null, null);
+            return buildInContext(inRule.columnExpr(), inRule.rhsValue(),
+                    ConditionContext.ConditionType.IN);
         } else if (ctx instanceof SQL4JsonParser.NotInConditionContext notInCtx) {
             var notInRule = notInCtx.notIn();
-            Expression lhs = buildExpression(notInRule.columnExpr());
-            List<SqlValue> values = notInRule.rhsValue().stream()
-                    .map(this::getRhsSqlValue)
-                    .toList();
-            enforceInListSizeLimit(values.size());
-            return new ConditionContext(ConditionContext.ConditionType.NOT_IN,
-                    lhs, null, null, null, values, null, null);
+            return buildInContext(notInRule.columnExpr(), notInRule.rhsValue(),
+                    ConditionContext.ConditionType.NOT_IN);
         } else if (ctx instanceof SQL4JsonParser.BetweenConditionContext betweenCtx) {
             var rule = betweenCtx.between();
             return buildBetweenContext(rule.columnExpr(), rule.rhsValue(0), rule.rhsValue(1),
@@ -328,10 +363,43 @@ class SQL4JsonParserListener extends SQL4JsonBaseListener {
             SqlValue testVal = (rhs instanceof Expression.LiteralVal(var val)) ? val : null;
             enforceLikeWildcardLimit(testVal);
             return new ConditionContext(ConditionContext.ConditionType.NOT_LIKE,
-                    lhs, "NOT LIKE", testVal, rhs, null, null, null);
+                    lhs, "NOT LIKE", testVal, rhs, null, null, null,
+                    null, null, null);
         }
         throw new SQL4JsonExecutionException(
                 "Unsupported condition context: " + ctx.getClass().getSimpleName());
+    }
+
+    /**
+     * Builds an IN / NOT IN {@link ConditionContext}. When every rhs element is a literal, the
+     * classic {@code valueList} field is populated. When at least one element is a parameter
+     * placeholder, {@code valueList} is left {@code null} and the parallel {@code valueExpressions}
+     * list is populated for later substitution.
+     *
+     * @param colExpr   the column expression parse context for the LHS
+     * @param rhsValues the list of rhs value parse contexts (element candidates)
+     * @param type      the condition type — either {@link ConditionContext.ConditionType#IN}
+     *                  or {@link ConditionContext.ConditionType#NOT_IN}
+     * @return the assembled {@link ConditionContext}
+     */
+    private ConditionContext buildInContext(SQL4JsonParser.ColumnExprContext colExpr,
+                                            List<SQL4JsonParser.RhsValueContext> rhsValues,
+                                            ConditionContext.ConditionType type) {
+        Expression lhs = buildExpression(colExpr);
+        List<Expression> exprList = rhsValues.stream()
+                .map(this::getRhsExpression)
+                .toList();
+        enforceInListSizeLimit(exprList.size());
+        boolean anyParam = exprList.stream()
+                .anyMatch(Expression.ParameterRef.class::isInstance);
+        List<SqlValue> literalValues = anyParam
+                ? null
+                : exprList.stream()
+                  .map(e -> ((Expression.LiteralVal) e).value())
+                  .toList();
+        List<Expression> exprs = anyParam ? List.copyOf(exprList) : null;
+        return new ConditionContext(type, lhs, null, null, null, literalValues, null, null,
+                exprs, null, null);
     }
 
     private ConditionContext buildBetweenContext(SQL4JsonParser.ColumnExprContext colExpr,
@@ -339,9 +407,14 @@ class SQL4JsonParserListener extends SQL4JsonBaseListener {
                                                  SQL4JsonParser.RhsValueContext upperRhs,
                                                  ConditionContext.ConditionType type) {
         Expression lhs = buildExpression(colExpr);
-        SqlValue lower = getRhsSqlValue(lowerRhs);
-        SqlValue upper = getRhsSqlValue(upperRhs);
-        return new ConditionContext(type, lhs, null, null, null, null, lower, upper);
+        Expression lowerExpr = getRhsExpression(lowerRhs);
+        Expression upperExpr = getRhsExpression(upperRhs);
+        SqlValue lower = (lowerExpr instanceof Expression.LiteralVal(var v)) ? v : null;
+        SqlValue upper = (upperExpr instanceof Expression.LiteralVal(var v)) ? v : null;
+        Expression lowerParam = (lowerExpr instanceof Expression.ParameterRef) ? lowerExpr : null;
+        Expression upperParam = (upperExpr instanceof Expression.ParameterRef) ? upperExpr : null;
+        return new ConditionContext(type, lhs, null, null, null, null, lower, upper,
+                null, lowerParam, upperParam);
     }
 
     // ── Expression tree builders ─────────────────────────────────────────────
@@ -378,11 +451,7 @@ class SQL4JsonParserListener extends SQL4JsonBaseListener {
             return new Expression.ScalarFnCall("cast", List.of(inner, new Expression.LiteralVal(new SqlString(typeName))));
         }
         if (ctx instanceof SQL4JsonParser.LiteralColumnExprContext litCtx) {
-            if (litCtx.value().VALUE_FUNCTION() != null) {
-                containsNonDeterministic = true;
-                return new Expression.NowRef();
-            }
-            return new Expression.LiteralVal(toSqlValue(litCtx.value()));
+            return toExpression(litCtx.value());
         }
         // SimpleColumnExprContext
         return new Expression.ColumnRef(ctx.getText());
@@ -519,11 +588,7 @@ class SQL4JsonParserListener extends SQL4JsonBaseListener {
             return buildExpression(nonAgg.columnExpr());
         }
         if (ctx instanceof SQL4JsonParser.ValueFunctionArgContext vfa) {
-            if (vfa.value().VALUE_FUNCTION() != null) {
-                containsNonDeterministic = true;
-                return new Expression.NowRef();
-            }
-            return new Expression.LiteralVal(toSqlValue(vfa.value()));
+            return toExpression(vfa.value());
         }
         throw new SQL4JsonExecutionException("Unsupported function arg: " + ctx.getClass().getSimpleName());
     }
@@ -536,7 +601,7 @@ class SQL4JsonParserListener extends SQL4JsonBaseListener {
      */
     private Expression buildRhsExpression(SQL4JsonParser.RhsValueContext ctx) {
         if (ctx instanceof SQL4JsonParser.RhsPlainValueContext pv) {
-            return new Expression.LiteralVal(toSqlValue(pv.value()));
+            return toExpression(pv.value());
         }
         if (ctx instanceof SQL4JsonParser.RhsColumnRefContext colCtx) {
             Expression colExpr = new Expression.ColumnRef(colCtx.jsonColumn().getText());
@@ -557,23 +622,30 @@ class SQL4JsonParserListener extends SQL4JsonBaseListener {
     }
 
     /**
-     * Eagerly evaluates an rhsValue to a SqlValue. Used by IN/NOT IN and BETWEEN
-     * where column references on the RHS are not supported.
+     * Non-eagerly produces an {@link Expression} from an rhsValue context — supports parameter
+     * placeholders. Used by IN / NOT IN and BETWEEN where the list elements and bounds must defer
+     * to substitution when they contain {@code ?} or {@code :name} placeholders. For plain value
+     * inputs the result is either a {@link Expression.LiteralVal} or an
+     * {@link Expression.ParameterRef}; CAST and RHS function calls are still eagerly evaluated
+     * since they can never contain a parameter directly bound as a list element.
+     *
+     * @param ctx the rhsValue rule context from the parse tree
+     * @return the corresponding {@link Expression} (literal, parameter ref, or evaluated scalar)
      */
-    private SqlValue getRhsSqlValue(SQL4JsonParser.RhsValueContext ctx) {
+    private Expression getRhsExpression(SQL4JsonParser.RhsValueContext ctx) {
         if (ctx instanceof SQL4JsonParser.RhsPlainValueContext pv) {
-            return toSqlValue(pv.value());
+            return toExpression(pv.value());
         }
         if (ctx instanceof SQL4JsonParser.RhsColumnRefContext) {
             throw new SQL4JsonExecutionException(
                     "Column references not supported in IN/BETWEEN lists: " + ctx.getText());
         }
         if (ctx instanceof SQL4JsonParser.RhsCastExprContext castCtx) {
-            return evaluateRhsCast(castCtx.castExpr());
+            return new Expression.LiteralVal(evaluateRhsCast(castCtx.castExpr()));
         }
         var fnCtx = (SQL4JsonParser.RhsFunctionCallContext) ctx;
         var fn = (SQL4JsonParser.ScalarFunctionCallContext) fnCtx.functionCall();
-        return evaluateRhsScalarFunction(fn);
+        return new Expression.LiteralVal(evaluateRhsScalarFunction(fn));
     }
 
     private void enforceInListSizeLimit(int actualSize) {
@@ -678,7 +750,109 @@ class SQL4JsonParserListener extends SQL4JsonBaseListener {
         return evaluateRhsColumnExpr(nonAgg.columnExpr());
     }
 
+    /**
+     * Converts an ANTLR {@code parameter} context to a {@link Expression.ParameterRef}.
+     * Enforces the "no mixing {@code ?} and {@code :name}" rule and advances the global
+     * positional counter or named-parameter set as appropriate.
+     *
+     * @param ctx the parameter rule context from the parse tree
+     * @return a {@link Expression.ParameterRef} for this placeholder
+     */
+    private Expression.ParameterRef toParameterRef(SQL4JsonParser.ParameterContext ctx) {
+        if (ctx.POSITIONAL_PARAM() != null) {
+            if (sawNamed) {
+                throw new SQL4JsonParseException(
+                        "Cannot mix positional (?) and named (:name) parameters in the same query",
+                        ctx.getStart().getLine(), ctx.getStart().getCharPositionInLine());
+            }
+            sawPositional = true;
+            int idx = positionalOffset + positionalCount;
+            positionalCount++;
+            return new Expression.ParameterRef(null, idx);
+        }
+        // NAMED_PARAM: text is ":foo" — strip the leading colon
+        String text = ctx.NAMED_PARAM().getText();
+        String name = text.startsWith(":") ? text.substring(1) : text;
+        if (sawPositional) {
+            throw new SQL4JsonParseException(
+                    "Cannot mix positional (?) and named (:name) parameters in the same query",
+                    ctx.getStart().getLine(), ctx.getStart().getCharPositionInLine());
+        }
+        sawNamed = true;
+        namedParameters.add(name);
+        return new Expression.ParameterRef(name, -1);
+    }
+
+    /**
+     * Pre-scans the given token range for placeholder tokens. Called when the outer listener
+     * enters a FROM subquery — the subquery's inner listener won't walk during the outer
+     * parse (because {@code insideSubquery} suppresses its callbacks), so we need to count
+     * the placeholders statically and advance the outer's global counters accordingly.
+     *
+     * <p>JDBC semantics: positional placeholders are numbered globally across subquery boundaries;
+     * named placeholders share a global name space.
+     *
+     * @param startTokenIndex inclusive start of the subquery's token range
+     * @param stopTokenIndex  inclusive end of the subquery's token range
+     */
+    private void preScanSubqueryTokens(int startTokenIndex, int stopTokenIndex) {
+        var tokens = tokenStream.getTokens();
+        int stop = Math.min(stopTokenIndex, tokens.size() - 1);
+        for (int i = startTokenIndex; i <= stop; i++) {
+            var t = tokens.get(i);
+            if (t.getChannel() != org.antlr.v4.runtime.Token.DEFAULT_CHANNEL) continue;
+            int tType = t.getType();
+            if (tType == io.github.mnesimiyilmaz.sql4json.generated.SQL4JsonParser.POSITIONAL_PARAM) {
+                if (sawNamed) {
+                    throw new SQL4JsonParseException(
+                            "Cannot mix positional (?) and named (:name) parameters in the same query",
+                            t.getLine(), t.getCharPositionInLine());
+                }
+                sawPositional = true;
+                positionalCount++;
+            } else if (tType == io.github.mnesimiyilmaz.sql4json.generated.SQL4JsonParser.NAMED_PARAM) {
+                if (sawPositional) {
+                    throw new SQL4JsonParseException(
+                            "Cannot mix positional (?) and named (:name) parameters in the same query",
+                            t.getLine(), t.getCharPositionInLine());
+                }
+                sawNamed = true;
+                String text = t.getText();
+                String name = text.startsWith(":") ? text.substring(1) : text;
+                namedParameters.add(name);
+            }
+        }
+    }
+
+    /**
+     * Converts a {@code value} context to an {@link Expression} — {@link Expression.LiteralVal}
+     * for literals, {@link Expression.NowRef} for {@code NOW()}, or
+     * {@link Expression.ParameterRef} for placeholders. All listener paths that consume values
+     * in positions where a parameter placeholder is permitted route through this helper.
+     *
+     * @param ctx the value rule context from the parse tree
+     * @return the corresponding {@link Expression}
+     */
+    private Expression toExpression(SQL4JsonParser.ValueContext ctx) {
+        if (ctx.parameter() != null) {
+            return toParameterRef(ctx.parameter());
+        }
+        if (ctx.VALUE_FUNCTION() != null) {
+            containsNonDeterministic = true;
+            return new Expression.NowRef();
+        }
+        return new Expression.LiteralVal(toSqlValue(ctx));
+    }
+
     private SqlValue toSqlValue(SQL4JsonParser.ValueContext ctx) {
+        if (ctx.parameter() != null) {
+            // All listener callsites that accept placeholders route through toExpression(...).
+            // Reaching this guard means a value context was consumed in a non-bindable position —
+            // the throw surfaces the exact token so the offending code path is easy to locate.
+            throw new SQL4JsonParseException(
+                    "Parameter placeholder used in a non-bindable position: " + ctx.getText(),
+                    ctx.getStart().getLine(), ctx.getStart().getCharPositionInLine());
+        }
         if (ctx.STRING() != null) {
             String raw = ctx.STRING().getText();
             return new SqlString(raw.substring(1, raw.length() - 1).replace("''", "'"));

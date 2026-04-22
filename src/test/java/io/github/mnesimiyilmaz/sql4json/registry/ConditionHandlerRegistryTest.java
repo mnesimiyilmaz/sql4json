@@ -39,7 +39,8 @@ class ConditionHandlerRegistryTest {
         ConditionContext ctx = new ConditionContext(
                 ConditionContext.ConditionType.COMPARISON,
                 new ColumnRef("age"), ">", SqlNumber.of(18),
-                new Expression.LiteralVal(SqlNumber.of(18)), null, null, null);
+                new Expression.LiteralVal(SqlNumber.of(18)), null, null, null,
+                null, null, null);
 
         CriteriaNode node = handlers.resolve(ctx);
 
@@ -52,7 +53,8 @@ class ConditionHandlerRegistryTest {
         ConditionContext ctx = new ConditionContext(
                 ConditionContext.ConditionType.COMPARISON,
                 new ColumnRef("status"), "=", new SqlString("active"),
-                new Expression.LiteralVal(new SqlString("active")), null, null, null);
+                new Expression.LiteralVal(new SqlString("active")), null, null, null,
+                null, null, null);
 
         CriteriaNode node = handlers.resolve(ctx);
 
@@ -67,7 +69,8 @@ class ConditionHandlerRegistryTest {
         ConditionContext ctx = new ConditionContext(
                 ConditionContext.ConditionType.LIKE,
                 new ColumnRef("name"), "LIKE", new SqlString("Ali%"),
-                new Expression.LiteralVal(new SqlString("Ali%")), null, null, null);
+                new Expression.LiteralVal(new SqlString("Ali%")), null, null, null,
+                null, null, null);
 
         CriteriaNode node = handlers.resolve(ctx);
 
@@ -81,7 +84,8 @@ class ConditionHandlerRegistryTest {
     void resolve_isNull_producesWorkingNode() {
         ConditionContext ctx = new ConditionContext(
                 ConditionContext.ConditionType.IS_NULL,
-                new ColumnRef("email"), null, null, null, null, null, null);
+                new ColumnRef("email"), null, null, null, null, null, null,
+                null, null, null);
 
         CriteriaNode node = handlers.resolve(ctx);
 
@@ -100,7 +104,8 @@ class ConditionHandlerRegistryTest {
     void resolve_isNotNull_producesWorkingNode() {
         ConditionContext ctx = new ConditionContext(
                 ConditionContext.ConditionType.IS_NOT_NULL,
-                new ColumnRef("phone"), null, null, null, null, null, null);
+                new ColumnRef("phone"), null, null, null, null, null, null,
+                null, null, null);
 
         CriteriaNode node = handlers.resolve(ctx);
 
@@ -121,7 +126,8 @@ class ConditionHandlerRegistryTest {
         ConditionContext ctx = new ConditionContext(
                 ConditionContext.ConditionType.COMPARISON,
                 new ColumnRef("age"), ">", SqlNumber.of(1),
-                new Expression.LiteralVal(SqlNumber.of(1)), null, null, null);
+                new Expression.LiteralVal(SqlNumber.of(1)), null, null, null,
+                null, null, null);
         assertThrows(SQL4JsonExecutionException.class, () -> empty.resolve(ctx));
     }
 
@@ -133,11 +139,13 @@ class ConditionHandlerRegistryTest {
         ConditionContext ageCond = new ConditionContext(
                 ConditionContext.ConditionType.COMPARISON,
                 new ColumnRef("age"), ">", SqlNumber.of(18),
-                new Expression.LiteralVal(SqlNumber.of(18)), null, null, null);
+                new Expression.LiteralVal(SqlNumber.of(18)), null, null, null,
+                null, null, null);
         ConditionContext statusCond = new ConditionContext(
                 ConditionContext.ConditionType.COMPARISON,
                 new ColumnRef("status"), "=", new SqlString("active"),
-                new Expression.LiteralVal(new SqlString("active")), null, null, null);
+                new Expression.LiteralVal(new SqlString("active")), null, null, null,
+                null, null, null);
 
         CriteriaNode ageNode = handlers.resolve(ageCond);
         CriteriaNode statusNode = handlers.resolve(statusCond);
@@ -162,11 +170,13 @@ class ConditionHandlerRegistryTest {
         ConditionContext likeCond = new ConditionContext(
                 ConditionContext.ConditionType.LIKE,
                 new ColumnRef("name"), "LIKE", new SqlString("Al%"),
-                new Expression.LiteralVal(new SqlString("Al%")), null, null, null);
+                new Expression.LiteralVal(new SqlString("Al%")), null, null, null,
+                null, null, null);
         ConditionContext ageCond = new ConditionContext(
                 ConditionContext.ConditionType.COMPARISON,
                 new ColumnRef("age"), ">", SqlNumber.of(50),
-                new Expression.LiteralVal(SqlNumber.of(50)), null, null, null);
+                new Expression.LiteralVal(SqlNumber.of(50)), null, null, null,
+                null, null, null);
 
         CriteriaNode combined = new OrNode(
                 handlers.resolve(likeCond),
@@ -196,11 +206,13 @@ class ConditionHandlerRegistryTest {
         // IS NOT NULL AND name LIKE 'A%'
         ConditionContext nullCheck = new ConditionContext(
                 ConditionContext.ConditionType.IS_NOT_NULL,
-                new ColumnRef("name"), null, null, null, null, null, null);
+                new ColumnRef("name"), null, null, null, null, null, null,
+                null, null, null);
         ConditionContext likeCond = new ConditionContext(
                 ConditionContext.ConditionType.LIKE,
                 new ColumnRef("name"), "LIKE", new SqlString("A%"),
-                new Expression.LiteralVal(new SqlString("A%")), null, null, null);
+                new Expression.LiteralVal(new SqlString("A%")), null, null, null,
+                null, null, null);
 
         CriteriaNode combined = new AndNode(
                 handlers.resolve(nullCheck),

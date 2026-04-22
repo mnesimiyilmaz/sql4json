@@ -13,7 +13,7 @@ class ExceptionHierarchyTest {
         assertTrue(SQL4JsonException.class.isSealed(),
                 "SQL4JsonException must be sealed");
         var permitted = SQL4JsonException.class.getPermittedSubclasses();
-        assertEquals(2, permitted.length);
+        assertEquals(4, permitted.length);
     }
 
     @Test

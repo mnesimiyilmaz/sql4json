@@ -6,8 +6,10 @@
   <p align="center">
     <a href="https://github.com/mnesimiyilmaz/sql4json/actions"><img src="https://img.shields.io/github/actions/workflow/status/mnesimiyilmaz/sql4json/ci.yml?branch=main&style=flat-square" alt="Build"></a>
     <a href="https://central.sonatype.com/artifact/io.github.mnesimiyilmaz/sql4json"><img src="https://img.shields.io/maven-central/v/io.github.mnesimiyilmaz/sql4json?style=flat-square" alt="Maven Central"></a>
+    <a href="https://javadoc.io/doc/io.github.mnesimiyilmaz/sql4json"><img src="https://javadoc.io/badge2/io.github.mnesimiyilmaz/sql4json/javadoc.svg?style=flat-square" alt="Javadoc"></a>
     <a href="https://github.com/mnesimiyilmaz/sql4json/blob/main/LICENSE"><img src="https://img.shields.io/github/license/mnesimiyilmaz/sql4json?style=flat-square" alt="License"></a>
     <img src="https://img.shields.io/badge/Java-21%2B-blue?style=flat-square" alt="Java 21+">
+    <img src="https://img.shields.io/badge/runtime_deps-ANTLR_only-brightgreen?style=flat-square" alt="Zero runtime dependencies">
   </p>
 </p>
 
@@ -39,6 +41,8 @@ ORDER BY avgSalary DESC LIMIT 10
     - [Prepared Query](#prepared-query)
     - [Engine with Data Binding](#engine-with-data-binding)
     - [Custom JSON Codec](#custom-json-codec)
+    - [Object Mapping](#object-mapping)
+    - [Parameterized Queries](#parameterized-queries)
 - [SQL Syntax](#sql-syntax)
     - [SELECT](#select)
     - [FROM](#from)
@@ -325,6 +329,108 @@ String result = SQL4Json.query(sql, json,
 > This is an example implementation. Adapt `ObjectMapper` configuration, error handling, and security limits to your requirements.
 
 </details>
+
+### Object Mapping
+
+Map query results directly to Java records or POJOs. Zero dependencies — built-in.
+
+```java
+// Record target
+record Person(String name, int age, LocalDate birthDate) {}
+List<Person> people = SQL4Json.queryAsList(
+    "SELECT name, age, birthDate FROM $r", json, Person.class);
+
+// POJO target
+class Employee {
+    private String name; private int age;
+    public void setName(String n) { this.name = n; }
+    public void setAge(int a)     { this.age = a; }
+    public String getName()       { return name; }
+    public int getAge()           { return age; }
+}
+List<Employee> emps = SQL4Json.queryAsList(
+    "SELECT name, age FROM $r", json, Employee.class);
+
+// Single-row unwrap
+Person alice = SQL4Json.queryAs(
+    "SELECT * FROM $r WHERE name = 'Alice'", json, Person.class);
+
+// JsonValue.as()
+Person p = SQL4Json.queryAsJsonValue(sql, json).as(Person.class);
+```
+
+#### Supported target types
+
+| Category | Types |
+|---|---|
+| Primitives / boxed | `boolean, byte, short, int, long, float, double, char` + wrappers |
+| String | `String`, `CharSequence` |
+| Big numbers | `BigDecimal`, `BigInteger`, `Number` |
+| Time | `LocalDate`, `LocalDateTime`, `Instant` (ISO strings; `Instant` also accepts epoch millis) |
+| Enums | `Enum.valueOf` — case-sensitive |
+| Records | Via canonical constructor |
+| POJOs | Public no-arg constructor + public setters (return type ignored; inherited setters included) |
+| Collections | `List<T>`, `Set<T>`, `Collection<T>`, `Map<String,V>`, `T[]` |
+| Passthrough | `JsonValue` (and subtypes), `Object` (natural Java value) |
+
+#### Missing-field policy
+
+```java
+// IGNORE (default): missing fields → null / Optional.empty() / primitive default / empty collection
+Person p = SQL4Json.queryAs(sql, json, Person.class);
+
+// FAIL: any missing field → SQL4JsonMappingException with $.path.to.field
+Sql4jsonSettings strict = Sql4jsonSettings.builder()
+    .mapping(m -> m.missingFieldPolicy(MissingFieldPolicy.FAIL))
+    .build();
+List<Person> people = SQL4Json.queryAsList(sql, json, Person.class, strict);
+```
+
+#### When to use your own codec (Jackson / Gson)
+
+Object mapping covers typical JSON → record/POJO needs. If you need full Jackson power (polymorphism, annotations, custom deserializers), use the existing codec integration path: call `SQL4Json.queryAsJsonValue(...)` to get the raw tree, serialize it back to a string via your preferred library, then deserialize with Jackson/Gson. See the "Custom JsonCodec" section above.
+
+### Parameterized Queries
+
+Bind values to a pre-parsed query via `PreparedQuery` (JDBC-style). Placeholders come in two flavors — cannot be mixed within a single query:
+
+```java
+// Named parameters
+PreparedQuery q = SQL4Json.prepare(
+    "SELECT * FROM $r WHERE age > :minAge AND dept = :dept");
+String r = q.execute(json, BoundParameters.named()
+    .bind("minAge", 25)
+    .bind("dept", "Engineering"));
+
+// Positional parameters
+PreparedQuery q2 = SQL4Json.prepare(
+    "SELECT * FROM $r WHERE age > ? AND salary BETWEEN ? AND ?");
+String r2 = q2.execute(json, 25, 50_000, 150_000);
+
+// IN expansion
+PreparedQuery q3 = SQL4Json.prepare("SELECT * FROM $r WHERE id IN (?)");
+String r3 = q3.execute(json, BoundParameters.of(List.of(1, 2, 3)));
+
+// Dynamic pagination
+PreparedQuery page = SQL4Json.prepare(
+    "SELECT * FROM $r ORDER BY id LIMIT :n OFFSET :off");
+String p = page.execute(json, BoundParameters.named().bind("n", 20).bind("off", 100));
+
+// Combined with object mapping
+List<Person> engineers = SQL4Json.prepare("SELECT * FROM $r WHERE dept = :d")
+    .executeAsList(json, Person.class, BoundParameters.named().bind("d", "Engineering"));
+```
+
+Supported Java parameter types: `String`, all numeric primitives + wrappers, `BigDecimal`, `BigInteger`, `Boolean`, `LocalDate`, `LocalDateTime`, `Instant`, `ZonedDateTime`, `OffsetDateTime`, `java.util.Date`, `null`.
+
+**IN-list semantics:**
+- `IN (?)` + collection → expanded to N literals
+- `IN (?)` + scalar → single-element list
+- `IN (?)` + empty collection → zero-row predicate (SQL-standard behavior)
+
+**Null semantics:** `col = :x` with a `null` bind produces `col = NULL` which is always false per SQL standard (zero rows). Use literal `IS NULL` / `IS NOT NULL` to test nullability — these cannot be parameterized.
+
+**Scope:** parameter binding is available on `PreparedQuery` and `SQL4JsonEngine` only; there are no `SQL4Json.query(..., params)` overloads. Use `SQL4Json.prepare(sql).execute(json, params)` for one-off parameterized queries.
 
 ## SQL Syntax
 

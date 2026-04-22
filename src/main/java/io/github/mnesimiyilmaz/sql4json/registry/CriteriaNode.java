@@ -3,7 +3,7 @@ package io.github.mnesimiyilmaz.sql4json.registry;
 import io.github.mnesimiyilmaz.sql4json.engine.Row;
 
 /**
- * v2 CriteriaNode — evaluates a condition against a lazy Row.
+ * CriteriaNode — evaluates a condition against a lazy Row.
  * <p>
  * This is the new (Phase 3+) version. It is distinct from the existing
  * {@code condition.CriteriaNode} which takes {@code Map<FieldKey, Object>}.

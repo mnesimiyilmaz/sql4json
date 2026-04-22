@@ -35,7 +35,8 @@ class QueryPipelineTest {
                     var age = row.get(FieldKey.of("age"));
                     return age instanceof SqlNumber n && n.doubleValue() > 25;
                 },
-                null, null, null, Set.of(), false, null, null, false, null, null
+                null, null, null, Set.of(), false, null, null, false, null, null,
+                null, null, 0, Set.of(), 0
         );
 
         var result = QueryPipeline.build(query, FunctionRegistry.createDefault(), Sql4jsonSettings.defaults())
@@ -53,7 +54,8 @@ class QueryPipelineTest {
                 List.of(SelectColumnDef.asterisk()),
                 "$r", null, null, null, null,
                 List.of(OrderByColumnDef.of("name", "ASC")),
-                Set.of(), false, null, null, false, null, null
+                Set.of(), false, null, null, false, null, null,
+                null, null, 0, Set.of(), 0
         );
 
         var result = QueryPipeline.build(query, FunctionRegistry.createDefault(), Sql4jsonSettings.defaults())

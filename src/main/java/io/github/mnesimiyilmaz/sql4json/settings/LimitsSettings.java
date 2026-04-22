@@ -51,6 +51,8 @@ package io.github.mnesimiyilmaz.sql4json.settings;
  * @param maxInListSize    maximum number of values in an IN / NOT IN list; default {@code 1_024}
  * @param maxRowsPerQuery  maximum rows allowed at any materializing pipeline stage;
  *                         default {@code 1_000_000}
+ * @param maxParameters    maximum number of parameter placeholders ({@code ?} and {@code :name}
+ *                         combined) permitted in a single query; default {@code 1_024}
  * @see Sql4jsonSettings
  * @see SecuritySettings
  * @see CacheSettings
@@ -59,13 +61,15 @@ public record LimitsSettings(
         int maxSqlLength,
         int maxSubqueryDepth,
         int maxInListSize,
-        int maxRowsPerQuery) {
+        int maxRowsPerQuery,
+        int maxParameters) {
 
     private static final LimitsSettings DEFAULTS = new LimitsSettings(
             65_536,
             16,
             1_024,
-            1_000_000);
+            1_000_000,
+            1_024);
 
     /**
      * Returns the shared default limits settings singleton.
@@ -102,12 +106,14 @@ public record LimitsSettings(
         private int maxSubqueryDepth;
         private int maxInListSize;
         private int maxRowsPerQuery;
+        private int maxParameters;
 
         Builder(LimitsSettings src) {
             this.maxSqlLength = src.maxSqlLength;
             this.maxSubqueryDepth = src.maxSubqueryDepth;
             this.maxInListSize = src.maxInListSize;
             this.maxRowsPerQuery = src.maxRowsPerQuery;
+            this.maxParameters = src.maxParameters;
         }
 
         /**
@@ -197,12 +203,37 @@ public record LimitsSettings(
         }
 
         /**
+         * Sets the maximum number of parameter placeholders permitted in a single query
+         * (positional and named combined, globally across any nested subqueries).
+         *
+         * <p><b>Default:</b> {@code 1_024}.
+         *
+         * <p><b>Security rationale:</b> DoS guard against adversarial placeholder flooding.
+         * Hand-written queries virtually never exceed ~20 placeholders; 1,024 absorbs
+         * generated queries (e.g. IN-list expansions pre-expansion) while preventing
+         * resource exhaustion from pathological input.
+         *
+         * <p><b>Acceptable range:</b> Must be positive ({@code > 0}). Non-positive values throw
+         * {@link IllegalArgumentException}.
+         *
+         * @param v maximum placeholder count, must be positive
+         * @return this builder
+         * @throws IllegalArgumentException if {@code v <= 0}
+         * @since 1.1.0
+         */
+        public Builder maxParameters(int v) {
+            this.maxParameters = positive(v, "maxParameters");
+            return this;
+        }
+
+        /**
          * Builds an immutable {@link LimitsSettings} from the current builder state.
          *
          * @return a new limits settings instance
          */
         public LimitsSettings build() {
-            return new LimitsSettings(maxSqlLength, maxSubqueryDepth, maxInListSize, maxRowsPerQuery);
+            return new LimitsSettings(maxSqlLength, maxSubqueryDepth, maxInListSize, maxRowsPerQuery,
+                    maxParameters);
         }
 
         private static int positive(int v, String name) {

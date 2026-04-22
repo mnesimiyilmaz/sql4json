@@ -41,7 +41,8 @@ class ParserValueObjectTest {
         void isSelectAll_true_for_single_asterisk_column() {
             var qd = new QueryDefinition(
                     List.of(SelectColumnDef.asterisk()),
-                    "$r", null, null, null, null, null, Set.of(), false, null, null, false, null, null);
+                    "$r", null, null, null, null, null, Set.of(), false, null, null, false, null, null,
+                    null, null, 0, Set.of(), 0);
             assertTrue(qd.isSelectAll());
         }
 
@@ -49,7 +50,8 @@ class ParserValueObjectTest {
         void isSelectAll_false_for_named_column() {
             var qd = new QueryDefinition(
                     List.of(SelectColumnDef.column("name")),
-                    "$r", null, null, null, null, null, Set.of(), false, null, null, false, null, null);
+                    "$r", null, null, null, null, null, Set.of(), false, null, null, false, null, null,
+                    null, null, 0, Set.of(), 0);
             assertFalse(qd.isSelectAll());
         }
 
@@ -57,7 +59,8 @@ class ParserValueObjectTest {
         void requiresFullFlatten_true_when_groupBy_present() {
             var qd = new QueryDefinition(
                     List.of(SelectColumnDef.column("dept")),
-                    "$r", null, null, List.<Expression>of(new ColumnRef("dept")), null, null, Set.of(), false, null, null, false, null, null);
+                    "$r", null, null, List.<Expression>of(new ColumnRef("dept")), null, null, Set.of(), false, null, null, false, null, null,
+                    null, null, 0, Set.of(), 0);
             assertTrue(qd.requiresFullFlatten());
         }
 
@@ -65,7 +68,8 @@ class ParserValueObjectTest {
         void requiresFullFlatten_false_without_groupBy() {
             var qd = new QueryDefinition(
                     List.of(SelectColumnDef.asterisk()),
-                    "$r", null, null, null, null, null, Set.of(), false, null, null, false, null, null);
+                    "$r", null, null, null, null, null, Set.of(), false, null, null, false, null, null,
+                    null, null, 0, Set.of(), 0);
             assertFalse(qd.requiresFullFlatten());
         }
 
@@ -73,7 +77,8 @@ class ParserValueObjectTest {
         void fromSubQuery_null_for_simple_root_path() {
             var qd = new QueryDefinition(
                     List.of(SelectColumnDef.asterisk()),
-                    "$r", null, null, null, null, null, Set.of(), false, null, null, false, null, null);
+                    "$r", null, null, null, null, null, Set.of(), false, null, null, false, null, null,
+                    null, null, 0, Set.of(), 0);
             assertNull(qd.fromSubQuery());
             assertEquals("$r", qd.rootPath());
         }
