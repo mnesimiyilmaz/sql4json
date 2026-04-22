@@ -90,7 +90,7 @@ ORDER BY avgSalary DESC LIMIT 10
 ### Gradle
 
 ```groovy
-implementation 'io.github.mnesimiyilmaz:sql4json:1.0.0'
+implementation 'io.github.mnesimiyilmaz:sql4json:1.1.0'
 ```
 
 ## Quick Start
