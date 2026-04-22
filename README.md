@@ -83,7 +83,7 @@ ORDER BY avgSalary DESC LIMIT 10
 <dependency>
     <groupId>io.github.mnesimiyilmaz</groupId>
     <artifactId>sql4json</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
 </dependency>
 ```
 
