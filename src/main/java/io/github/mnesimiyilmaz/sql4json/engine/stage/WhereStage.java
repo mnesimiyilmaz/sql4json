@@ -1,7 +1,7 @@
 package io.github.mnesimiyilmaz.sql4json.engine.stage;
 
 import io.github.mnesimiyilmaz.sql4json.engine.LazyPipelineStage;
-import io.github.mnesimiyilmaz.sql4json.engine.Row;
+import io.github.mnesimiyilmaz.sql4json.engine.RowAccessor;
 import io.github.mnesimiyilmaz.sql4json.registry.CriteriaNode;
 
 import java.util.stream.Stream;
@@ -23,7 +23,7 @@ public final class WhereStage implements LazyPipelineStage {
     }
 
     @Override
-    public Stream<Row> apply(Stream<Row> input) {
+    public Stream<RowAccessor> apply(Stream<RowAccessor> input) {
         return input.filter(criteria::test);
     }
 }

@@ -5,6 +5,55 @@ All notable changes to SQL4Json are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-05-02
+
+### Added — Grammar Introspection API
+A public IDE-tooling surface in the new JPMS-exported `io.github.mnesimiyilmaz.sql4json.grammar` package — for syntax highlighters, completion popups, and lightweight static analysers that need to reason about SQL4Json text without depending on ANTLR.
+- `SQL4JsonGrammar` with `keywords()`, `functions()`, and `tokenize(String)` static views; the tokenizer never throws — unrecognised spans surface as `BAD_TOKEN`.
+- `Token` / `TokenKind` (record + enum) — tokenizer output with absolute, exclusive-end offsets.
+- `FunctionInfo` / `Category` (record + enum) — function catalog entries carrying category, arity, signature, and description.
+- `FunctionRegistry.scalarFunctionNames()` / `valueFunctionNames()` / `aggregateFunctionNames()` — unmodifiable views over registered names, used by tooling consumers and drift tests.
+- Drift tests guard the hand-maintained `KEYWORDS`, `FUNCTIONS`, and `TOKEN_KIND_BY_TYPE` tables — adding a lexer rule or function without updating the catalog now fails CI.
+
+### Added — Array Predicates
+- Five new condition operators for querying values inside JSON array fields, modelled on PostgreSQL's native-array operators.
+  - `tags CONTAINS 'admin'` — keyword operator for scalar membership.
+  - `tags @> ARRAY['admin','editor']` — contains-all.
+  - `tags <@ ARRAY['admin','editor','viewer']` — contained-by.
+  - `tags && ARRAY['blocked','flagged']` — overlap.
+  - `tags = ARRAY['admin','editor']` / `tags != ARRAY[…]` — structural equality (order-sensitive, length-sensitive).
+- `ARRAY[expr, expr, …]` array-literal syntax in `rhsValue` — empty `ARRAY[]` allowed.
+- Parameter binding follows the JDBC / Hibernate / jOOQ pattern: `tags @> :myList` (or `?`) binds a whole `Collection` to one slot; `ARRAY[?, ?]` is element-by-element with one scalar bind per slot. No collection-expansion inside `ARRAY[…]`. Bind-time validation raises `SQL4JsonBindException` for type mismatches (collection in `ARRAY[?]` slot, scalar in bare-array-RHS, collection in `CONTAINS`).
+- `<`, `>`, `<=`, `>=` against an `ARRAY[…]` literal raise `SQL4JsonParseException` at parse time with a clear message.
+- Field state on the LHS: missing, JSON null, scalar, or object → all five operators return `false` for that row (no exception).
+- `JOIN` aliases work — array predicates resolve through the same alias-aware path as the rest of the engine; flat-key reassembly fallback handles post-JOIN merged rows.
+- Catalog: `SQL4JsonGrammar.keywords()` now includes `ARRAY` and `CONTAINS`; `tokenize(...)` surfaces `@>`, `<@`, `&&` as `TokenKind.OPERATOR` and `[`, `]` as `TokenKind.PUNCTUATION`.
+
+### Added — Command-line Interface
+- Command-line entrypoint shipping as a separate shaded jar with classifier `cli` (`sql4json-1.2.0-cli.jar`). Flags: `-q/--query` (literal or `@path`), `-f/--file`, `-o/--output`, `--data name=path` (repeatable, multi-source JOIN), `-p/--param name=<json>` (repeatable, named-parameter bind), `--pretty`, `-h/--help`, `-v/--version`. Stable exit codes: `0` success / `--help` / `--version`, `1` runtime failure (SQL4Json error, IO error), `2` usage error. `SQL4JSON_DEBUG=1` attaches a full stack trace to failure messages on stderr.
+- Library jar (`sql4json-1.2.0.jar`) unchanged — pure library, no `Main-Class`. The `io.github.mnesimiyilmaz.sql4json.cli` package is intentionally non-exported from `module-info.java`; the *flag set* and *exit codes* are the stable surface, not the implementation classes.
+- `JsonSerializer.prettySerialize(JsonValue)` — public sibling of `serialize(JsonValue)` for two-space pretty-printing. Empty objects and arrays stay compact; output has no trailing newline. Drives the CLI `--pretty` flag.
+
+### Added — Performance Profiling
+- New `docs/performance.md` reference document with the full sweep across seven sizes (8 MB → 512 MB) and ~50 scenarios, the reference environment, dataset details, and the regen recipe. `README.md` gains a concise headline table that links to the full doc.
+- `ProfilingTest` now runs each scenario `N` times (default `3`, configurable via `-Dprofiling.runs=N`) and reports the median wall-clock time per `(label, size)` cell. Report header now records total RAM, initial heap, profiling-runs count, OS arch, and the data seed read from `src/test/resources/data-files/SEED`. Data files are byte-reproducible via `generate_json.py --seed`.
+
+### Changed
+- `NOW()` is no longer a dedicated lexer literal; the `VALUE_FUNCTION` rule was retired and `NOW()` lexes as a regular function call, dispatched at parse time to `Expression.NowRef` (lazy / per-row) or an eager `SqlDateTime`. `containsNonDeterministic` still fires in every path, so cache-bypass behaviour is preserved.
+- `IN` / `BETWEEN` non-literal operands generalised: any non-literal element/bound (not just `ParameterRef`) now flows through `ConditionContext.valueExpressions` / `lowerBoundExpr` / `upperBoundExpr` and is evaluated per-row. `ParameterSubstitutor` snapshots `NowRef` to a literal `SqlDateTime` at substitute time, so all rows in a parameterized execution see the same timestamp (JDBC-style "bind once, execute").
+- String functions auto-coerce non-string inputs via `rawValue().toString()` (matching `CONCAT`): `LOWER`, `UPPER`, `SUBSTRING`, `TRIM`, `LENGTH`, `LEFT`, `RIGHT`, `LPAD`, `RPAD`, `REVERSE`, `REPLACE`, `POSITION`. String-typed argument positions coerce too; numeric positions (e.g. `SUBSTRING` start/length) are unchanged. Null input still short-circuits to `NULL`.
+- `TO_DATE` consolidates non-string inputs through the same coerce-then-parse path; `SqlDate` / `SqlDateTime` pass through unchanged.
+- Whitespace lexer channel: the `ESC` rule emits to `channel(HIDDEN)` instead of `-> skip`, so `tokenize()` can surface whitespace runs as `TokenKind.WHITESPACE`. Query parsing is unaffected (parser still filters by `DEFAULT_CHANNEL`).
+- Sealed `JsonNumberValue` and `SqlNumber` types: split into `JsonLongValue` / `JsonDoubleValue` / `JsonDecimalValue` and `SqlLong` / `SqlDouble` / `SqlDecimal`. Primitives stored unboxed in the long/double variants — per-instance footprint roughly halves on row-materializing workloads. `JsonNumberValue` and `SqlNumber` become sealed interfaces; pattern-destructure call sites switch over the typed variants.
+- `FlatRow` materialization: GROUP BY, HAVING, WINDOW, ORDER BY, JOIN, DISTINCT, SELECT and the engine pre-flatten path now emit `Object[]`-backed rows keyed by ordinal via a shared `RowSchema`. Lazy `Row` is unchanged for streaming WHERE / lazy SELECT. A `null` slot decodes as `SqlNull.INSTANCE` on read.
+- `RowAccessor` sealed interface bridges lazy `Row` and `FlatRow` across `ExpressionEvaluator`, condition handlers (`InConditionHandler`, `BetweenConditionHandler`, `LikeConditionHandler`, `NotLikeConditionHandler`, `ComparisonConditionHandler`, `NullCheckConditionHandler`, `ArrayPredicateConditionHandler`), `ArrayPathNavigator`, `CriteriaNode`, the pipeline (`Stream<RowAccessor>`), `JsonUnflattener`, and `GroupAggregator`.
+- `WindowStage` writes window results into per-row `Object[]` buffers indexed by `RowSchema.windowSlot`. The legacy `Row.windowResults` / `windowResultsByAlias` maps are gone; alias mirroring uses `RowSchema.withWindowSlots(calls, aliases)` so the SELECT alias becomes the canonical column key for the slot. CASE-buried windows resolve through the same schema-slot lookup via `Row.getWindowResult`.
+- `SqlValueComparator` adds typed pattern-matched fast paths for `(SqlLong, SqlLong)` / `(SqlLong, SqlDouble)` / `(SqlDouble, SqlLong)` / `(SqlDouble, SqlDouble)` — avoids the `Number.doubleValue()` boxing on the WHERE / ORDER BY hot path. `SqlDecimal` involvement still routes through the generic `doubleValue()` compare.
+
+### Fixed
+- Window-only functions without `OVER` (`ROW_NUMBER`, `RANK`, `DENSE_RANK`, `NTILE`, `LAG`, `LEAD`) now raise `SQL4JsonParseException` at parse time with a clear message, instead of the misleading runtime *"Scalar function 'X' requires at least one argument"*. Aggregate functions remain valid without `OVER`.
+- Whole-number literals serialize as integers: `SELECT 42 AS x FROM $r` now produces `"x":42` instead of `"x":42.0`, matching column-from-JSON values.
+
 ## [1.1.0] - 2026-04-23
 
 ### Added — Object Mapping
@@ -109,5 +158,6 @@ Initial public release.
 - OWASP dependency-check plugin
 - Dependabot for automated dependency updates
 
+[1.2.0]: https://github.com/mnesimiyilmaz/sql4json/releases/tag/v1.2.0
 [1.1.0]: https://github.com/mnesimiyilmaz/sql4json/releases/tag/v1.1.0
 [1.0.0]: https://github.com/mnesimiyilmaz/sql4json/releases/tag/v1.0.0

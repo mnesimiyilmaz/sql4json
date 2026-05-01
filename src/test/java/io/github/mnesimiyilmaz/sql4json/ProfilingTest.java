@@ -1,5 +1,6 @@
 package io.github.mnesimiyilmaz.sql4json;
 
+import com.sun.management.OperatingSystemMXBean;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
 import org.junit.jupiter.api.*;
 
@@ -14,6 +15,7 @@ import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.function.ToLongFunction;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -51,13 +53,14 @@ class ProfilingTest {
     private static final List<QueryScenario> SCENARIOS = buildScenarios();
 
     private       String        countryLookupJson;
-    private final List<SizeRun> allRuns = new ArrayList<>();
+    private       String        seedValue = "unknown";
+    private final List<SizeRun> allRuns   = new ArrayList<>();
 
     // ──────────────────────────────────────────────────────────────
     //  Inner types
     // ──────────────────────────────────────────────────────────────
 
-    private enum Tier {FULL, CURATED}
+    private enum Tier {FULL, CURATED, HEADLINE}
 
     @FunctionalInterface
     private interface ResultAssertion {
@@ -112,6 +115,8 @@ class ProfilingTest {
                 "country lookup must be a JSON array");
         assertTrue(countryLookupJson.length() > 500,
                 "country lookup should have real content, got " + countryLookupJson.length() + " chars");
+
+        seedValue = readSeedFile();
 
         System.out.println("═══════════════════════════════════════════════════════════════");
         System.out.println("  SQL4Json Profiling Suite — scaling sweep 8 MB → 512 MB");
@@ -189,15 +194,18 @@ class ProfilingTest {
 
         warmup(jsonData);
 
+        int runs = Integer.getInteger("profiling.runs", 3);
         for (QueryScenario scenario : SCENARIOS) {
             if (!shouldRun(scenario, tier)) continue;
-            sizeRun.results.add(runOne(scenario, jsonData, sizeLabel));
+            for (int i = 0; i < runs; i++) {
+                sizeRun.results.add(runOne(scenario, jsonData, sizeLabel));
+            }
         }
     }
 
     private static boolean shouldRun(QueryScenario s, Tier sizeTier) {
         if (sizeTier == Tier.FULL) return true;
-        return s.tier() == Tier.CURATED;
+        return s.tier() == Tier.CURATED || s.tier() == Tier.HEADLINE;
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -294,6 +302,20 @@ class ProfilingTest {
         return (rt.totalMemory() - rt.freeMemory()) / (1024 * 1024);
     }
 
+    private static String readSeedFile() {
+        Path seedFile = DATA_DIR.resolve("SEED");
+        if (!Files.exists(seedFile)) {
+            System.err.println("WARN: " + seedFile + " not found — report will list seed as 'unknown'");
+            return "unknown";
+        }
+        try {
+            return Files.readString(seedFile).trim();
+        } catch (IOException e) {
+            System.err.println("WARN: failed to read " + seedFile + ": " + e.getMessage());
+            return "unknown";
+        }
+    }
+
     // ──────────────────────────────────────────────────────────────
     //  Scenario list
     // ──────────────────────────────────────────────────────────────
@@ -304,7 +326,7 @@ class ProfilingTest {
         // ── 1. Baseline — full scan ─────────────────────────────
         s.add(new QueryScenario("p01 SELECT-ALL",
                 "SELECT * FROM $r",
-                Tier.CURATED, false,
+                Tier.HEADLINE, false,
                 r -> assertTrue(r.isArray() && !r.asArray().get().isEmpty())));
 
         s.add(new QueryScenario("p02 SELECT-ALL-LIMIT-100",
@@ -320,7 +342,7 @@ class ProfilingTest {
         // ── 2. Projection ───────────────────────────────────────
         s.add(new QueryScenario("p04 PROJECT-TOP-LEVEL",
                 "SELECT id, is_active, score FROM $r",
-                Tier.FULL, false,
+                Tier.HEADLINE, false,
                 r -> {
                     assertTrue(r.isArray());
                     var first = r.asArray().get().getFirst().asObject().get();
@@ -355,7 +377,7 @@ class ProfilingTest {
         s.add(new QueryScenario("p08 GROUP-BY-COUNTRY-MULTI-AGG",
                 "SELECT address.country AS country, COUNT(*) AS cnt, AVG(score) AS avg_score, " +
                         "MIN(score) AS min_score, MAX(score) AS max_score FROM $r GROUP BY address.country",
-                Tier.CURATED, false,
+                Tier.HEADLINE, false,
                 r -> assertTrue(r.isArray() && !r.asArray().get().isEmpty())));
 
         s.add(new QueryScenario("p09 GROUP-BY-THEME-HAVING",
@@ -385,7 +407,7 @@ class ProfilingTest {
 
         s.add(new QueryScenario("p12 WHERE-RANGE-SCORE",
                 "SELECT id, score FROM $r WHERE score >= 80 AND score <= 90",
-                Tier.CURATED, false,
+                Tier.HEADLINE, false,
                 r -> assertTrue(r.isArray())));
 
         s.add(new QueryScenario("p13 WHERE-STRING-EQ",
@@ -448,7 +470,7 @@ class ProfilingTest {
 
         s.add(new QueryScenario("p24 ORDER-BY-SCORE-TOP50",
                 "SELECT id, score FROM $r ORDER BY score DESC LIMIT 50",
-                Tier.CURATED, false,
+                Tier.HEADLINE, false,
                 r -> assertEquals(50, r.asArray().get().size())));
 
         // ── 6. DISTINCT ─────────────────────────────────────────
@@ -515,7 +537,7 @@ class ProfilingTest {
                         "FROM $r WHERE is_active = true AND score > 50 " +
                         "GROUP BY address.country HAVING cnt >= 10 " +
                         "ORDER BY avg_score DESC",
-                Tier.CURATED, false,
+                Tier.HEADLINE, false,
                 r -> {
                     assertTrue(r.isArray());
                     for (var row : r.asArray().get()) {
@@ -627,7 +649,7 @@ class ProfilingTest {
         s.add(new QueryScenario("p51 JOIN-INNER",
                 "SELECT u.id, u.address.country, c.name, c.region " +
                         "FROM users u JOIN countries c ON u.address.country = c.code",
-                Tier.CURATED, true,
+                Tier.HEADLINE, true,
                 r -> assertTrue(r.isArray())));
 
         s.add(new QueryScenario("p52 JOIN-LEFT",
@@ -672,7 +694,7 @@ class ProfilingTest {
 
         s.add(new QueryScenario("p58 WINDOW-ROW-NUMBER-PART",
                 "SELECT id, address.country, ROW_NUMBER() OVER (PARTITION BY address.country ORDER BY score DESC) AS rn FROM $r",
-                Tier.CURATED, false,
+                Tier.HEADLINE, false,
                 r -> assertTrue(r.isArray() && !r.asArray().get().isEmpty())));
 
         s.add(new QueryScenario("p59 WINDOW-RANK-PART",
@@ -836,6 +858,9 @@ class ProfilingTest {
                 .append("\n\n");
 
         Runtime rt = Runtime.getRuntime();
+        OperatingSystemMXBean osBean =
+                (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+
         md.append("## Environment\n\n");
         md.append("- JVM: ").append(System.getProperty("java.vm.name"))
                 .append(' ').append(System.getProperty("java.vm.version"))
@@ -844,7 +869,12 @@ class ProfilingTest {
                 .append(' ').append(System.getProperty("os.version"))
                 .append(" (").append(System.getProperty("os.arch")).append(")\n");
         md.append("- Cores: ").append(rt.availableProcessors()).append('\n');
-        md.append("- Max heap: ").append(rt.maxMemory() / (1024 * 1024)).append(" MB\n\n");
+        md.append("- Total RAM: ").append(osBean.getTotalMemorySize() / (1024 * 1024)).append(" MB\n");
+        md.append("- Max heap (-Xmx): ").append(rt.maxMemory() / (1024 * 1024)).append(" MB\n");
+        md.append("- Initial heap (-Xms): ").append(rt.totalMemory() / (1024 * 1024))
+                .append(" MB (approx, post-warmup)\n");
+        md.append("- Profiling runs: ").append(Integer.getInteger("profiling.runs", 3)).append('\n');
+        md.append("- Data seed: ").append(seedValue).append("\n\n");
 
         md.append("## File sizes & load time\n\n");
         md.append("| Size | Bytes | Load ms |\n");
@@ -856,6 +886,23 @@ class ProfilingTest {
                     .append(" |\n");
         }
         md.append('\n');
+
+        Set<String> headlineLabels = SCENARIOS.stream()
+                .filter(s -> s.tier() == Tier.HEADLINE)
+                .map(QueryScenario::label)
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+
+        if (!headlineLabels.isEmpty()) {
+            md.append("## Headline results\n\n");
+            md.append("Median wall time in milliseconds across ")
+                    .append(Integer.getInteger("profiling.runs", 3))
+                    .append(" runs. Headline scenarios run at every size; ")
+                    .append("see the full sweep below for the complete set.\n\n");
+            appendMetricTable(md, "Wall time (ms)", allRuns, RunMetrics::wallMs,
+                    headlineLabels::contains);
+            appendMetricTable(md, "Rows out (latest run)", allRuns, RunMetrics::rows,
+                    headlineLabels::contains);
+        }
 
         List<SizeRun> fullTier = new ArrayList<>();
         List<SizeRun> curatedTier = new ArrayList<>();
@@ -891,10 +938,21 @@ class ProfilingTest {
             String title,
             List<SizeRun> tier,
             ToLongFunction<RunMetrics> metric) {
+        appendMetricTable(md, title, tier, metric, label -> true);
+    }
+
+    private void appendMetricTable(
+            StringBuilder md,
+            String title,
+            List<SizeRun> tier,
+            ToLongFunction<RunMetrics> metric,
+            Predicate<String> labelFilter) {
 
         Set<String> labels = new LinkedHashSet<>();
         for (SizeRun sr : tier) {
-            for (RunMetrics m : sr.results) labels.add(m.label());
+            for (RunMetrics m : sr.results) {
+                if (labelFilter.test(m.label())) labels.add(m.label());
+            }
         }
 
         md.append("### ").append(title).append("\n\n");
@@ -907,12 +965,17 @@ class ProfilingTest {
         for (String label : labels) {
             md.append("| ").append(label).append(" |");
             for (SizeRun sr : tier) {
-                String cell = "—";
-                for (RunMetrics m : sr.results) {
-                    if (m.label().equals(label)) {
-                        cell = m.error() != null ? "FAIL" : String.format("%,d", metric.applyAsLong(m));
-                        break;
-                    }
+                long[] runs = sr.results.stream()
+                        .filter(m -> m.label().equals(label) && m.error() == null)
+                        .mapToLong(metric)
+                        .toArray();
+                String cell;
+                if (runs.length == 0) {
+                    boolean anyFailed = sr.results.stream()
+                            .anyMatch(m -> m.label().equals(label) && m.error() != null);
+                    cell = anyFailed ? "FAIL" : "—";
+                } else {
+                    cell = String.format("%,d", ProfilingStats.median(runs));
                 }
                 md.append(' ').append(cell).append(" |");
             }

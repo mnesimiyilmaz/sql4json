@@ -4,6 +4,7 @@ import io.github.mnesimiyilmaz.sql4json.engine.Expression;
 import io.github.mnesimiyilmaz.sql4json.engine.Expression.ColumnRef;
 import io.github.mnesimiyilmaz.sql4json.engine.FieldKey;
 import io.github.mnesimiyilmaz.sql4json.engine.Row;
+import io.github.mnesimiyilmaz.sql4json.engine.RowAccessor;
 import io.github.mnesimiyilmaz.sql4json.parser.SelectColumnDef;
 import io.github.mnesimiyilmaz.sql4json.registry.FunctionRegistry;
 import io.github.mnesimiyilmaz.sql4json.types.SqlString;
@@ -35,10 +36,11 @@ class GroupByStageTest {
                 SelectColumnDef.aggregate("COUNT", "name", "cnt")
         );
         var stage = new GroupByStage(List.<Expression>of(new ColumnRef("dept")), columns, fn, NO_LIMIT);
-        List<Row> result = stage.apply(Stream.of(it1, it2, hr1)).toList();
+        List<RowAccessor> result = stage.apply(Stream.<RowAccessor>of(it1, it2, hr1)).toList();
 
         assertEquals(2, result.size());
-        result.forEach(r -> assertTrue(r.isModified()));
+        // GROUP BY emits FlatRow.aggregated, which carries the aggregated flag.
+        result.forEach(r -> assertTrue(r.isAggregated()));
     }
 
     @Test

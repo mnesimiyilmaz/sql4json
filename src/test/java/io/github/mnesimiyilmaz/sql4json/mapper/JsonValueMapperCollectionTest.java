@@ -1,7 +1,7 @@
 package io.github.mnesimiyilmaz.sql4json.mapper;
 
 import io.github.mnesimiyilmaz.sql4json.json.JsonArrayValue;
-import io.github.mnesimiyilmaz.sql4json.json.JsonNumberValue;
+import io.github.mnesimiyilmaz.sql4json.json.JsonLongValue;
 import io.github.mnesimiyilmaz.sql4json.json.JsonStringValue;
 import io.github.mnesimiyilmaz.sql4json.settings.MappingSettings;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
@@ -18,7 +18,7 @@ class JsonValueMapperCollectionTest {
     private static JsonValue nums(long... values) {
         return new JsonArrayValue(
                 java.util.Arrays.stream(values)
-                        .mapToObj(v -> (JsonValue) new JsonNumberValue(v))
+                        .mapToObj(v -> (JsonValue) new JsonLongValue(v))
                         .toList());
     }
 
@@ -101,6 +101,17 @@ class JsonValueMapperCollectionTest {
         assertInstanceOf(java.util.ArrayList.class, out);
     }
 
+    record LinkedHashSetBox(java.util.LinkedHashSet<String> tags) {
+    }
+
+    @Test
+    void when_json_array_mapped_to_linkedHashSet_explicitly() {
+        java.lang.reflect.Type t = LinkedHashSetBox.class.getRecordComponents()[0].getGenericType();
+        Object out = JsonValueMapper.INSTANCE.mapInternal(
+                strs("a", "b"), t, MappingPath.root(), new VisitedStack(), S);
+        assertInstanceOf(java.util.LinkedHashSet.class, out);
+    }
+
     record MapBox(java.util.Map<String, Integer> counts,
                   java.util.Map<Integer, String> wrongKey) {
     }
@@ -116,8 +127,8 @@ class JsonValueMapperCollectionTest {
     void when_json_object_mapped_to_map_string_integer() {
         JsonValue v = new io.github.mnesimiyilmaz.sql4json.json.JsonObjectValue(
                 new java.util.LinkedHashMap<>(java.util.Map.of(
-                        "a", new JsonNumberValue(1),
-                        "b", new JsonNumberValue(2))));
+                        "a", new JsonLongValue(1L),
+                        "b", new JsonLongValue(2L))));
         Object out = JsonValueMapper.INSTANCE.mapInternal(
                 v, mapTypeOf("counts"),
                 MappingPath.root(), new VisitedStack(), S);

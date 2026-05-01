@@ -158,4 +158,104 @@ class ParameterSubstitutorTest {
         assertNull(out.limitParam());
         assertNull(out.offsetParam());
     }
+
+    @Test
+    void when_limit_bigInteger_exceeds_long_then_exception() {
+        var def = io.github.mnesimiyilmaz.sql4json.parser.QueryParser.parse(
+                "SELECT * FROM $r LIMIT ?", S);
+        java.math.BigInteger huge =
+                java.math.BigInteger.valueOf(Long.MAX_VALUE).add(java.math.BigInteger.TEN);
+        SQL4JsonBindException ex = assertThrows(SQL4JsonBindException.class,
+                () -> ParameterSubstitutor.substitute(def, BoundParameters.of(huge), S));
+        assertTrue(ex.getMessage().contains("exceeds Integer.MAX_VALUE"));
+    }
+
+    @Test
+    void when_limit_bigDecimal_exceeds_long_then_exception() {
+        var def = io.github.mnesimiyilmaz.sql4json.parser.QueryParser.parse(
+                "SELECT * FROM $r LIMIT ?", S);
+        java.math.BigDecimal huge =
+                new java.math.BigDecimal(Long.MAX_VALUE).add(java.math.BigDecimal.TEN);
+        SQL4JsonBindException ex = assertThrows(SQL4JsonBindException.class,
+                () -> ParameterSubstitutor.substitute(def, BoundParameters.of(huge), S));
+        assertTrue(ex.getMessage().contains("exceeds Integer.MAX_VALUE"));
+    }
+
+    @Test
+    void when_collection_bound_to_scalar_placeholder_then_exception() {
+        var def = io.github.mnesimiyilmaz.sql4json.parser.QueryParser.parse(
+                "SELECT * FROM $r WHERE age = :a", S);
+        SQL4JsonBindException ex = assertThrows(SQL4JsonBindException.class,
+                () -> ParameterSubstitutor.substitute(
+                        def, BoundParameters.named().bind("a", List.of(1, 2)), S));
+        assertTrue(ex.getMessage().contains("Cannot bind collection"));
+    }
+
+    @Test
+    void when_array_bound_to_scalar_placeholder_then_exception() {
+        var def = io.github.mnesimiyilmaz.sql4json.parser.QueryParser.parse(
+                "SELECT * FROM $r WHERE age = ?", S);
+        SQL4JsonBindException ex = assertThrows(SQL4JsonBindException.class,
+                () -> ParameterSubstitutor.substitute(
+                        def, BoundParameters.of(new int[]{1, 2}), S));
+        assertTrue(ex.getMessage().contains("Cannot bind collection"));
+    }
+
+    @Test
+    void when_groupBy_present_with_parameter_then_substituted() {
+        // GROUP BY column is a literal; the parameter is in WHERE — exercises the
+        // GROUP BY non-null branch of substitute()
+        var def = io.github.mnesimiyilmaz.sql4json.parser.QueryParser.parse(
+                "SELECT dept, COUNT(*) FROM $r WHERE age > ? GROUP BY dept", S);
+        var out = ParameterSubstitutor.substitute(def, BoundParameters.of(25), S);
+        assertNotNull(out.groupBy());
+        assertEquals(1, out.groupBy().size());
+    }
+
+    @Test
+    void when_orderBy_present_with_parameter_then_substituted() {
+        var def = io.github.mnesimiyilmaz.sql4json.parser.QueryParser.parse(
+                "SELECT name FROM $r WHERE age > ? ORDER BY name ASC", S);
+        var out = ParameterSubstitutor.substitute(def, BoundParameters.of(25), S);
+        assertNotNull(out.orderBy());
+        assertEquals(1, out.orderBy().size());
+    }
+
+    @Test
+    void when_window_function_with_parameter_then_substituted() {
+        // LAG with a parameterized offset arg — exercises substituteWindowFn + substituteWindowSpec
+        var def = io.github.mnesimiyilmaz.sql4json.parser.QueryParser.parse(
+                "SELECT LAG(name, ?) OVER (PARTITION BY dept ORDER BY age) FROM $r", S);
+        var out = ParameterSubstitutor.substitute(def, BoundParameters.of(1), S);
+        assertEquals(1, out.selectedColumns().size());
+    }
+
+    @Test
+    void when_between_lower_bound_is_now_then_expression_path() {
+        // NOW() as a BETWEEN bound survives substitution as Expression (non-literal path)
+        var def = io.github.mnesimiyilmaz.sql4json.parser.QueryParser.parse(
+                "SELECT * FROM $r WHERE created BETWEEN NOW() AND :u", S);
+        var out = ParameterSubstitutor.substitute(
+                def,
+                BoundParameters.named().bind("u", java.time.LocalDateTime.now()),
+                S);
+        assertNotNull(out.whereClause());
+    }
+
+    @Test
+    void when_simpleCase_no_else_then_no_substitution_for_else() {
+        // Simple CASE without ELSE — exercises the elseExpr == null branch
+        var def = io.github.mnesimiyilmaz.sql4json.parser.QueryParser.parse(
+                "SELECT CASE age WHEN ? THEN 'a' END FROM $r", S);
+        var out = ParameterSubstitutor.substitute(def, BoundParameters.of(30), S);
+        assertEquals(1, out.selectedColumns().size());
+    }
+
+    @Test
+    void when_searchedCase_no_else_then_no_substitution_for_else() {
+        var def = io.github.mnesimiyilmaz.sql4json.parser.QueryParser.parse(
+                "SELECT CASE WHEN age > ? THEN 'a' END FROM $r", S);
+        var out = ParameterSubstitutor.substitute(def, BoundParameters.of(30), S);
+        assertEquals(1, out.selectedColumns().size());
+    }
 }

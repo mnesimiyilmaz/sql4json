@@ -1,6 +1,7 @@
 package io.github.mnesimiyilmaz.sql4json.grouping;
 
 import io.github.mnesimiyilmaz.sql4json.engine.FieldKey;
+import io.github.mnesimiyilmaz.sql4json.engine.FlatRow;
 import io.github.mnesimiyilmaz.sql4json.engine.Row;
 import io.github.mnesimiyilmaz.sql4json.parser.SelectColumnDef;
 import io.github.mnesimiyilmaz.sql4json.registry.FunctionRegistry;
@@ -36,13 +37,13 @@ class GroupingTest {
                     SelectColumnDef.aggregate("COUNT", "name", "cnt")
             );
 
-            Row result = GroupAggregator.aggregate(List.of(row1, row2), columns, fn);
+            FlatRow result = GroupAggregator.aggregate(List.of(row1, row2), columns, fn);
 
             // Aggregate stored under alias "cnt"
             assertEquals(SqlNumber.of(2), result.get(FieldKey.of("cnt")));
             // Non-aggregate stored under column name "dept"
             assertEquals(new SqlString("IT"), result.get(FieldKey.of("dept")));
-            assertTrue(result.isModified());
+            assertTrue(result.isAggregated());
         }
 
         @Test
@@ -51,7 +52,7 @@ class GroupingTest {
             var row2 = Row.eager(Map.of(FieldKey.of("amount"), SqlNumber.of(20.0)));
             var columns = List.of(SelectColumnDef.aggregate("SUM", "amount", "total"));
 
-            Row result = GroupAggregator.aggregate(List.of(row1, row2), columns, fn);
+            FlatRow result = GroupAggregator.aggregate(List.of(row1, row2), columns, fn);
             // SUM stored under alias "total"
             assertEquals(SqlNumber.of(30.0), result.get(FieldKey.of("total")));
         }
@@ -67,7 +68,7 @@ class GroupingTest {
             // Use alias "cnt" for clear test
             var columns = List.of(SelectColumnDef.aggregate("COUNT", "*", "cnt"));
 
-            Row result = GroupAggregator.aggregate(rows, columns, fn);
+            FlatRow result = GroupAggregator.aggregate(rows, columns, fn);
             assertEquals(SqlNumber.of(3), result.get(FieldKey.of("cnt")));
         }
     }

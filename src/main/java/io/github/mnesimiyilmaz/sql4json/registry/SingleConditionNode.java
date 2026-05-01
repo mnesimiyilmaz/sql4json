@@ -1,12 +1,12 @@
 package io.github.mnesimiyilmaz.sql4json.registry;
 
-import io.github.mnesimiyilmaz.sql4json.engine.Row;
+import io.github.mnesimiyilmaz.sql4json.engine.RowAccessor;
 
 /**
  * Leaf of the WHERE / HAVING criteria tree. Wraps a {@link ConditionContext} alongside its
  * resolved {@link CriteriaNode} so that {@code ParameterSubstitutor} can later rewrite
  * placeholder values inside the context and re-resolve a fresh CriteriaNode. Non-parameterised
- * queries behave exactly as before — the wrapper just delegates {@link #test(Row)} to
+ * queries behave exactly as before — the wrapper just delegates {@link #test(RowAccessor)} to
  * {@code resolved}.
  *
  * @param cc       the condition context from the listener (may carry unresolved
@@ -15,7 +15,7 @@ import io.github.mnesimiyilmaz.sql4json.engine.Row;
  */
 public record SingleConditionNode(ConditionContext cc, CriteriaNode resolved) implements CriteriaNode {
     @Override
-    public boolean test(Row row) {
+    public boolean test(RowAccessor row) {
         return resolved.test(row);
     }
 }

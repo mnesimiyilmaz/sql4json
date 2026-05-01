@@ -49,7 +49,7 @@ public final class ParameterConverter {
             case Boolean b -> SqlBoolean.of(b);
             case Byte n -> SqlNumber.of(n.longValue());
             case Short n -> SqlNumber.of(n.longValue());
-            case Integer n -> SqlNumber.of(n.intValue());
+            case Integer n -> SqlNumber.of(n.longValue());
             case Long n -> SqlNumber.of(n.longValue());
             case Float n -> SqlNumber.of(n.doubleValue());
             case Double n -> SqlNumber.of(n.doubleValue());
@@ -68,11 +68,11 @@ public final class ParameterConverter {
 
     private static SqlNumber convertBigInteger(BigInteger bi) {
         // Prefer long path for representable values — preserves exact int semantics in
-        // comparisons. Oversized BigInteger retains its identity via the Number overload.
+        // comparisons. Oversized BigInteger is preserved as BigDecimal for exact precision.
         try {
             return SqlNumber.of(bi.longValueExact());
         } catch (ArithmeticException ex) {
-            return SqlNumber.of(bi);
+            return SqlNumber.of(new java.math.BigDecimal(bi));
         }
     }
 }

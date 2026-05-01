@@ -146,4 +146,41 @@ class WindowGrammarTest {
         var winExpr = (Expression.WindowFnCall) winCol.expression();
         assertEquals(2, winExpr.spec().partitionBy().size());
     }
+
+    /**
+     * Regression: the grammar rule {@code orderByColumn} is shared between the top-level
+     * {@code orderByColumns} and {@code windowSpec}. Without an explicit guard, ANTLR's
+     * tree walker fires {@code enterOrderByColumn} for both contexts, polluting the
+     * query-level orderBy with the window's OVER (ORDER BY ...) keys and silently
+     * overriding the user's outer ORDER BY at execution time.
+     */
+    @Test
+    void window_OVER_order_by_does_not_leak_into_query_orderBy() {
+        // No outer ORDER BY → orderBy must be null even though the window has its own.
+        QueryDefinition q1 = QueryParser.parse(
+                "SELECT name, ROW_NUMBER() OVER (ORDER BY salary DESC) AS rn FROM $r");
+        assertNull(q1.orderBy(), "window OVER (ORDER BY ...) must not appear in query.orderBy()");
+
+        // Outer ORDER BY name ASC → orderBy must contain only [name ASC], NOT [salary DESC, name ASC].
+        QueryDefinition q2 = QueryParser.parse(
+                "SELECT name, ROW_NUMBER() OVER (ORDER BY salary DESC) AS rn "
+                        + "FROM $r ORDER BY name ASC");
+        assertNotNull(q2.orderBy());
+        assertEquals(1, q2.orderBy().size(),
+                "outer orderBy must not absorb the window's OVER (ORDER BY ...)");
+        assertEquals("ASC", q2.orderBy().getFirst().direction());
+        var col = (Expression.ColumnRef) q2.orderBy().getFirst().expression();
+        assertEquals("name", col.path());
+
+        // Two window specs each with their own OVER (ORDER BY ...) plus an outer ORDER BY.
+        // orderBy must contain ONLY the outer's [country ASC].
+        QueryDefinition q3 = QueryParser.parse(
+                "SELECT name, "
+                        + "ROW_NUMBER() OVER (ORDER BY salary DESC) AS rn1, "
+                        + "RANK() OVER (ORDER BY hire_date) AS rn2 "
+                        + "FROM $r ORDER BY country ASC");
+        assertNotNull(q3.orderBy());
+        assertEquals(1, q3.orderBy().size(),
+                "outer orderBy must not absorb either window's OVER (ORDER BY ...)");
+    }
 }

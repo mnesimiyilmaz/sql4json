@@ -31,26 +31,40 @@ public final class FieldKey {
         /**
          * Interns a string, returning the canonical instance.
          *
+         * <p>Hand-rolled get/put pair instead of {@code computeIfAbsent(s, k -> k)} —
+         * the lambda form allocates a fresh closure on every call (cache hit or miss),
+         * which dominated allocations during JsonParser-heavy workloads (profiler:
+         * 537 MB of {@code FieldKey$Interner$$Lambda} on a 512 MB GROUP BY query).</p>
+         *
          * @param s the string to intern
          * @return the canonical instance of the string
          */
         public String intern(String s) {
-            return stringPool.computeIfAbsent(s, k -> k);
+            String existing = stringPool.get(s);
+            if (existing != null) return existing;
+            stringPool.put(s, s);
+            return s;
         }
 
         /**
          * Interns a FieldKey, returning the canonical instance for the given key path.
          *
+         * <p>Lambda-free hot path — see {@link #intern(String)} for the rationale.</p>
+         *
          * @param key the field key path to intern
          * @return the canonical FieldKey instance for the given path
          */
         public FieldKey internFieldKey(String key) {
-            return fieldKeyPool.computeIfAbsent(key, k -> {
-                String internedKey = intern(k);
-                String derivedFamily = stripArrayIndices(internedKey);
-                String internedFamily = derivedFamily.equals(internedKey) ? internedKey : intern(derivedFamily);
-                return new FieldKey(internedKey, internedFamily);
-            });
+            FieldKey cached = fieldKeyPool.get(key);
+            if (cached != null) return cached;
+            String internedKey = intern(key);
+            String derivedFamily = stripArrayIndices(internedKey);
+            String internedFamily = derivedFamily.equals(internedKey)
+                    ? internedKey
+                    : intern(derivedFamily);
+            FieldKey fresh = new FieldKey(internedKey, internedFamily);
+            fieldKeyPool.put(key, fresh);
+            return fresh;
         }
     }
 

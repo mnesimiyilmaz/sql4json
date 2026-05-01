@@ -40,10 +40,11 @@ class FunctionRegistryTest {
     }
 
     @Test
-    void lower_nonString_passThrough() {
+    void lower_nonString_coerced() {
+        // Since 1.2.0 LOWER coerces non-string inputs via toString → "42"
         var fn = registry.getScalar("lower").orElseThrow();
         SqlValue result = fn.apply().apply(SqlNumber.of(42), List.of());
-        assertEquals(SqlNumber.of(42), result);
+        assertEquals(new SqlString("42"), result);
     }
 
     // ── Scalar: UPPER ────────────────────────────────────────────────────────
@@ -98,10 +99,13 @@ class FunctionRegistryTest {
     }
 
     @Test
-    void toDate_nonString_passThrough() {
+    void toDate_dateInput_passesThrough() {
+        // Since 1.2.0 TO_DATE preserves only date/datetime types unchanged; other types
+        // are coerced and parsed. SqlDate input short-circuits.
         var fn = registry.getScalar("to_date").orElseThrow();
-        SqlValue result = fn.apply().apply(SqlNumber.of(1), List.of());
-        assertEquals(SqlNumber.of(1), result);
+        SqlDate input = new SqlDate(LocalDate.of(2024, 6, 15));
+        SqlValue result = fn.apply().apply(input, List.of());
+        assertEquals(input, result);
     }
 
     // ── Value: NOW ───────────────────────────────────────────────────────────
@@ -534,5 +538,27 @@ class FunctionRegistryTest {
         var fn = registry.getScalar("cast").orElseThrow();
         SqlValue result = fn.apply().apply(SqlNumber.of(0), List.of(new SqlString("BOOLEAN")));
         assertEquals(SqlBoolean.FALSE, result);
+    }
+
+    // ── Enumeration methods ──────────────────────────────────────────────
+
+    @Test
+    void scalarFunctionNamesContainsKnownEntries() {
+        var names = FunctionRegistry.getDefault().scalarFunctionNames();
+        assertTrue(names.contains("lower"));
+        assertTrue(names.contains("abs"));
+        assertTrue(names.contains("cast"));
+    }
+
+    @Test
+    void valueFunctionNamesContainsNow() {
+        var names = FunctionRegistry.getDefault().valueFunctionNames();
+        assertTrue(names.contains("now"));
+    }
+
+    @Test
+    void aggregateFunctionNamesContainsAllFive() {
+        var names = FunctionRegistry.getDefault().aggregateFunctionNames();
+        assertTrue(names.containsAll(java.util.List.of("count", "sum", "avg", "min", "max")));
     }
 }

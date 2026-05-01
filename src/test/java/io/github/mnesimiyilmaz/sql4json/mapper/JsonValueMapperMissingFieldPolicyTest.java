@@ -1,7 +1,8 @@
 package io.github.mnesimiyilmaz.sql4json.mapper;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonMappingException;
-import io.github.mnesimiyilmaz.sql4json.json.JsonNumberValue;
+import io.github.mnesimiyilmaz.sql4json.json.JsonDoubleValue;
+import io.github.mnesimiyilmaz.sql4json.json.JsonLongValue;
 import io.github.mnesimiyilmaz.sql4json.json.JsonObjectValue;
 import io.github.mnesimiyilmaz.sql4json.json.JsonStringValue;
 import io.github.mnesimiyilmaz.sql4json.settings.MappingSettings;
@@ -37,7 +38,7 @@ class JsonValueMapperMissingFieldPolicyTest {
 
     @Test
     void when_ignore_and_missing_reference_field_then_null() {
-        JsonValue v = obj(Map.of("age", new JsonNumberValue(30)));
+        JsonValue v = obj(Map.of("age", new JsonLongValue(30L)));
         WithOptional w = JsonValueMapper.INSTANCE.map(v, WithOptional.class, IGNORE);
         assertNull(w.name());
     }
@@ -77,7 +78,7 @@ class JsonValueMapperMissingFieldPolicyTest {
     void when_optional_present_and_non_null_then_wrapped() {
         JsonValue v = obj(Map.of(
                 "name", new JsonStringValue("Alice"),
-                "age", new JsonNumberValue(30)));
+                "age", new JsonLongValue(30L)));
         WithOptional w = JsonValueMapper.INSTANCE.map(v, WithOptional.class, IGNORE);
         assertEquals(Optional.of(30), w.age());
     }
@@ -94,5 +95,57 @@ class JsonValueMapperMissingFieldPolicyTest {
         assertTrue(w.counts().isEmpty());
         assertNotNull(w.nums());
         assertEquals(0, w.nums().length);
+    }
+
+    record AllPrimitives(boolean b, char c, byte by, short s, int i, long l, float f, double d) {
+    }
+
+    record WithIterable(String id, Iterable<String> tags) {
+    }
+
+    @Test
+    void when_ignore_and_missing_iterable_field_then_empty_arrayList() {
+        JsonValue v = obj(Map.of("id", new JsonStringValue("x")));
+        WithIterable w = JsonValueMapper.INSTANCE.map(v, WithIterable.class, IGNORE);
+        assertNotNull(w.tags());
+        assertFalse(w.tags().iterator().hasNext());
+    }
+
+    @Test
+    void when_ignore_and_missing_all_primitive_fields_then_zero_defaults() {
+        JsonValue v = obj(Map.of()); // empty — all fields missing
+        AllPrimitives w = JsonValueMapper.INSTANCE.map(v, AllPrimitives.class, IGNORE);
+        assertFalse(w.b());
+        assertEquals('\0', w.c());
+        assertEquals((byte) 0, w.by());
+        assertEquals((short) 0, w.s());
+        assertEquals(0, w.i());
+        assertEquals(0L, w.l());
+        assertEquals(0f, w.f());
+        assertEquals(0d, w.d());
+    }
+
+    @Test
+    void when_all_primitive_fields_present_then_mapped() {
+        // Exercises mapNumberToPrimitive for byte/short/int/long/float/double/char primitive classes.
+        // (boolean is mapped via mapBoolean, not mapNumberToPrimitive.)
+        JsonValue v = obj(Map.of(
+                "b", new io.github.mnesimiyilmaz.sql4json.json.JsonBooleanValue(true),
+                "c", new JsonLongValue(65L),
+                "by", new JsonLongValue(7L),
+                "s", new JsonLongValue(1000L),
+                "i", new JsonLongValue(123L),
+                "l", new JsonLongValue(456L),
+                "f", new JsonDoubleValue(1.5),
+                "d", new JsonDoubleValue(2.5)));
+        AllPrimitives w = JsonValueMapper.INSTANCE.map(v, AllPrimitives.class, IGNORE);
+        assertTrue(w.b());
+        assertEquals('A', w.c());
+        assertEquals((byte) 7, w.by());
+        assertEquals((short) 1000, w.s());
+        assertEquals(123, w.i());
+        assertEquals(456L, w.l());
+        assertEquals(1.5f, w.f());
+        assertEquals(2.5, w.d());
     }
 }

@@ -127,7 +127,7 @@ selectedColumns
     ;
 
 value
-    : STRING | NUMBER | BOOLEAN | NULL | VALUE_FUNCTION | parameter
+    : STRING | NUMBER | BOOLEAN | NULL | parameter
     ;
 
 limitValue
@@ -147,6 +147,33 @@ rhsValue
     | functionCall  # RhsFunctionCall
     | castExpr      # RhsCastExpr
     | jsonColumn    # RhsColumnRef
+    | arrayLiteral  # RhsArrayLiteral
+    ;
+
+arrayLiteral
+    : ARRAY LBRACKET (rhsValue (COMMA rhsValue)*)? RBRACKET
+    ;
+
+arrayRhs
+    : arrayLiteral      # ArrayRhsLiteral
+    | jsonColumn        # ArrayRhsColumnRef
+    | parameter         # ArrayRhsParameter
+    ;
+
+contains
+    : columnExpr CONTAINS rhsValue
+    ;
+
+arrayContains
+    : columnExpr ARRAY_CONTAINS_OP arrayRhs
+    ;
+
+arrayContainedBy
+    : columnExpr ARRAY_CONTAINED_BY_OP arrayRhs
+    ;
+
+arrayOverlap
+    : columnExpr ARRAY_OVERLAP_OP arrayRhs
     ;
 
 comparison
@@ -186,15 +213,19 @@ notBetween
     ;
 
 condition
-    : comparison    # ComparisonCondition
-    | like          # LikeCondition
-    | notLike       # NotLikeCondition
-    | isNull        # IsNullCondition
-    | isNotNull     # IsNotNullCondition
-    | in            # InCondition
-    | notIn         # NotInCondition
-    | between       # BetweenCondition
-    | notBetween    # NotBetweenCondition
+    : comparison        # ComparisonCondition
+    | like              # LikeCondition
+    | notLike           # NotLikeCondition
+    | isNull            # IsNullCondition
+    | isNotNull         # IsNotNullCondition
+    | in                # InCondition
+    | notIn             # NotInCondition
+    | between           # BetweenCondition
+    | notBetween        # NotBetweenCondition
+    | contains          # ContainsCondition
+    | arrayContains     # ArrayContainsCondition
+    | arrayContainedBy  # ArrayContainedByCondition
+    | arrayOverlap      # ArrayOverlapCondition
     ;
 
 // ANTLR implicit left-recursive precedence: first alternative = highest precedence
@@ -249,7 +280,6 @@ NULL            : 'NULL';
 ROOT            : '$R';
 ORDER_DIRECTION : 'ASC' | 'DESC';
 AGG_FUNCTION    : 'AVG' | 'SUM' | 'COUNT' | 'MIN' | 'MAX';
-VALUE_FUNCTION  : 'NOW' LPAREN RPAREN;
 BOOLEAN         : 'TRUE' | 'FALSE';
 DISTINCT        : 'DISTINCT';
 LIMIT           : 'LIMIT';
@@ -286,6 +316,16 @@ THEN      : 'THEN' ;
 ELSE      : 'ELSE' ;
 END       : 'END' ;
 
+CONTAINS  : 'CONTAINS' ;
+ARRAY     : 'ARRAY' ;
+
+LBRACKET  : '[' ;
+RBRACKET  : ']' ;
+
+ARRAY_CONTAINS_OP     : '@>' ;
+ARRAY_CONTAINED_BY_OP : '<@' ;
+ARRAY_OVERLAP_OP      : '&&' ;
+
 COMPARISON_OPERATOR : '>=' | '<=' | '!=' | '>' | '<' | '=';
 SEMI_COLON  : ';';
 COMMA       : ',';
@@ -298,7 +338,7 @@ STRING           : '\'' ( ~('\'') | '\'\'' )* '\'';
 POSITIONAL_PARAM : '?';
 NAMED_PARAM      : ':' (LETTER | '_') (LETTER | DIGIT | '_')* ;
 IDENTIFIER       : (LETTER | '_') (LETTER | DIGIT | '_' | '-')*;
-ESC         : [ \t\r\n]+ -> skip;
+ESC         : [ \t\r\n]+ -> channel(HIDDEN);
 
 fragment DIGIT  : [0-9];
 fragment LETTER : [a-z];  // caseInsensitive=true expands to [a-zA-Z] at runtime

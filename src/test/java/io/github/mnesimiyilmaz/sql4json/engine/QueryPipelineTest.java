@@ -36,7 +36,7 @@ class QueryPipelineTest {
                     return age instanceof SqlNumber n && n.doubleValue() > 25;
                 },
                 null, null, null, Set.of(), false, null, null, false, null, null,
-                null, null, 0, Set.of(), 0
+                null, null, 0, Set.of(), 0, List.of()
         );
 
         var result = QueryPipeline.build(query, FunctionRegistry.createDefault(), Sql4jsonSettings.defaults())
@@ -55,7 +55,7 @@ class QueryPipelineTest {
                 "$r", null, null, null, null,
                 List.of(OrderByColumnDef.of("name", "ASC")),
                 Set.of(), false, null, null, false, null, null,
-                null, null, 0, Set.of(), 0
+                null, null, 0, Set.of(), 0, List.of()
         );
 
         var result = QueryPipeline.build(query, FunctionRegistry.createDefault(), Sql4jsonSettings.defaults())
@@ -76,16 +76,16 @@ class QueryPipelineTest {
         QueryPipeline pipeline = QueryPipeline.build(query, registry, Sql4jsonSettings.defaults());
 
         FieldKey.Interner interner1 = new FieldKey.Interner();
-        Stream<Row> input1 = data.asArray().orElseThrow().stream()
-                .map(e -> Row.lazy(e, interner1));
-        List<Row> listResult = pipeline.execute(input1);
+        Stream<RowAccessor> input1 = data.asArray().orElseThrow().stream()
+                .map(e -> (RowAccessor) Row.lazy(e, interner1));
+        List<RowAccessor> listResult = pipeline.execute(input1);
 
         // Need to rebuild pipeline — stream is consumed
         QueryPipeline pipeline2 = QueryPipeline.build(query, registry, Sql4jsonSettings.defaults());
         FieldKey.Interner interner2 = new FieldKey.Interner();
-        Stream<Row> input2 = data.asArray().orElseThrow().stream()
-                .map(e -> Row.lazy(e, interner2));
-        List<Row> streamResult = pipeline2.executeAsStream(input2).toList();
+        Stream<RowAccessor> input2 = data.asArray().orElseThrow().stream()
+                .map(e -> (RowAccessor) Row.lazy(e, interner2));
+        List<RowAccessor> streamResult = pipeline2.executeAsStream(input2).toList();
 
         assertEquals(listResult.size(), streamResult.size());
     }
@@ -99,9 +99,9 @@ class QueryPipelineTest {
         QueryPipeline pipeline = QueryPipeline.build(query, registry, Sql4jsonSettings.defaults());
 
         FieldKey.Interner interner = new FieldKey.Interner();
-        Stream<Row> input = data.asArray().orElseThrow().stream()
-                .map(e -> Row.lazy(e, interner));
-        List<Row> result = pipeline.executeAsStream(input).toList();
+        Stream<RowAccessor> input = data.asArray().orElseThrow().stream()
+                .map(e -> (RowAccessor) Row.lazy(e, interner));
+        List<RowAccessor> result = pipeline.executeAsStream(input).toList();
 
         assertEquals(2, result.size());
     }

@@ -115,8 +115,8 @@ public final class JsonValueMapper {
         if (value instanceof JsonBooleanValue(boolean b)) {
             return mapBoolean(b, rawType, path);
         }
-        if (value instanceof JsonNumberValue(Number n)) {
-            return mapNumber(n, rawType, path);
+        if (value instanceof JsonNumberValue jn) {
+            return mapNumber(jn.numberValue(), rawType, path);
         }
         if (value instanceof JsonStringValue(String s)) {
             return mapString(s, rawType, path);
@@ -394,7 +394,7 @@ public final class JsonValueMapper {
                                 VisitedStack visited, MappingSettings settings) {
         if (v instanceof JsonNullValue) return null;
         if (v instanceof JsonBooleanValue(boolean b)) return b;
-        if (v instanceof JsonNumberValue(Number n)) return n;
+        if (v instanceof JsonNumberValue jn) return jn.numberValue();
         if (v instanceof JsonStringValue(String s)) return s;
         if (v instanceof JsonArrayValue(List<JsonValue> elements)) {
             List<Object> out = new ArrayList<>(elements.size());

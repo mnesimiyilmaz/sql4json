@@ -1,8 +1,8 @@
 package io.github.mnesimiyilmaz.sql4json;
 
+import io.github.mnesimiyilmaz.sql4json.engine.FlatRow;
 import io.github.mnesimiyilmaz.sql4json.engine.ParameterSubstitutor;
 import io.github.mnesimiyilmaz.sql4json.engine.QueryExecutor;
-import io.github.mnesimiyilmaz.sql4json.engine.Row;
 import io.github.mnesimiyilmaz.sql4json.parser.QueryDefinition;
 import io.github.mnesimiyilmaz.sql4json.parser.QueryParser;
 import io.github.mnesimiyilmaz.sql4json.settings.Sql4jsonSettings;
@@ -44,13 +44,13 @@ public final class SQL4JsonEngine {
 
     private final String                 rawJson;          // non-null when tree was released (string-based)
     private final JsonValue              data;             // non-null when tree is kept (JsonValue-based)
-    private final List<Row>              preFlattenedRows; // empty if data is not a top-level array
+    private final List<FlatRow>          preFlattenedRows; // empty if data is not a top-level array
     private final QueryResultCache       cache;            // null if caching not configured
     private final JsonCodec              codec;
     private final Map<String, JsonValue> namedSources; // null if no named sources configured
     private final Sql4jsonSettings       settings;
 
-    SQL4JsonEngine(String rawJson, JsonValue data, List<Row> preFlattenedRows,
+    SQL4JsonEngine(String rawJson, JsonValue data, List<FlatRow> preFlattenedRows,
                    QueryResultCache cache, JsonCodec codec,
                    Map<String, JsonValue> namedSources,
                    Sql4jsonSettings settings) {

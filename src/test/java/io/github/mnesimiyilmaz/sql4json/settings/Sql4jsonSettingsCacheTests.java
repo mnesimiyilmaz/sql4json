@@ -98,11 +98,9 @@ class Sql4jsonSettingsCacheTests {
 
     @Test
     void data_before_settings_honors_late_settings() {
-        // Regression for Task 6.1 deferred-parse fix. Before the fix,
-        // .data(json) parsed eagerly with the default codec, so a later
-        // .settings(custom) call would silently ignore the custom codec.
-        // With the fix, .data() stores the raw string and parsing happens
-        // in .build() using settings.codec().
+        // Regression: .data(json) must defer parsing until build(), so a later
+        // .settings(custom) call still sees its custom codec. Eager parsing in
+        // .data() would silently ignore the custom codec.
         AtomicInteger parseCalls = new AtomicInteger();
         var codec = new JsonCodec() {
             private final DefaultJsonCodec delegate = new DefaultJsonCodec();

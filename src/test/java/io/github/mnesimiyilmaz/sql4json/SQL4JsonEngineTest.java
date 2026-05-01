@@ -304,6 +304,59 @@ class SQL4JsonEngineTest {
     }
 
     @Test
+    void joinQuery_onSingleSourceEngine_throws() {
+        SQL4JsonEngine engine = SQL4Json.engine().data(JSON).build();
+        var ex = assertThrows(io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException.class,
+                () -> engine.query(
+                        "SELECT u.name FROM users u JOIN orders o ON u.id = o.user_id"));
+        assertTrue(ex.getMessage().contains("JOIN queries require named data sources"));
+    }
+
+    @Test
+    void parameterized_queryAsJsonValue_namedParam() {
+        SQL4JsonEngine engine = SQL4Json.engine().data(JSON).build();
+        JsonValue result = engine.queryAsJsonValue(
+                "SELECT name FROM $r WHERE age > :min",
+                BoundParameters.named().bind("min", 25));
+        assertNotNull(result);
+        assertEquals(1, result.asArray().orElseThrow().size());
+    }
+
+    @Test
+    void parameterized_queryAsJsonValue_noPlaceholders_fallsThroughToCachedPath() {
+        SQL4JsonEngine engine = SQL4Json.engine().data(JSON).build();
+        JsonValue result = engine.queryAsJsonValue(
+                "SELECT name FROM $r WHERE age > 25",
+                BoundParameters.named());
+        assertNotNull(result);
+        assertEquals(1, result.asArray().orElseThrow().size());
+    }
+
+    @Test
+    void parameterized_queryAsJsonValue_positionalParam() {
+        SQL4JsonEngine engine = SQL4Json.engine().data(JSON).build();
+        JsonValue result = engine.queryAsJsonValue(
+                "SELECT name FROM $r WHERE age > ?", BoundParameters.of(25));
+        assertEquals(1, result.asArray().orElseThrow().size());
+    }
+
+    @Test
+    void parameterized_queryAsJsonValue_limitParam() {
+        SQL4JsonEngine engine = SQL4Json.engine().data(JSON).build();
+        JsonValue result = engine.queryAsJsonValue(
+                "SELECT name FROM $r LIMIT ?", BoundParameters.of(1));
+        assertEquals(1, result.asArray().orElseThrow().size());
+    }
+
+    @Test
+    void parameterized_queryAsJsonValue_offsetParam() {
+        SQL4JsonEngine engine = SQL4Json.engine().data(JSON).build();
+        JsonValue result = engine.queryAsJsonValue(
+                "SELECT name FROM $r LIMIT 10 OFFSET ?", BoundParameters.of(1));
+        assertEquals(1, result.asArray().orElseThrow().size());
+    }
+
+    @Test
     void builder_namedSource_nullData_throws() {
         assertThrows(SQL4JsonException.class,
                 () -> SQL4Json.engine().data("users", (String) null));

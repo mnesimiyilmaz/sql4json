@@ -1,8 +1,11 @@
 package io.github.mnesimiyilmaz.sql4json;
 
+import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonException;
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonMappingException;
+import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -89,5 +92,51 @@ class SQL4JsonQueryAsTest {
         SQL4JsonEngine engine = SQL4Json.engine().data(JSON).build();
         List<Person> out = engine.queryAsList("SELECT name, age FROM $r", Person.class);
         assertEquals(List.of(new Person("Alice", 30), new Person("Bob", 40)), out);
+    }
+
+    @Test
+    void when_queryAs_with_jsonValue_target_then_passthrough() {
+        JsonValue v = SQL4Json.queryAs("SELECT name FROM $r WHERE age = 30", JSON, JsonValue.class);
+        assertNotNull(v);
+    }
+
+    @Test
+    void when_queryAs_with_list_target_then_collection_mapping() {
+        @SuppressWarnings("unchecked")
+        List<Object> out = SQL4Json.queryAs("SELECT name FROM $r", JSON, List.class);
+        assertEquals(2, out.size());
+    }
+
+    @Test
+    void when_queryAs_with_collection_target_then_collection_mapping() {
+        @SuppressWarnings("unchecked")
+        Collection<Object> out = SQL4Json.queryAs("SELECT name FROM $r", JSON, Collection.class);
+        assertEquals(2, out.size());
+    }
+
+    @Test
+    void when_queryAs_with_array_target_then_array_mapping() {
+        Person[] out = SQL4Json.queryAs("SELECT name, age FROM $r", JSON, Person[].class);
+        assertEquals(2, out.length);
+        assertEquals(new Person("Alice", 30), out[0]);
+    }
+
+    @Test
+    void when_queryAsList_with_empty_result_then_empty_list() {
+        List<Person> out = SQL4Json.queryAsList(
+                "SELECT name, age FROM $r WHERE age = 999", JSON, Person.class);
+        assertTrue(out.isEmpty());
+    }
+
+    @Test
+    void when_queryAsJsonValue_with_null_dataSources_map_then_exception() {
+        assertThrows(SQL4JsonException.class,
+                () -> SQL4Json.queryAsJsonValue("SELECT * FROM users", (Map<String, String>) null));
+    }
+
+    @Test
+    void when_queryAsJsonValue_with_empty_dataSources_map_then_exception() {
+        assertThrows(SQL4JsonException.class,
+                () -> SQL4Json.queryAsJsonValue("SELECT * FROM users", Map.of()));
     }
 }

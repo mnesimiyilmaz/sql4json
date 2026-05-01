@@ -263,8 +263,10 @@ class GrammarTest {
 
         @Test
         void cast_numberLiteralToString() {
+            // Since 1.2.0 whole-number literals normalize to int, so CAST(42 AS STRING) → "42"
+            // (was "42.0" while literals went through Double.parseDouble unconditionally).
             JsonValue result = query("SELECT CAST(42 AS STRING) AS val FROM $r LIMIT 1");
-            assertEquals("42.0", str(f(arr(result).get(0), "val")));
+            assertEquals("42", str(f(arr(result).get(0), "val")));
         }
 
         @Test
@@ -1811,6 +1813,8 @@ class GrammarTest {
 
         @Test
         void subqueryWithWindowAndOuterFilter() {
+            // Outer ORDER BY is required to guarantee row_num ordering — a window's
+            // OVER (ORDER BY ...) only governs ranking, not the final result order.
             JsonValue result = SQL4Json.queryAsJsonValue("""
                     SELECT name, salary, row_num
                     FROM (
@@ -1819,6 +1823,7 @@ class GrammarTest {
                         FROM $r
                     )
                     WHERE row_num <= 3
+                    ORDER BY row_num
                     """, employees);
             assertEquals(3, arr(result).size());
             assertEquals(1, num(f(arr(result).getFirst(), "row_num")).intValue());

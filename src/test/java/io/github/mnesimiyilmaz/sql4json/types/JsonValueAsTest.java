@@ -1,6 +1,6 @@
 package io.github.mnesimiyilmaz.sql4json.types;
 
-import io.github.mnesimiyilmaz.sql4json.json.JsonNumberValue;
+import io.github.mnesimiyilmaz.sql4json.json.JsonLongValue;
 import io.github.mnesimiyilmaz.sql4json.json.JsonObjectValue;
 import io.github.mnesimiyilmaz.sql4json.json.JsonStringValue;
 import io.github.mnesimiyilmaz.sql4json.settings.MissingFieldPolicy;
@@ -21,14 +21,14 @@ class JsonValueAsTest {
     @Test
     void when_as_called_with_default_settings_then_mapped() {
         JsonValue v = new JsonObjectValue(new LinkedHashMap<>(Map.of(
-                "x", new JsonNumberValue(1), "y", new JsonNumberValue(2))));
+                "x", new JsonLongValue(1L), "y", new JsonLongValue(2L))));
         assertEquals(new Point(1, 2), v.as(Point.class));
     }
 
     @Test
     void when_as_called_with_fail_settings_and_missing_field_then_exception() {
         JsonValue v = new JsonObjectValue(new LinkedHashMap<>(Map.of(
-                "x", new JsonNumberValue(1))));
+                "x", new JsonLongValue(1L))));
         Sql4jsonSettings strict = Sql4jsonSettings.builder()
                 .mapping(m -> m.missingFieldPolicy(MissingFieldPolicy.FAIL))
                 .build();

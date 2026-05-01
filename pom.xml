@@ -6,7 +6,7 @@
 
     <groupId>io.github.mnesimiyilmaz</groupId>
     <artifactId>sql4json</artifactId>
-    <version>1.1.0</version>
+    <version>1.2.0</version>
     <packaging>jar</packaging>
     <name>SQL4Json</name>
     <description>Query JSON data using SQL — filter, aggregate, sort, and project without a database.</description>
@@ -53,6 +53,7 @@
         <central-publishing-maven-plugin.version>0.10.0</central-publishing-maven-plugin.version>
         <maven-gpg-plugin.version>3.2.7</maven-gpg-plugin.version>
         <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
+        <maven-shade-plugin.version>3.6.2</maven-shade-plugin.version>
         <maven-source-plugin.version>3.4.0</maven-source-plugin.version>
         <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
         <maven-enforcer-plugin.version>3.6.2</maven-enforcer-plugin.version>
@@ -187,7 +188,7 @@
                     <execution>
                         <id>default-testCompile</id>
                         <configuration>
-                            <testCompilerArgument>--add-modules=java.management</testCompilerArgument>
+                            <testCompilerArgument>--add-modules=java.management,jdk.management</testCompilerArgument>
                         </configuration>
                     </execution>
                 </executions>
@@ -210,10 +211,41 @@
                             <goal>report</goal>
                         </goals>
                     </execution>
+                    <execution>
+                        <id>check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>INSTRUCTION</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.95</minimum>
+                                        </limit>
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.90</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                            <excludes>
+                                <exclude>io/github/mnesimiyilmaz/sql4json/generated/**</exclude>
+                                <exclude>io/github/mnesimiyilmaz/sql4json/cli/Main.class</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
                 </executions>
                 <configuration>
                     <excludes>
                         <exclude>io/github/mnesimiyilmaz/sql4json/generated/**</exclude>
+                        <exclude>io/github/mnesimiyilmaz/sql4json/cli/Main.class</exclude>
                     </excludes>
                 </configuration>
             </plugin>
@@ -224,8 +256,8 @@
                 <version>${maven-surefire-plugin.version}</version>
                 <configuration>
                     <argLine>@{argLine} -Xmx8g -Xms1g
-                        --add-modules=java.management
-                        --add-reads=io.github.mnesimiyilmaz.sql4json=java.management
+                        --add-modules=java.management,jdk.management
+                        --add-reads=io.github.mnesimiyilmaz.sql4json=java.management,jdk.management
                     </argLine>
                     <excludedGroups>${surefire.excludedGroups.default}</excludedGroups>
                     <groups>${surefire.groups.default}</groups>
@@ -308,6 +340,47 @@
                     <outputFormat>json</outputFormat>
                     <outputName>bom</outputName>
                 </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>${maven-shade-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>shade-cli</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <shadedArtifactAttached>true</shadedArtifactAttached>
+                            <shadedClassifierName>cli</shadedClassifierName>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <transformers>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <Main-Class>io.github.mnesimiyilmaz.sql4json.cli.Main</Main-Class>
+                                    </manifestEntries>
+                                </transformer>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>module-info.class</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
             <plugin>

@@ -17,12 +17,18 @@ import java.util.*;
  */
 public final class JsonParser {
 
-    private static final JsonNumberValue[] SMALL_INTS;
+    private static final JsonLongValue[] SMALL_LONGS;
+
+    /**
+     * Maximum number of distinct object shapes the per-parser shape registry will intern
+     * before bypassing further candidates. Bounds worst-case heterogeneous-JSON memory.
+     */
+    private static final int MAX_SHAPES = 256;
 
     static {
-        SMALL_INTS = new JsonNumberValue[256];
+        SMALL_LONGS = new JsonLongValue[256];
         for (int i = 0; i < 256; i++) {
-            SMALL_INTS[i] = new JsonNumberValue(i);
+            SMALL_LONGS[i] = new JsonLongValue(i);
         }
     }
 
@@ -30,7 +36,8 @@ public final class JsonParser {
     private final int                      endPos;
     private       int                      pos;
     private       int                      depth;
-    private final HashMap<String, String>  keyPool = new HashMap<>();
+    private final HashMap<String, String>  keyPool       = new HashMap<>();
+    private final HashMap<Long, String[]>  shapeRegistry = new HashMap<>();
     private final DefaultJsonCodecSettings settings;
 
     private JsonParser(String input, DefaultJsonCodecSettings settings) {
@@ -130,44 +137,90 @@ public final class JsonParser {
             return new JsonObjectValue(Collections.emptyMap());
         }
 
-        var fields = new LinkedHashMap<String, JsonValue>();
+        // Build the keys/values arrays directly — skips the per-object
+        // LinkedHashMap + Entry chain that backed the legacy "build then convert"
+        // shape. Pre-sized to 8 (good fit for nested inner objects, which are
+        // usually small) and doubled on overflow for wider top-level rows.
+        String[]    keys   = new String[8];
+        JsonValue[] values = new JsonValue[8];
+        int         size   = 0;
         while (true) {
-            skipWhitespace();
-            if (pos >= endPos || peek() != '"') {
-                throw error("Expected string key in object");
-            }
-            String key = internKey(parseRawString(settings.maxPropertyNameLength()));
-            skipWhitespace();
-            expect(':');
+            String key = readObjectKey();
             JsonValue value = parseValue();
-            putField(fields, key, value);
-            skipWhitespace();
-            if (pos >= endPos) {
-                throw error("Unexpected end of input in object");
+            int existingIdx = findKey(keys, size, key);
+            if (existingIdx >= 0) {
+                applyDuplicatePolicy(existingIdx, key, value, values);
+            } else {
+                if (size == keys.length) {
+                    int newCap = keys.length * 2;
+                    keys = Arrays.copyOf(keys, newCap);
+                    values = Arrays.copyOf(values, newCap);
+                }
+                keys[size] = key;
+                values[size] = value;
+                size++;
             }
-            if (peek() == '}') {
-                advance();
+            if (consumeObjectSeparator()) {
                 leaveNested();
-                return new JsonObjectValue(new CompactStringMap<>(fields));
-            }
-            expect(',');
-            // Check for trailing comma
-            skipWhitespace();
-            if (pos < endPos && peek() == '}') {
-                throw error("Trailing comma in object");
+                return finalizeObject(keys, values, size);
             }
         }
     }
 
-    private void putField(LinkedHashMap<String, JsonValue> fields, String key, JsonValue value) {
-        JsonValue existing = fields.putIfAbsent(key, value);
-        if (existing != null) {
-            switch (settings.duplicateKeyPolicy()) {
-                case REJECT -> throw error("Duplicate key '" + key + "' in object");
-                case LAST_WINS -> fields.put(key, value);
-                case FIRST_WINS -> { /* already kept first via putIfAbsent */ }
+    private String readObjectKey() {
+        skipWhitespace();
+        if (pos >= endPos || peek() != '"') {
+            throw error("Expected string key in object");
+        }
+        String key = internKey(parseRawString(settings.maxPropertyNameLength()));
+        skipWhitespace();
+        expect(':');
+        return key;
+    }
+
+    private static int findKey(String[] keys, int size, String key) {
+        for (int i = 0; i < size; i++) {
+            if (keys[i].equals(key)) return i;
+        }
+        return -1;
+    }
+
+    private void applyDuplicatePolicy(int existingIdx, String key, JsonValue value, JsonValue[] values) {
+        switch (settings.duplicateKeyPolicy()) {
+            case REJECT -> throw error("Duplicate key '" + key + "' in object");
+            case LAST_WINS -> values[existingIdx] = value;
+            case FIRST_WINS -> {
+                // already kept first; ignore the new value
             }
         }
+    }
+
+    // Returns true when the object's closing '}' has been consumed; false when a ','
+    // was consumed and another member follows. Throws on trailing comma / EOF / missing comma.
+    private boolean consumeObjectSeparator() {
+        skipWhitespace();
+        if (pos >= endPos) {
+            throw error("Unexpected end of input in object");
+        }
+        if (peek() == '}') {
+            advance();
+            return true;
+        }
+        expect(',');
+        skipWhitespace();
+        if (pos < endPos && peek() == '}') {
+            throw error("Trailing comma in object");
+        }
+        return false;
+    }
+
+    // Always trim values to exact size for consistency with the interned key array.
+    // internShape replaces the prior slack-based opportunistic trim — every accepted
+    // shape is exact-fit on return.
+    private JsonValue finalizeObject(String[] keys, JsonValue[] values, int size) {
+        JsonValue[] trimmed = (values.length != size) ? Arrays.copyOf(values, size) : values;
+        String[] internedKeys = internShape(keys, size);
+        return new JsonObjectValue(new CompactStringMap<>(internedKeys, trimmed, size));
     }
 
     private JsonValue parseArray() {
@@ -216,7 +269,37 @@ public final class JsonParser {
 
     private String parseRawString(int maxLength) {
         advance(); // consume opening '"'
-        StringBuilder sb = new StringBuilder();
+        // Fast path: most JSON strings have no escape sequences. Scan ahead for
+        // the closing '"' while checking for '\\' or control chars. If none,
+        // return a single substring — skips the StringBuilder + per-char append
+        // churn that dominated allocations on parser-heavy workloads.
+        int start = pos;
+        for (int i = start; i < endPos; i++) {
+            char c = input.charAt(i);
+            if (c == '"') {
+                int len = i - start;
+                if (len > maxLength) {
+                    throw error("String value exceeds configured maximum length (" + maxLength + ")");
+                }
+                pos = i + 1;
+                return input.substring(start, i);
+            }
+            if (c == '\\') {
+                // Slow path: escape sequence — drop into StringBuilder, prefilling
+                // the literal prefix already scanned.
+                StringBuilder sb = new StringBuilder(Math.max(16, (i - start) + 16));
+                sb.append(input, start, i);
+                pos = i;
+                return parseRawStringWithEscapes(sb, maxLength);
+            }
+            if (c < 0x20) {
+                throw error("Unescaped control character in string: 0x" + Integer.toHexString(c));
+            }
+        }
+        throw error("Unterminated string");
+    }
+
+    private String parseRawStringWithEscapes(StringBuilder sb, int maxLength) {
         while (pos < endPos) {
             char c = advance();
             if (c == '"') {
@@ -293,7 +376,7 @@ public final class JsonParser {
         validateNumberToken(raw, hasExponent);
 
         if (hasFraction || hasExponent) {
-            return new JsonNumberValue(Double.parseDouble(raw));
+            return new JsonDoubleValue(Double.parseDouble(raw));
         }
         return parseIntegerValue(raw);
     }
@@ -351,34 +434,21 @@ public final class JsonParser {
     }
 
     private JsonNumberValue parseIntegerValue(String raw) {
-        // Integer range fits: use Integer
-        // Long range fits: use Long
-        // Otherwise: BigDecimal
         int len = raw.length();
         int effectiveLen = raw.startsWith("-") ? len - 1 : len;
-        if (effectiveLen < 10) {
-            int val = Integer.parseInt(raw);
-            if (val >= 0 && val < SMALL_INTS.length) {
-                return SMALL_INTS[val];
-            }
-            return new JsonNumberValue(val);
-        }
         if (effectiveLen < 19) {
             long l = Long.parseLong(raw);
-            if (l >= Integer.MIN_VALUE && l <= Integer.MAX_VALUE) {
-                return new JsonNumberValue((int) l);
-            }
-            return new JsonNumberValue(l);
+            if (l >= 0 && l < SMALL_LONGS.length) return SMALL_LONGS[(int) l];
+            return new JsonLongValue(l);
         }
         if (effectiveLen == 19) {
-            // Could be Long or overflow to BigDecimal — try Long
             try {
-                return new JsonNumberValue(Long.parseLong(raw));
+                return new JsonLongValue(Long.parseLong(raw));
             } catch (NumberFormatException e) {
-                return new JsonNumberValue(new BigDecimal(raw));
+                return new JsonDecimalValue(new BigDecimal(raw));
             }
         }
-        return new JsonNumberValue(new BigDecimal(raw));
+        return new JsonDecimalValue(new BigDecimal(raw));
     }
 
     private JsonValue parseBoolean() {
@@ -393,6 +463,9 @@ public final class JsonParser {
         throw error("Expected 'true' or 'false'");
     }
 
+    // JSON null has a single canonical value; the alternative is to throw. Shape kept
+    // parallel to parseBoolean / parseString / parseNumber for symmetry in parseValue.
+    @SuppressWarnings("SameReturnValue")
     private JsonValue parseNull() {
         if (pos + 4 <= endPos && input.startsWith("null", pos)) {
             pos += 4;
@@ -404,7 +477,54 @@ public final class JsonParser {
     // ── Helpers ──────────────────────────────────────────────────────────
 
     private String internKey(String key) {
-        return keyPool.computeIfAbsent(key, k -> k);
+        // Hand-rolled to avoid the per-call closure that
+        // `computeIfAbsent(key, k -> k)` allocates even on cache hits.
+        String existing = keyPool.get(key);
+        if (existing != null) return existing;
+        keyPool.put(key, key);
+        return key;
+    }
+
+    /**
+     * Returns a shared exact-fit key array for the given prefix when the same shape has
+     * been seen before in this parse; otherwise interns the candidate. Replaces the
+     * legacy {@code slack > 25%} trim path — every accepted candidate is exact-fit on
+     * return so {@link CompactStringMap} sees consistent input. Bounded by
+     * {@link #MAX_SHAPES} to cap heterogeneous-JSON worst case.
+     *
+     * <p>Uses an inline 64-bit hash + a {@code HashMap<Long, String[]>} so the lookup
+     * does not allocate a per-call key wrapper. On the rare hash collision (different
+     * shapes hashing to the same long), the second shape overwrites the first; both
+     * remain functionally correct, only the cache-sharing benefit is lost for the
+     * conflicting shapes.</p>
+     *
+     * @param candidate the key array buffer (may have trailing slack)
+     * @param size      the number of valid keys in {@code candidate}
+     * @return an exact-fit array (shared on cache hit, fresh on miss)
+     */
+    private String[] internShape(String[] candidate, int size) {
+        if (shapeRegistry.size() >= MAX_SHAPES) {
+            // Bypass past the cap — preserve the exact-fit invariant.
+            return (size == candidate.length) ? candidate : Arrays.copyOf(candidate, size);
+        }
+        long hash = computeShapeHash(candidate, size);
+        String[] existing = shapeRegistry.get(hash);
+        if (existing != null
+                && Arrays.equals(existing, 0, existing.length, candidate, 0, size)) {
+            return existing;
+        }
+        // Cache miss or rare hash collision (different shape, same hash).
+        String[] interned = (size == candidate.length) ? candidate : Arrays.copyOf(candidate, size);
+        shapeRegistry.put(hash, interned);
+        return interned;
+    }
+
+    private static long computeShapeHash(String[] keys, int size) {
+        long h = 1L;
+        for (int i = 0; i < size; i++) {
+            h = 31L * h + keys[i].hashCode();
+        }
+        return h;
     }
 
     private void skipWhitespace() {

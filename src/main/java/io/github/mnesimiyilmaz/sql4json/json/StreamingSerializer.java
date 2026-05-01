@@ -1,6 +1,6 @@
 package io.github.mnesimiyilmaz.sql4json.json;
 
-import io.github.mnesimiyilmaz.sql4json.engine.Row;
+import io.github.mnesimiyilmaz.sql4json.engine.RowAccessor;
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException;
 import io.github.mnesimiyilmaz.sql4json.parser.SelectColumnDef;
 import io.github.mnesimiyilmaz.sql4json.registry.FunctionRegistry;
@@ -10,8 +10,8 @@ import java.util.List;
 import java.util.stream.Stream;
 
 /**
- * Serializes a stream of Rows into a JSON array string.
- * Each Row is unflattened, serialized, then discarded — O(1) per row.
+ * Serializes a stream of rows into a JSON array string.
+ * Each row is unflattened, serialized, then discarded — O(1) per row.
  */
 public final class StreamingSerializer {
 
@@ -19,8 +19,8 @@ public final class StreamingSerializer {
     }
 
     /**
-     * Serialize a stream of Rows into a JSON array string.
-     * Each Row is unflattened and serialized inline, then discarded.
+     * Serialize a stream of rows into a JSON array string.
+     * Each row is unflattened and serialized inline, then discarded.
      *
      * @param rows             sequential stream of rows
      * @param columns          SELECT column definitions for unflattening
@@ -29,7 +29,7 @@ public final class StreamingSerializer {
      * @return JSON array string
      * @throws SQL4JsonExecutionException if the row count would exceed {@code maxRows}
      */
-    public static String serialize(Stream<Row> rows, List<SelectColumnDef> columns,
+    public static String serialize(Stream<RowAccessor> rows, List<SelectColumnDef> columns,
                                    FunctionRegistry functionRegistry, int maxRows) {
         StringBuilder sb = new StringBuilder();
         sb.append('[');

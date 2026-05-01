@@ -26,5 +26,6 @@ build/
 .DS_Store
 .worktrees/
 /src/test/resources/data-files/*.json
+!/src/test/resources/data-files/regression_*.json
 .claude
 .mvn/wrapper/maven-wrapper.jar

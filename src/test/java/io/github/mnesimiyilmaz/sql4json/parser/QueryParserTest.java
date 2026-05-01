@@ -1,11 +1,14 @@
 package io.github.mnesimiyilmaz.sql4json.parser;
 
+import io.github.mnesimiyilmaz.sql4json.engine.FieldKey;
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonParseException;
 import io.github.mnesimiyilmaz.sql4json.registry.AndNode;
 import io.github.mnesimiyilmaz.sql4json.registry.OrNode;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -50,6 +53,25 @@ class QueryParserTest {
         var qd = QueryParser.parse(sql);
         assertNotNull(qd.whereClause());
         assertTrue(qd.referencedFields().contains(expectedField));
+    }
+
+    @Test
+    void referencedColumns_returns_field_keys_for_each_referenced_field() {
+        var qd = QueryParser.parse("SELECT name, age FROM $r WHERE dept = 'Eng' GROUP BY dept");
+        Set<FieldKey> cols = qd.referencedColumns();
+        // Mirror the underlying referencedFields set, projected to FieldKey
+        assertEquals(qd.referencedFields().size(), cols.size());
+        assertTrue(cols.contains(FieldKey.of("name")));
+        assertTrue(cols.contains(FieldKey.of("age")));
+        assertTrue(cols.contains(FieldKey.of("dept")));
+    }
+
+    @Test
+    void referencedColumns_is_unmodifiable() {
+        var qd = QueryParser.parse("SELECT name FROM $r");
+        Set<FieldKey> cols = qd.referencedColumns();
+        assertThrows(UnsupportedOperationException.class,
+                () -> cols.add(FieldKey.of("extra")));
     }
 
     @Test

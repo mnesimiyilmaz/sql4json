@@ -1,5 +1,6 @@
 package io.github.mnesimiyilmaz.sql4json.engine;
 
+import io.github.mnesimiyilmaz.sql4json.internal.SkipCoverageGenerated;
 import io.github.mnesimiyilmaz.sql4json.json.*;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
 import io.github.mnesimiyilmaz.sql4json.types.SqlNull;
@@ -12,30 +13,31 @@ import java.util.stream.Stream;
  * A row in the query execution pipeline, holding a flat view of one JSON element.
  *
  * <p>Rows are either <em>lazy</em> (created from a {@link io.github.mnesimiyilmaz.sql4json.types.JsonValue}
- * and resolved on demand) or <em>eager</em> (pre-populated, used for GROUP BY results).
+ * and resolved on demand) or <em>eager</em> (pre-populated, used for the small
+ * literal-evaluation seed in {@code WindowStage.resolveOffset}).
  *
- * <p><strong>Not thread-safe.</strong> Each Row instance must be accessed from a single thread.
- * Phase 5 must ensure the execution pipeline does not share Row instances across threads.
+ * <p><strong>Not thread-safe.</strong> Each Row instance must be accessed from a single thread —
+ * the execution pipeline never shares Row instances across threads.
+ *
+ * <p>As of 1.2.0 the pipeline-shared materialised row is {@link FlatRow} —
+ * {@code Row} is reserved for lazy access during streaming flatten and the
+ * narrow seed-row use cases listed above.</p>
  */
-public final class Row {
+public final class Row implements RowAccessor {
 
     private final JsonValue               original;
     private final Map<FieldKey, SqlValue> cache;
     private final FieldKey.Interner       interner;
     private       boolean                 fullyFlattened;
     private final boolean                 modified;
-    private final List<Row>               sourceGroup;
-    private       Map<FieldKey, SqlValue> windowResults;
 
     private Row(JsonValue original, Map<FieldKey, SqlValue> cache,
-                FieldKey.Interner interner, boolean fullyFlattened, boolean modified,
-                List<Row> sourceGroup) {
+                FieldKey.Interner interner, boolean fullyFlattened, boolean modified) {
         this.original = original;
         this.cache = cache;
         this.interner = interner;
         this.fullyFlattened = fullyFlattened;
         this.modified = modified;
-        this.sourceGroup = sourceGroup;
     }
 
     /**
@@ -45,66 +47,80 @@ public final class Row {
      * @param interner the interner for deduplicating FieldKey instances
      * @return a new lazy Row
      */
+    @SkipCoverageGenerated
     public static Row lazy(JsonValue original, FieldKey.Interner interner) {
-        return new Row(original, HashMap.newHashMap(4), interner, false, false, null);
+        // Pre-size the cache to the original object's top-level field count so
+        // ensureFullyFlattened() (called by GROUP BY / WINDOW) can populate
+        // without resizing the backing table 3-4 times for a typical 13-field
+        // row. Streaming WHERE / lazy SELECT only caches a few fields and
+        // tolerates the small fixed slack in exchange for the win on materializing
+        // pipelines (HashMap$Node[] dominated allocations on the GROUP BY profile).
+        int initialCap = 8;
+        if (original instanceof JsonObjectValue(var fields)) {
+            initialCap = Math.max(8, fields.size() + (fields.size() >>> 1));
+        }
+        return new Row(original, HashMap.newHashMap(initialCap), interner, false, false);
     }
 
     /**
-     * Pre-flattened Row — created at Engine build time; fully flattened, shared across queries.
-     * Does not retain a reference to the original JsonValue, allowing the parsed tree to be GC'd.
-     * The fields map should be unmodifiable to ensure thread-safety across concurrent queries.
-     *
-     * @param fields the pre-flattened field map
-     * @return a new pre-flattened Row
-     */
-    public static Row preFlattened(Map<FieldKey, SqlValue> fields) {
-        return new Row(null, fields, null, true, false, null);
-    }
-
-    /**
-     * Eager Row — created from flat data (GROUP BY output, aggregation results).
+     * Eager Row — created from flat data that still represents raw input fields.
+     * As of 1.2.0 this is reserved for the literal-evaluation seed in
+     * {@link io.github.mnesimiyilmaz.sql4json.engine.stage.WindowStage} and tests
+     * that need a tiny in-memory row.
      *
      * @param data the flat field data
-     * @return a new eager Row
+     * @return a new eager Row whose values are raw, not pre-evaluated against SELECT
      */
     public static Row eager(Map<FieldKey, SqlValue> data) {
-        return new Row(null, Collections.unmodifiableMap(data), null, true, true, null);
+        return new Row(null, Collections.unmodifiableMap(data), null, true, true);
     }
 
     /**
-     * Eager Row with source group — created by GROUP BY so that HAVING can
-     * re-evaluate aggregate expressions (e.g. ROUND(AVG(val), 0) &gt; 50).
+     * Lazy rows have no schema — they carry no precomputed values, and consumers
+     * resolve fields on demand via {@link #get(FieldKey)}. Window stages and the
+     * unflattener detect lazy rows by checking for a {@code null} schema.
      *
-     * @param data        the flat field data
-     * @param sourceGroup the source rows that were aggregated into this row
-     * @return a new eager Row with the given source group
+     * @return always {@code null}
      */
-    public static Row eager(Map<FieldKey, SqlValue> data, List<Row> sourceGroup) {
-        return new Row(null, Collections.unmodifiableMap(data), null, true, true,
-                List.copyOf(sourceGroup));
+    @Override
+    public RowSchema schema() {
+        return null;
     }
 
     /**
-     * Returns the source group of rows that produced this aggregated row,
-     * or empty if this is not a GROUP BY result row.
+     * Lazy rows do not source from GROUP BY aggregation; this always returns empty.
      *
-     * @return an optional containing the source group, or empty
+     * @return always empty
      */
-    public Optional<List<Row>> sourceGroup() {
-        return Optional.ofNullable(sourceGroup);
+    @Override
+    public Optional<List<RowAccessor>> sourceGroup() {
+        return Optional.empty();
     }
 
     /**
-     * Store a window function result for this row.
-     * Window results are stored in a separate map so they don't conflict with
-     * the unmodifiable cache of pre-flattened/eager rows.
+     * Lazy rows do not carry window-function results. {@code WindowStage} emits
+     * {@link FlatRow} directly; window-result lookups against a lazy row always
+     * return {@code null} so callers can distinguish "no window stage ran" from
+     * "no slot for this call".
      *
-     * @param key   the field key identifying the window result
-     * @param value the computed window function value
+     * @param windowCall the window function call to look up
+     * @return always {@code null}
+     * @since 1.2.0
      */
-    public void putWindowResult(FieldKey key, SqlValue value) {
-        if (windowResults == null) windowResults = HashMap.newHashMap(4);
-        windowResults.put(key, value);
+    @Override
+    public SqlValue getWindowResult(Expression.WindowFnCall windowCall) {
+        return null;
+    }
+
+    /**
+     * Lazy rows never carry window results.
+     *
+     * @return always {@code false}
+     * @since 1.2.0
+     */
+    @Override
+    public boolean hasWindowResults() {
+        return false;
     }
 
     /**
@@ -113,21 +129,16 @@ public final class Row {
      * @param key the field key to look up
      * @return the value, or {@link SqlNull#INSTANCE} if absent
      */
+    @Override
     public SqlValue get(FieldKey key) {
-        // 1. Window results take precedence (computed by WindowStage)
-        if (windowResults != null) {
-            SqlValue wr = windowResults.get(key);
-            if (wr != null) return wr;
-        }
-
-        // 2. Cache hit
+        // 1. Cache hit
         SqlValue cached = cache.get(key);
         if (cached != null) return cached;
 
-        // 3. Already fully flattened (or no original) — key absent → SqlNull
+        // 2. Already fully flattened (or no original) — key absent → SqlNull
         if (fullyFlattened || original == null) return SqlNull.INSTANCE;
 
-        // 4. Lazy resolve from original JsonValue
+        // 3. Lazy resolve from original JsonValue
         SqlValue resolved = navigateAndConvert(original, key.getKey());
         cache.put(key, resolved);
         return resolved;
@@ -151,6 +162,7 @@ public final class Row {
      *
      * @return an optional containing the original JsonValue, or empty for eager/pre-flattened rows
      */
+    @Override
     public Optional<JsonValue> originalValue() {
         return Optional.ofNullable(original);
     }
@@ -165,10 +177,22 @@ public final class Row {
     }
 
     /**
+     * Lazy rows are never aggregated. GROUP BY now produces {@link FlatRow}
+     * directly; aggregated state lives there.
+     *
+     * @return always {@code false}
+     */
+    @Override
+    public boolean isAggregated() {
+        return false;
+    }
+
+    /**
      * Returns a stream of all field entries after ensuring the row is fully flattened.
      *
      * @return a stream of field key-value entries
      */
+    @Override
     public Stream<Map.Entry<FieldKey, SqlValue>> entries() {
         ensureFullyFlattened();
         return cache.entrySet().stream();
@@ -179,13 +203,16 @@ public final class Row {
      *
      * @return the set of field keys
      */
+    @Override
     public Set<FieldKey> keys() {
         ensureFullyFlattened();
         return cache.keySet();
     }
 
     /**
-     * Creates a new Row projected to the given set of field keys.
+     * Creates a new Row projected to the given set of field keys. Used by tests
+     * exercising lazy-row projection; production stages now project to
+     * {@link FlatRow} via {@link io.github.mnesimiyilmaz.sql4json.engine.stage.SelectStage}.
      *
      * @param keys the field keys to retain
      * @return a new Row containing only the specified keys
@@ -193,9 +220,7 @@ public final class Row {
     public Row project(Set<FieldKey> keys) {
         var projected = new HashMap<FieldKey, SqlValue>();
         keys.forEach(k -> projected.put(k, get(k)));
-        Row result = new Row(original, projected, interner, true, modified, sourceGroup);
-        if (windowResults != null) result.windowResults = new HashMap<>(windowResults);
-        return result;
+        return new Row(original, projected, interner, true, modified);
     }
 
     /**
@@ -204,6 +229,7 @@ public final class Row {
      * @param family the family prefix to filter by
      * @return a list of values matching the family
      */
+    @Override
     public List<SqlValue> valuesByFamily(String family) {
         ensureFullyFlattened();
         return cache.entrySet().stream()

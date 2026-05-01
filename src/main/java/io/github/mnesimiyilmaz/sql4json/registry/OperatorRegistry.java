@@ -75,8 +75,8 @@ public final class OperatorRegistry {
 
         r.register(new ComparisonOperatorDef("=", OperatorType.BINARY, (a, b) -> switch (a) {
             case SqlNull ignored -> false;
-            case SqlNumber(var value) -> b instanceof SqlNumber(var other)
-                    && Double.compare(value.doubleValue(), other.doubleValue()) == 0;
+            case SqlNumber lhs -> b instanceof SqlNumber rhs
+                    && Double.compare(lhs.doubleValue(), rhs.doubleValue()) == 0;
             case SqlString(var value) -> b instanceof SqlString(var other) && value.equals(other);
             case SqlBoolean(var value) -> b instanceof SqlBoolean(var other) && value == other;
             case SqlDate(var value) -> b instanceof SqlDate(var other) && value.equals(other);

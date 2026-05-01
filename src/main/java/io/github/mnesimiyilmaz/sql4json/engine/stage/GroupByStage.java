@@ -16,6 +16,11 @@ import java.util.stream.Stream;
 /**
  * Materializing pipeline stage that groups rows by expression values (SQL GROUP BY)
  * and produces one aggregated row per group via {@link GroupAggregator}.
+ *
+ * <p>Inputs may be lazy {@link Row} (from streaming flatten + WHERE) or
+ * {@link FlatRow} (from JOIN). Lazy rows are fully flattened on entry so
+ * {@code SELECT *} reconstruction has every key available; flat rows already
+ * expose every column via their schema.</p>
  */
 public final class GroupByStage implements MaterializingPipelineStage {
 
@@ -41,16 +46,25 @@ public final class GroupByStage implements MaterializingPipelineStage {
     }
 
     @Override
-    public Stream<Row> apply(Stream<Row> input) {
-        List<Row> materialized = StreamMaterializer.toList(
-                input.map(Row::ensureFullyFlattened), maxRows, "GROUP BY");
-        Map<GroupKey, List<Row>> groups = materialized.stream()
+    public Stream<RowAccessor> apply(Stream<RowAccessor> input) {
+        List<RowAccessor> materialized = StreamMaterializer.toList(
+                input.map(GroupByStage::ensureFlattenedIfLazy), maxRows, "GROUP BY");
+        Map<GroupKey, List<RowAccessor>> groups = materialized.stream()
                 .collect(Collectors.groupingBy(this::extractGroupKey));
         return groups.values().stream()
-                .map(rows -> GroupAggregator.aggregate(rows, selectedColumns, functionRegistry));
+                .map(rows -> GroupAggregator.aggregate(
+                        rows, selectedColumns, functionRegistry));
     }
 
-    private GroupKey extractGroupKey(Row row) {
+    /**
+     * Force lazy rows fully flattened so SELECT * has every key available.
+     * FlatRow inputs are already fully populated.
+     */
+    private static RowAccessor ensureFlattenedIfLazy(RowAccessor row) {
+        return row instanceof Row r ? r.ensureFullyFlattened() : row;
+    }
+
+    private GroupKey extractGroupKey(RowAccessor row) {
         var keyValues = new ArrayList<SqlValue>(groupByExpressions.size());
         for (Expression expr : groupByExpressions) {
             keyValues.add(ExpressionEvaluator.evaluate(expr, row, functionRegistry));

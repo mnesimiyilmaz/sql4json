@@ -8,7 +8,7 @@ import java.util.Set;
 
 /**
  * Immutable parsed query representation produced by QueryParser.
- * Consumed by QueryPipeline (Phase 5).
+ * Consumed by QueryPipeline.
  *
  * @param selectedColumns          SELECT columns (may include aggregate and alias)
  * @param rootPath                 FROM path, e.g. "$r", "$r.data.items"
@@ -30,6 +30,10 @@ import java.util.Set;
  * @param namedParameters          all {@code :name} placeholders seen across this def and subqueries
  * @param subqueryPositionalOffset the global offset to pass when re-parsing the inner subquery
  *                                 (0 for top-level parse without subqueries)
+ * @param windowFunctionCalls      every {@link Expression.WindowFnCall} built by the parser, in
+ *                                 source order. Includes calls buried inside {@link CriteriaNode}
+ *                                 closures (CASE WHEN conditions). Consumed by WindowStage to
+ *                                 precompute results stored on each row.
  */
 public record QueryDefinition(
         List<SelectColumnDef> selectedColumns,
@@ -50,7 +54,8 @@ public record QueryDefinition(
         Expression.ParameterRef offsetParam,
         int positionalCount,
         Set<String> namedParameters,
-        int subqueryPositionalOffset
+        int subqueryPositionalOffset,
+        List<Expression.WindowFnCall> windowFunctionCalls
 ) {
     /**
      * True iff this is a bare SELECT * (no projection).
@@ -62,7 +67,7 @@ public record QueryDefinition(
     }
 
     /**
-     * True iff GROUP BY is present — triggers full flatten in Phase 5.
+     * True iff GROUP BY is present — triggers a full flatten before grouping.
      *
      * @return {@code true} if a GROUP BY clause is present
      */
@@ -71,11 +76,29 @@ public record QueryDefinition(
     }
 
     /**
-     * True iff any SELECT column contains a window function — triggers WindowStage in the pipeline.
+     * True iff any window function appears anywhere in the query — triggers WindowStage in
+     * the pipeline. Reflects the parser-collected list, which catches windows buried inside
+     * CASE WHEN conditions (where the {@link CriteriaNode} closure is opaque to tree-walks).
      *
-     * @return {@code true} if any selected column uses a window function
+     * @return {@code true} if any window function call was parsed
      */
     public boolean containsWindowFunctions() {
-        return selectedColumns.stream().anyMatch(SelectColumnDef::containsWindow);
+        return !windowFunctionCalls.isEmpty();
+    }
+
+    /**
+     * Returns the union of all field paths referenced anywhere in the query as
+     * {@link io.github.mnesimiyilmaz.sql4json.engine.FieldKey}s. Used by
+     * materialization stages to derive a
+     * {@link io.github.mnesimiyilmaz.sql4json.engine.RowSchema} without an
+     * extra pass over input rows.
+     *
+     * @return the referenced columns as field keys
+     * @since 1.2.0
+     */
+    public java.util.Set<io.github.mnesimiyilmaz.sql4json.engine.FieldKey> referencedColumns() {
+        return referencedFields.stream()
+                .map(io.github.mnesimiyilmaz.sql4json.engine.FieldKey::of)
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
     }
 }

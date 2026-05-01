@@ -2,7 +2,7 @@ package io.github.mnesimiyilmaz.sql4json.registry;
 
 import io.github.mnesimiyilmaz.sql4json.engine.Expression;
 import io.github.mnesimiyilmaz.sql4json.engine.ExpressionEvaluator;
-import io.github.mnesimiyilmaz.sql4json.engine.Row;
+import io.github.mnesimiyilmaz.sql4json.engine.RowAccessor;
 import io.github.mnesimiyilmaz.sql4json.types.SqlValue;
 
 import java.util.function.BiPredicate;
@@ -41,7 +41,7 @@ public final class ComparisonConditionHandler implements ConditionHandler {
         };
     }
 
-    private static SqlValue evaluateExpr(Expression expr, Row row, FunctionRegistry functions) {
+    private static SqlValue evaluateExpr(Expression expr, RowAccessor row, FunctionRegistry functions) {
         if (expr.containsAggregate()) {
             return row.sourceGroup()
                     .map(group -> ExpressionEvaluator.evaluateAggregate(expr, group, functions))

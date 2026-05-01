@@ -10,13 +10,15 @@
     <a href="https://github.com/mnesimiyilmaz/sql4json/blob/main/LICENSE"><img src="https://img.shields.io/github/license/mnesimiyilmaz/sql4json?style=flat-square" alt="License"></a>
     <img src="https://img.shields.io/badge/Java-21%2B-blue?style=flat-square" alt="Java 21+">
     <img src="https://img.shields.io/badge/runtime_deps-ANTLR_only-brightgreen?style=flat-square" alt="Zero runtime dependencies">
+    <img src="https://img.shields.io/badge/coverage-95%25-brightgreen?style=flat-square" alt="Code coverage 95%">
+    <img src="https://img.shields.io/badge/branch_coverage-90%25-brightgreen?style=flat-square" alt="Branch coverage 90%">
   </p>
 </p>
 
 ---
 
 SQL4Json lets you query in-memory JSON data with familiar SQL SELECT syntax. If you know SQL, you already know how to
-use it. No database, no schema, no setup.
+use it. No database, no schema, no setup. It's just ~500KB.
 
 ```sql
 SELECT dept,
@@ -36,10 +38,13 @@ ORDER BY avgSalary DESC LIMIT 10
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+- [Command-line usage](#command-line-usage)
+- [Performance](#performance)
 - [API Reference](#api-reference)
     - [Simple Query](#simple-query)
     - [Prepared Query](#prepared-query)
     - [Engine with Data Binding](#engine-with-data-binding)
+    - [Multi-Source Queries (JOINs)](#multi-source-queries-joins)
     - [Custom JSON Codec](#custom-json-codec)
     - [Object Mapping](#object-mapping)
     - [Parameterized Queries](#parameterized-queries)
@@ -47,6 +52,7 @@ ORDER BY avgSalary DESC LIMIT 10
     - [SELECT](#select)
     - [FROM](#from)
     - [WHERE](#where)
+    - [Array Predicates](#array-predicates-since-120)
     - [GROUP BY & HAVING](#group-by--having)
     - [ORDER BY](#order-by)
     - [LIMIT & OFFSET](#limit--offset)
@@ -83,14 +89,14 @@ ORDER BY avgSalary DESC LIMIT 10
 <dependency>
     <groupId>io.github.mnesimiyilmaz</groupId>
     <artifactId>sql4json</artifactId>
-    <version>1.1.0</version>
+    <version>1.2.0</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```groovy
-implementation 'io.github.mnesimiyilmaz:sql4json:1.1.0'
+implementation 'io.github.mnesimiyilmaz:sql4json:1.2.0'
 ```
 
 ## Quick Start
@@ -112,6 +118,88 @@ String result = SQL4Json.query(
 );
 // [{"name":"Carol","age":35},{"name":"Alice","age":30}]
 ```
+
+## Command-line usage
+
+A command-line entrypoint ships as a separate shaded jar published alongside the library under classifier `cli`:
+
+```xml
+<dependency>
+    <groupId>io.github.mnesimiyilmaz</groupId>
+    <artifactId>sql4json</artifactId>
+    <version>1.2.0</version>
+    <classifier>cli</classifier>
+</dependency>
+```
+
+```bash
+java -jar sql4json-1.2.0-cli.jar -q "SELECT name FROM \$r WHERE age > 25" -f data.json
+```
+
+### Options
+
+| Flag                          | Description                                                      |
+|-------------------------------|------------------------------------------------------------------|
+| `-q`, `--query <sql\|@path>`  | SQL to run; `@path` reads the SQL from a file. Required.         |
+| `-f`, `--file <path>`         | JSON input file. Omit to read from stdin.                        |
+| `-o`, `--output <path>`       | Write result here. Omit for stdout.                              |
+| `--data <name>=<path>`        | Repeatable. Named source for JOIN queries. Excludes `-f`.        |
+| `-p`, `--param <name>=<json>` | Repeatable. Bind `:name` parameters. Value is a JSON literal.    |
+| `--pretty`                    | Pretty-print the JSON output (default: compact).                 |
+| `-h`, `--help`                | Print help and exit 0.                                           |
+| `-v`, `--version`             | Print library version and exit 0.                                |
+
+### Examples
+
+```bash
+# Read from a file
+java -jar sql4json-1.2.0-cli.jar \
+  -q "SELECT * FROM \$r WHERE age > 25" -f data.json
+
+# Pipe from stdin and pretty-print
+cat data.json | java -jar sql4json-1.2.0-cli.jar \
+  -q @query.sql --pretty
+
+# JOIN across multiple sources
+java -jar sql4json-1.2.0-cli.jar \
+  -q @join.sql \
+  --data users=users.json \
+  --data orders=orders.json
+
+# Parameter binding (named only — positional ? is not exposed by the CLI)
+java -jar sql4json-1.2.0-cli.jar \
+  -q "SELECT * FROM \$r WHERE id = :id AND tags @> :allowed" \
+  -p id=42 \
+  -p 'allowed=["admin","editor"]' \
+  -f data.json
+```
+
+### Exit codes
+
+| Code | Meaning                                              |
+|------|------------------------------------------------------|
+| `0`  | Success, or `--help` / `--version` short-circuit.    |
+| `1`  | Runtime failure (SQL4Json error, IO error).          |
+| `2`  | Usage error (bad flags, missing required option).    |
+
+Set `SQL4JSON_DEBUG=1` to attach the full stack trace to failure messages on stderr.
+
+## Performance
+
+Numbers below are median wall-clock time across 3 runs on a single reference machine (OpenJDK 21.0.1+12-LTS / Windows 11 amd64 / 32 cores / 64 GB RAM / `-Xmx 8g -Xms 1g`) against synthetic data generated with `--seed 20260428`. Re-run `./mvnw test -Plarge-tests -Dtest=ProfilingTest` to reproduce on your hardware.
+
+| Query                                                          | 8 MB | 32 MB | 128 MB | 512 MB | Rows out (at 512 MB) |
+|----------------------------------------------------------------|-----:|------:|-------:|-------:|---------------------:|
+| `SELECT * FROM $r`                                             |   68 |   183 |    821 |  3,392 |              781,553 |
+| `SELECT id, is_active, score FROM $r`                          |   55 |   217 |    986 |  3,936 |              781,553 |
+| `WHERE score >= 80 AND score <= 90`                            |   47 |   183 |    752 |  2,993 |               58,520 |
+| `GROUP BY country` (multi-aggregate)                           |   69 |   270 |  1,276 |  5,460 |                    9 |
+| `ORDER BY score DESC LIMIT 50`                                 |   47 |   179 |    728 |  2,883 |                   50 |
+| `users JOIN countries ON country=code`                         |   97 |   349 |  1,436 |  5,445 |              808,446 |
+| `ROW_NUMBER() OVER (PARTITION BY country ORDER BY score DESC)` |   79 |   300 |  1,377 |  6,118 |              781,553 |
+| Filter + GROUP BY + HAVING + ORDER BY (kitchen sink)           |   51 |   198 |    815 |  3,304 |                    9 |
+
+All times in milliseconds. See [`docs/performance.md`](docs/performance.md) for the full sweep across all 7 sizes and ~50 scenarios, plus the reference environment, dataset details, and the regen recipe.
 
 ## API Reference
 
@@ -140,7 +228,7 @@ Parse once, execute many times against different data. Analogous to JDBC `Prepar
 ```java
 PreparedQuery query = SQL4Json.prepare("SELECT name FROM $r WHERE age > 25");
 
-for(String json :dataList){
+for(String json: dataList) {
     String result = query.execute(json);  // no re-parsing
 }
 ```
@@ -248,9 +336,9 @@ SQL4JsonEngine engine = SQL4Json.engine().settings(settings).data(json).build();
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.*;
+import io.github.mnesimiyilmaz.sql4json.json.*;
 import io.github.mnesimiyilmaz.sql4json.types.JsonCodec;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
-import io.github.mnesimiyilmaz.sql4json.types.JsonValue.*;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -290,7 +378,14 @@ public class JacksonJsonCodec implements JsonCodec {
                 yield new JsonArrayValue(list);
             }
             case TextNode t -> new JsonStringValue(t.asText());
-            case NumericNode n -> new JsonNumberValue(n.numberValue());
+            case NumericNode n -> {
+                Number num = n.numberValue();
+                yield (num instanceof java.math.BigDecimal bd)
+                        ? new JsonDecimalValue(bd)
+                        : (num instanceof Double || num instanceof Float)
+                                ? new JsonDoubleValue(num.doubleValue())
+                                : new JsonLongValue(num.longValue());
+            }
             case BooleanNode b -> new JsonBooleanValue(b.asBoolean());
             case NullNode ignored -> JsonNullValue.INSTANCE;
             default -> JsonNullValue.INSTANCE;
@@ -310,7 +405,9 @@ public class JacksonJsonCodec implements JsonCodec {
                 yield arr;
             }
             case JsonStringValue(var s) -> new TextNode(s);
-            case JsonNumberValue(var n) -> mapper.getNodeFactory().numberNode(n.doubleValue());
+            case JsonLongValue(long l) -> mapper.getNodeFactory().numberNode(l);
+            case JsonDoubleValue(double d) -> mapper.getNodeFactory().numberNode(d);
+            case JsonDecimalValue(var bd) -> mapper.getNodeFactory().numberNode(bd);
             case JsonBooleanValue(var b) -> BooleanNode.valueOf(b);
             case JsonNullValue ignored -> NullNode.getInstance();
         };
@@ -361,17 +458,17 @@ Person p = SQL4Json.queryAsJsonValue(sql, json).as(Person.class);
 
 #### Supported target types
 
-| Category | Types |
-|---|---|
-| Primitives / boxed | `boolean, byte, short, int, long, float, double, char` + wrappers |
-| String | `String`, `CharSequence` |
-| Big numbers | `BigDecimal`, `BigInteger`, `Number` |
-| Time | `LocalDate`, `LocalDateTime`, `Instant` (ISO strings; `Instant` also accepts epoch millis) |
-| Enums | `Enum.valueOf` — case-sensitive |
-| Records | Via canonical constructor |
-| POJOs | Public no-arg constructor + public setters (return type ignored; inherited setters included) |
-| Collections | `List<T>`, `Set<T>`, `Collection<T>`, `Map<String,V>`, `T[]` |
-| Passthrough | `JsonValue` (and subtypes), `Object` (natural Java value) |
+| Category           | Types                                                                                        |
+|--------------------|----------------------------------------------------------------------------------------------|
+| Primitives / boxed | `boolean, byte, short, int, long, float, double, char` + wrappers                            |
+| String             | `String`, `CharSequence`                                                                     |
+| Big numbers        | `BigDecimal`, `BigInteger`, `Number`                                                         |
+| Time               | `LocalDate`, `LocalDateTime`, `Instant` (ISO strings; `Instant` also accepts epoch millis)   |
+| Enums              | `Enum.valueOf` — case-sensitive                                                              |
+| Records            | Via canonical constructor                                                                    |
+| POJOs              | Public no-arg constructor + public setters (return type ignored; inherited setters included) |
+| Collections        | `List<T>`, `Set<T>`, `Collection<T>`, `Map<String,V>`, `T[]`                                 |
+| Passthrough        | `JsonValue` (and subtypes), `Object` (natural Java value)                                    |
 
 #### Missing-field policy
 
@@ -432,6 +529,8 @@ Supported Java parameter types: `String`, all numeric primitives + wrappers, `Bi
 
 **Scope:** parameter binding is available on `PreparedQuery` and `SQL4JsonEngine` only; there are no `SQL4Json.query(..., params)` overloads. Use `SQL4Json.prepare(sql).execute(json, params)` for one-off parameterized queries.
 
+> **Building IDE tooling?** SQL4Json publishes a small read-only grammar catalog (`SQL4JsonGrammar.keywords()`, `functions()`, `tokenize(...)`) for syntax highlighters, completion popups, and static analysers — see [docs/grammar-api.md](docs/grammar-api.md).
+
 ## SQL Syntax
 
 SQL4Json supports a subset of SQL SELECT. All keywords are **case-insensitive**.
@@ -463,6 +562,26 @@ Dotted aliases create nested JSON in the output:
     }
   }
 ]
+```
+
+#### Literal and derived columns
+
+Beyond field references, the SELECT list accepts literal values, function calls, and arbitrary
+expressions — each becomes a new column in the output:
+
+```sql
+-- string / number / boolean literals
+SELECT 'hello' AS greeting FROM $r;
+SELECT 42 AS answer, TRUE AS flag FROM $r;
+
+-- functions with literal arguments
+SELECT ROUND(3.14159, 2) AS pi FROM $r;
+
+-- mix fields and literals via CONCAT
+SELECT CONCAT(firstName, ' ', lastName) AS fullName FROM $r;
+
+-- nested function calls
+SELECT CONCAT(UPPER(name), '!') AS shouty FROM $r;
 ```
 
 ### FROM
@@ -515,6 +634,48 @@ WHERE CAST(age AS STRING) = '25'
 WHERE TRIM(NULLIF(name, '')) = 'Alice'
 WHERE LENGTH(TRIM(name)) > 5
 ```
+
+### Array Predicates (since 1.2.0)
+
+Test values inside JSON array fields without unrolling the array via `FROM`:
+
+```sql
+-- Scalar membership (case-sensitive equality)
+SELECT id FROM $r WHERE tags CONTAINS 'admin'
+
+-- Contains-all (PostgreSQL @>): tags includes every element of the right array
+SELECT id FROM $r WHERE tags @> ARRAY['admin', 'editor']
+
+-- Contained-by (PostgreSQL <@): every element of tags is in the right array
+SELECT id FROM $r WHERE tags <@ ARRAY['admin', 'editor', 'viewer']
+
+-- Overlap (PostgreSQL &&): tags shares at least one element with the right array
+SELECT id FROM $r WHERE tags && ARRAY['blocked', 'flagged']
+
+-- Structural equality with array literal (order-sensitive, length-sensitive)
+SELECT id FROM $r WHERE tags = ARRAY['admin', 'editor']
+SELECT id FROM $r WHERE tags != ARRAY['admin']
+```
+
+**Parameter binding (matches JDBC / Hibernate / jOOQ patterns):**
+
+```java
+// Whole-array bind via bare parameter — list becomes the array RHS
+PreparedQuery q = SQL4Json.prepare("SELECT * FROM $r WHERE tags @> :tagList");
+q.execute(json, BoundParameters.named().bind("tagList", List.of("admin","editor")));
+
+// Element-by-element via ARRAY[?,?]
+PreparedQuery q2 = SQL4Json.prepare("SELECT * FROM $r WHERE tags @> ARRAY[?,?]");
+q2.execute(json, BoundParameters.of("admin","editor"));
+```
+
+**Semantics:**
+
+- `<`, `>`, `<=`, `>=` against `ARRAY[…]` raise `SQL4JsonParseException` at parse time.
+- `CONTAINS`, `@>`, `<@`, `&&`, `=`, `!=` return `false` when the LHS field is missing, JSON null, or not an array.
+- `NULL` element → that pairwise comparison is false (SQL-standard `col = NULL` semantics; use `IS NULL` for a null-test).
+- `@>`, `<@`, `&&` are set semantics — duplicates do not affect the result. `=` / `!=` are order-sensitive structural equality.
+- Empty array literal `ARRAY[]`: `@>` always true; `&&` always false; `<@` true iff LHS is empty; `=` matches only an empty array.
 
 ### GROUP BY & HAVING
 
@@ -775,6 +936,8 @@ FROM $r
 
 ### String Functions
 
+> **Note:** All string functions auto-coerce non-string inputs to text via `toString` (matching `CONCAT`). For example, `LPAD(salary, 10, '0')` where `salary` is a number returns the zero-padded numeric string. Null inputs always return `NULL`.
+
 | Function                            | Description                                        | Example                    |
 |-------------------------------------|----------------------------------------------------|----------------------------|
 | `LOWER(str)`                        | Lowercase (optional locale: `LOWER(str, 'tr-TR')`) | `LOWER(name)`              |
@@ -869,17 +1032,19 @@ ORDER BY LENGTH(TRIM(name)) ASC
 
 SQL4Json maps JSON values to a sealed type hierarchy for type-safe processing:
 
-| JSON Type       | SQL4Json Type | Notes                                              |
-|-----------------|---------------|----------------------------------------------------|
-| String          | `SqlString`   |                                                    |
-| Number          | `SqlNumber`   | Integer and floating-point                         |
-| Boolean         | `SqlBoolean`  | `true` / `false` literals                          |
-| Null            | `SqlNull`     | Singleton                                          |
-| Date string     | `SqlDate`     | Via `TO_DATE()` or `CAST(x AS DATE)`               |
-| DateTime string | `SqlDateTime` | Via `TO_DATE()`, `NOW()`, or `CAST(x AS DATETIME)` |
+| JSON Type       | SQL4Json Type                                                | Notes                                                                                                            |
+|-----------------|--------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
+| String          | `SqlString`                                                  |                                                                                                                  |
+| Number          | `SqlNumber` (sealed: `SqlLong` / `SqlDouble` / `SqlDecimal`) | Sealed since 1.2.0 — primitive long/double stored unboxed; `BigDecimal` reserved for arbitrary-precision values. |
+| Boolean         | `SqlBoolean`                                                 | `true` / `false` literals                                                                                        |
+| Null            | `SqlNull`                                                    | Singleton                                                                                                        |
+| Date string     | `SqlDate`                                                    | Via `TO_DATE()` or `CAST(x AS DATE)`                                                                             |
+| DateTime string | `SqlDateTime`                                                | Via `TO_DATE()`, `NOW()`, or `CAST(x AS DATETIME)`                                                               |
 
-The `JsonValue` sealed interface provides the library's own JSON abstraction. The public API accepts and returns`String`
-or `JsonValue` with zero external dependencies. You can plug in your own JSON library via the `JsonCodec`interface.
+The `JsonValue` sealed interface provides the library's own JSON abstraction (object / array / string / boolean / null
+plus the sealed `JsonNumberValue` family `JsonLongValue` / `JsonDoubleValue` / `JsonDecimalValue`). The public API accepts
+and returns `String` or `JsonValue` with zero external dependencies. You can plug in your own JSON library via the
+`JsonCodec` interface.
 
 ## Pipeline Stages
 

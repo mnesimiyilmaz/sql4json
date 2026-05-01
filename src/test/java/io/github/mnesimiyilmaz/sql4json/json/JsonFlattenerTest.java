@@ -38,7 +38,7 @@ class JsonFlattenerTest {
     private static JsonObjectValue simpleObj() {
         var m = new java.util.LinkedHashMap<String, JsonValue>();
         m.put("name", new JsonStringValue("Alice"));
-        m.put("age", new JsonNumberValue(30));
+        m.put("age", new JsonLongValue(30L));
         return new JsonObjectValue(m);
     }
 
@@ -49,8 +49,8 @@ class JsonFlattenerTest {
         return new JsonObjectValue(Map.of(
                 "data", new JsonObjectValue(Map.of(
                         "items", new JsonArrayValue(List.of(
-                                new JsonObjectValue(Map.of("id", new JsonNumberValue(1))),
-                                new JsonObjectValue(Map.of("id", new JsonNumberValue(2)))
+                                new JsonObjectValue(Map.of("id", new JsonLongValue(1L))),
+                                new JsonObjectValue(Map.of("id", new JsonLongValue(2L)))
                         ))
                 ))
         ));
@@ -125,7 +125,7 @@ class JsonFlattenerTest {
 
         assertEquals(2, target.size());
         assertEquals(new SqlString("Alice"), target.get(FieldKey.of("name", interner)));
-        assertEquals(SqlNumber.of(30), target.get(FieldKey.of("age", interner)));
+        assertEquals(SqlNumber.of(30L), target.get(FieldKey.of("age", interner)));
     }
 
     @Test

@@ -1,15 +1,15 @@
 package io.github.mnesimiyilmaz.sql4json.registry;
 
-import io.github.mnesimiyilmaz.sql4json.engine.Row;
+import io.github.mnesimiyilmaz.sql4json.engine.RowAccessor;
 
 /**
- * CriteriaNode — evaluates a condition against a lazy Row.
- * <p>
- * This is the new (Phase 3+) version. It is distinct from the existing
- * {@code condition.CriteriaNode} which takes {@code Map<FieldKey, Object>}.
- * Phase 5 replaces the old sealed hierarchy with this interface.
- * <p>
- * Not yet sealed — sealed + permits clause added in Phase 5.
+ * CriteriaNode — evaluates a condition against a {@link RowAccessor}.
+ *
+ * <p>Both lazy {@link io.github.mnesimiyilmaz.sql4json.engine.Row} and materialised
+ * {@link io.github.mnesimiyilmaz.sql4json.engine.FlatRow} implement the interface,
+ * so handlers and stages do not need to distinguish between them.
+ *
+ * @since 1.2.0
  */
 @FunctionalInterface
 public interface CriteriaNode {
@@ -19,5 +19,5 @@ public interface CriteriaNode {
      * @param row the row to test
      * @return {@code true} if the condition is met
      */
-    boolean test(Row row);
+    boolean test(RowAccessor row);
 }

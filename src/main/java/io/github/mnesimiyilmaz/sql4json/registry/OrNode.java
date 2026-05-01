@@ -1,6 +1,6 @@
 package io.github.mnesimiyilmaz.sql4json.registry;
 
-import io.github.mnesimiyilmaz.sql4json.engine.Row;
+import io.github.mnesimiyilmaz.sql4json.engine.RowAccessor;
 
 /**
  * A criteria node representing a logical OR of two child criteria nodes.
@@ -11,7 +11,7 @@ import io.github.mnesimiyilmaz.sql4json.engine.Row;
 public record OrNode(CriteriaNode left, CriteriaNode right) implements CriteriaNode {
 
     @Override
-    public boolean test(Row row) {
+    public boolean test(RowAccessor row) {
         return left.test(row) || right.test(row);
     }
 }

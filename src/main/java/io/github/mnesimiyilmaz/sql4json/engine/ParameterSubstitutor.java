@@ -2,16 +2,16 @@ package io.github.mnesimiyilmaz.sql4json.engine;
 
 import io.github.mnesimiyilmaz.sql4json.BoundParameters;
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonBindException;
-import io.github.mnesimiyilmaz.sql4json.parser.OrderByColumnDef;
-import io.github.mnesimiyilmaz.sql4json.parser.ParameterConverter;
-import io.github.mnesimiyilmaz.sql4json.parser.QueryDefinition;
-import io.github.mnesimiyilmaz.sql4json.parser.SelectColumnDef;
+import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException;
+import io.github.mnesimiyilmaz.sql4json.parser.*;
 import io.github.mnesimiyilmaz.sql4json.registry.*;
 import io.github.mnesimiyilmaz.sql4json.settings.Sql4jsonSettings;
+import io.github.mnesimiyilmaz.sql4json.types.SqlDateTime;
 import io.github.mnesimiyilmaz.sql4json.types.SqlValue;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -84,6 +84,13 @@ public final class ParameterSubstitutor {
             newOffset = resolveLimitOffset(def.offsetParam(), params, "OFFSET");
         }
 
+        // Re-substitute the parser-collected window function list so the entries match
+        // (by record value equality) the WindowFnCalls embedded in the rebuilt expressions
+        // and criteria. WindowStage looks them up on Row by record equality.
+        List<Expression.WindowFnCall> newWindowCalls = def.windowFunctionCalls().stream()
+                .map(w -> substituteWindowFn(w, params, settings))
+                .toList();
+
         return new QueryDefinition(
                 newSelects,
                 def.rootPath(),
@@ -103,7 +110,8 @@ public final class ParameterSubstitutor {
                 null,
                 0,
                 def.namedParameters(),
-                def.subqueryPositionalOffset());
+                def.subqueryPositionalOffset(),
+                newWindowCalls);
     }
 
     /**
@@ -167,17 +175,19 @@ public final class ParameterSubstitutor {
     private static ConditionContext substituteConditionContext(
             ConditionContext cc, BoundParameters params, Sql4jsonSettings settings) {
 
-        Expression newLhs = cc.lhsExpression() == null
-                ? null
-                : substituteExpression(cc.lhsExpression(), params, settings);
-
-        Expression newRhsExpr = cc.rhsExpression() == null
-                ? null
-                : substituteExpression(cc.rhsExpression(), params, settings);
-        SqlValue newTestValue = cc.testValue();
-        if (newRhsExpr instanceof Expression.LiteralVal(SqlValue v)) {
-            newTestValue = v;
+        // Array-operator predicates have a different RHS shape (whole-array bind) and
+        // need to bypass the scalar-resolution path used for COMPARISON / LIKE / etc.
+        if (isArrayOperator(cc.type())) {
+            return substituteArrayPredicate(cc, params, settings);
         }
+
+        rejectCollectionBindForContains(cc, params);
+
+        Expression newLhs = substituteOrNull(cc.lhsExpression(), params, settings);
+        Expression newRhsExpr = substituteOrNull(cc.rhsExpression(), params, settings);
+        SqlValue newTestValue = newRhsExpr instanceof Expression.LiteralVal(SqlValue v)
+                ? v
+                : cc.testValue();
 
         // After substitution the value-expression list is always resolved into a flat
         // List<SqlValue>, so the expression list is cleared — this also prevents any
@@ -186,22 +196,8 @@ public final class ParameterSubstitutor {
                 ? expandInList(cc.valueExpressions(), params, settings, cc.lhsExpression())
                 : cc.valueList();
 
-        SqlValue newLower = cc.lowerBound();
-        SqlValue newUpper = cc.upperBound();
-        if (cc.lowerBoundExpr() != null) {
-            Expression s = substituteExpression(cc.lowerBoundExpr(), params, settings);
-            if (!(s instanceof Expression.LiteralVal(SqlValue lv))) {
-                throw new IllegalStateException("BETWEEN lower bound did not reduce to literal: " + s);
-            }
-            newLower = lv;
-        }
-        if (cc.upperBoundExpr() != null) {
-            Expression s = substituteExpression(cc.upperBoundExpr(), params, settings);
-            if (!(s instanceof Expression.LiteralVal(SqlValue lv))) {
-                throw new IllegalStateException("BETWEEN upper bound did not reduce to literal: " + s);
-            }
-            newUpper = lv;
-        }
+        SubstitutedBound lower = substituteBound(cc.lowerBoundExpr(), cc.lowerBound(), params, settings);
+        SubstitutedBound upper = substituteBound(cc.upperBoundExpr(), cc.upperBound(), params, settings);
 
         return new ConditionContext(
                 cc.type(),
@@ -210,11 +206,60 @@ public final class ParameterSubstitutor {
                 newTestValue,
                 newRhsExpr,
                 newValueList,
-                newLower,
-                newUpper,
+                lower.literal(),
+                upper.literal(),
                 null,
-                null,
-                null);
+                lower.expression(),
+                upper.expression());
+    }
+
+    /**
+     * CONTAINS — scalar RHS, but with a clearer error message when the caller accidentally
+     * binds a Collection (a common mistake for users migrating from PostgreSQL's {@code @>}).
+     * Without this guard the bind would fall through {@code resolveParam} and surface the
+     * generic "scalar placeholder" message that doesn't mention CONTAINS, leaving the user
+     * to guess which operator complained.
+     */
+    private static void rejectCollectionBindForContains(ConditionContext cc, BoundParameters params) {
+        if (cc.type() != ConditionContext.ConditionType.CONTAINS
+                || !(cc.rhsExpression() instanceof Expression.ParameterRef p)) {
+            return;
+        }
+        Object raw = (p.name() != null) ? params.getByName(p.name()) : params.getByIndex(p.index());
+        if (raw instanceof java.util.Collection<?> || (raw != null && raw.getClass().isArray())) {
+            throw new SQL4JsonBindException(
+                    "CONTAINS expects a scalar bind for parameter " + paramLabel(p)
+                            + "; got Collection. Use @>, <@, &&, or = with a list/array bind"
+                            + " for whole-array operators.");
+        }
+    }
+
+    private static Expression substituteOrNull(Expression expr, BoundParameters params,
+                                               Sql4jsonSettings settings) {
+        return expr == null ? null : substituteExpression(expr, params, settings);
+    }
+
+    /**
+     * Substitutes a BETWEEN bound expression. Returns the resolved literal in
+     * {@link SubstitutedBound#literal()} when substitution reduces to a {@code LiteralVal};
+     * otherwise the substituted expression survives in {@link SubstitutedBound#expression()}
+     * for per-row evaluation by {@code BetweenConditionHandler}.
+     */
+    private static SubstitutedBound substituteBound(Expression boundExpr, SqlValue defaultLiteral,
+                                                    BoundParameters params, Sql4jsonSettings settings) {
+        if (boundExpr == null) {
+            return new SubstitutedBound(defaultLiteral, null);
+        }
+        Expression s = substituteExpression(boundExpr, params, settings);
+        if (s instanceof Expression.LiteralVal(SqlValue lv)) {
+            return new SubstitutedBound(lv, null);
+        }
+        return new SubstitutedBound(defaultLiteral, s);
+    }
+
+    private record SubstitutedBound(SqlValue literal, Expression expression) {
+        // Carrier for substituteBound() — either literal is non-null (resolved) or expression is
+        // non-null (deferred to per-row evaluation); never both.
     }
 
     /**
@@ -289,11 +334,40 @@ public final class ParameterSubstitutor {
     private static SqlValue resolveParam(Expression.ParameterRef p, BoundParameters params) {
         Object raw = (p.name() != null) ? params.getByName(p.name()) : params.getByIndex(p.index());
         if (raw instanceof java.util.Collection<?> || (raw != null && raw.getClass().isArray())) {
-            String label = p.name() != null ? ":" + p.name() : "position " + p.index();
-            throw new SQL4JsonBindException(
-                    "Cannot bind collection to scalar placeholder at " + label);
+            throw new SQL4JsonBindException(rejectCollectionMessage(p, paramLabel(p)));
         }
         return ParameterConverter.toSqlValue(raw);
+    }
+
+    /**
+     * Builds the printable label for a {@link Expression.ParameterRef} — {@code ":name"} for
+     * named placeholders, {@code "position N"} for positional ones. Used in bind-time error
+     * messages.
+     */
+    private static String paramLabel(Expression.ParameterRef p) {
+        return p.name() != null ? ":" + p.name() : "position " + p.index();
+    }
+
+    /**
+     * Builds a position-aware error message when a Collection / array is bound to a
+     * scalar placeholder slot. {@link ParameterPositionKind#ARRAY_ELEMENT} ({@code ARRAY[?]})
+     * gets a hint pointing at the bare-RHS form; everything else falls back to the
+     * generic message. {@code BARE_ARRAY_RHS} and {@code IN_LIST} are not routed
+     * through {@code resolveParam} (they go through {@code expandArrayParameter} /
+     * {@code expandInListElement}); the branch exists only as a safety net so an
+     * unexpected dispatch doesn't yield a misleading message.
+     *
+     * @param p     the placeholder reference (carries the position kind)
+     * @param label printable label (e.g. {@code ":req"} or {@code "position 0"})
+     * @return a human-readable error message
+     */
+    private static String rejectCollectionMessage(Expression.ParameterRef p, String label) {
+        return switch (p.positionKind()) {
+            case ARRAY_ELEMENT -> "Cannot bind Collection to ARRAY[?] slot at " + label
+                    + "; ARRAY[?] requires a scalar bind. "
+                    + "Use a bare ?/:name (whole-array RHS) instead.";
+            case REGULAR_SCALAR, BARE_ARRAY_RHS, IN_LIST -> "Cannot bind collection to scalar placeholder at " + label;
+        };
     }
 
     /**
@@ -345,9 +419,20 @@ public final class ParameterSubstitutor {
             out.add(v);
             return;
         }
-        if (e instanceof Expression.ParameterRef(String name, int index)) {
+        if (e instanceof Expression.ParameterRef(String name, int index, var positionKind)) {
             Object raw = (name != null) ? params.getByName(name) : params.getByIndex(index);
             addExpandedParameter(raw, out);
+            return;
+        }
+        if (e instanceof Expression.NowRef()) {
+            // Snapshot semantics for NOW() in a parameterized IN list: substitution captures
+            // a single LocalDateTime here and embeds it as a literal, so every row in the
+            // execution sees the *same* timestamp. This matches the JDBC-style "bind once,
+            // execute" model and is intentionally distinct from the non-parameterized path,
+            // where NowRef survives into InConditionHandler/BetweenConditionHandler and is
+            // re-evaluated per row. Documented on BoundParameters; do not change without
+            // updating that contract.
+            out.add(new SqlDateTime(LocalDateTime.now()));
             return;
         }
         // Other expression types (shouldn't typically appear in IN list) — substitute
@@ -357,6 +442,107 @@ public final class ParameterSubstitutor {
             throw new IllegalStateException("IN-list element did not reduce to literal: " + s);
         }
         out.add(lv);
+    }
+
+    private static boolean isArrayOperator(ConditionContext.ConditionType type) {
+        return type == ConditionContext.ConditionType.ARRAY_CONTAINS
+                || type == ConditionContext.ConditionType.ARRAY_CONTAINED_BY
+                || type == ConditionContext.ConditionType.ARRAY_OVERLAP
+                || type == ConditionContext.ConditionType.ARRAY_EQUALS
+                || type == ConditionContext.ConditionType.ARRAY_NOT_EQUALS;
+    }
+
+    /**
+     * Substitutes parameters inside an array-operator {@link ConditionContext}.
+     *
+     * <p>Three cases:
+     * <ul>
+     *   <li>{@code valueExpressions} is non-null (parsed {@code ARRAY[…]} literal) — each
+     *       element expression is substituted recursively; the resulting list stays in
+     *       {@code valueExpressions}.</li>
+     *   <li>{@code rhsExpression} is a {@link Expression.ParameterRef} (bare {@code ?} /
+     *       {@code :name}) — the bound value must be a {@link java.util.Collection} or
+     *       array; each element is wrapped into a {@link Expression.LiteralVal} and the
+     *       flat list lands in {@code valueExpressions}. The {@code rhsExpression} field
+     *       is cleared.</li>
+     *   <li>{@code rhsExpression} is anything else (column-ref) — substituted recursively
+     *       and kept in {@code rhsExpression}.</li>
+     * </ul>
+     */
+    private static ConditionContext substituteArrayPredicate(
+            ConditionContext cc, BoundParameters params, Sql4jsonSettings settings) {
+
+        Expression newLhs = cc.lhsExpression() == null
+                ? null
+                : substituteExpression(cc.lhsExpression(), params, settings);
+
+        // Case A — array literal (or already-substituted form): substitute each element
+        if (cc.valueExpressions() != null) {
+            List<Expression> newElements = cc.valueExpressions().stream()
+                    .map(e -> substituteExpression(e, params, settings))
+                    .toList();
+            return new ConditionContext(cc.type(), newLhs, cc.operator(), null, null,
+                    null, null, null, newElements, null, null);
+        }
+
+        Expression rhs = cc.rhsExpression();
+        if (rhs == null) {
+            throw new SQL4JsonExecutionException(
+                    "array predicate has no RHS expression — listener bug for type " + cc.type());
+        }
+
+        // Case B — bare parameter
+        if (rhs instanceof Expression.ParameterRef p) {
+            Object raw = (p.name() != null) ? params.getByName(p.name()) : params.getByIndex(p.index());
+            List<Expression> elements = expandArrayParameter(raw, p, cc.operator());
+            return new ConditionContext(cc.type(), newLhs, cc.operator(), null, null,
+                    null, null, null, elements, null, null);
+        }
+
+        // Case C — column-ref (or other deferred expression) — substitute, keep on rhsExpression
+        Expression newRhs = substituteExpression(rhs, params, settings);
+        return new ConditionContext(cc.type(), newLhs, cc.operator(), null, newRhs,
+                null, null, null, null, null, null);
+    }
+
+    /**
+     * Expands a {@link java.util.Collection} or array bound to an array-operator parameter into
+     * a list of {@link Expression.LiteralVal} entries (one per element, converted via
+     * {@link ParameterConverter#toSqlValue(Object)}).
+     *
+     * @param raw      the bound parameter value
+     * @param p        the placeholder reference (used for error messages)
+     * @param operator the array operator symbol (used for error messages)
+     * @return an immutable list of literal expressions, one per element
+     * @throws SQL4JsonBindException if the bound value is null, not a collection, or not an array
+     */
+    private static List<Expression> expandArrayParameter(Object raw, Expression.ParameterRef p,
+                                                         String operator) {
+        String label = paramLabel(p);
+        if (raw == null) {
+            throw new SQL4JsonBindException(
+                    "array operator '" + operator + "' parameter " + label
+                            + " bound to null; expected a Collection");
+        }
+        if (raw instanceof java.util.Collection<?> coll) {
+            List<Expression> out = new ArrayList<>(coll.size());
+            for (Object el : coll) {
+                out.add(new Expression.LiteralVal(ParameterConverter.toSqlValue(el)));
+            }
+            return List.copyOf(out);
+        }
+        if (raw.getClass().isArray()) {
+            int len = java.lang.reflect.Array.getLength(raw);
+            List<Expression> out = new ArrayList<>(len);
+            for (int i = 0; i < len; i++) {
+                out.add(new Expression.LiteralVal(
+                        ParameterConverter.toSqlValue(java.lang.reflect.Array.get(raw, i))));
+            }
+            return List.copyOf(out);
+        }
+        throw new SQL4JsonBindException(
+                "array operator '" + operator + "' parameter " + label
+                        + " must bind to a Collection; got " + raw.getClass().getSimpleName());
     }
 
     private static void addExpandedParameter(Object raw, List<SqlValue> out) {

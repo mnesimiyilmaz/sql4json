@@ -2,6 +2,7 @@ package io.github.mnesimiyilmaz.sql4json.engine.stage;
 
 import io.github.mnesimiyilmaz.sql4json.engine.FieldKey;
 import io.github.mnesimiyilmaz.sql4json.engine.Row;
+import io.github.mnesimiyilmaz.sql4json.engine.RowAccessor;
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException;
 import io.github.mnesimiyilmaz.sql4json.parser.OrderByColumnDef;
 import io.github.mnesimiyilmaz.sql4json.registry.FunctionRegistry;
@@ -27,8 +28,8 @@ class OrderByStageTest {
         var row2 = Row.eager(Map.of(FieldKey.of("name"), new SqlString("Alice")));
         var row3 = Row.eager(Map.of(FieldKey.of("name"), new SqlString("Bob")));
 
-        List<Row> result = new OrderByStage(List.of(OrderByColumnDef.of("name", "ASC")), fn, NO_LIMIT)
-                .apply(Stream.of(row1, row2, row3)).toList();
+        List<RowAccessor> result = new OrderByStage(List.of(OrderByColumnDef.of("name", "ASC")), fn, NO_LIMIT)
+                .apply(Stream.<RowAccessor>of(row1, row2, row3)).toList();
 
         assertEquals("Alice", ((SqlString) result.get(0).get(FieldKey.of("name"))).value());
         assertEquals("Bob", ((SqlString) result.get(1).get(FieldKey.of("name"))).value());
@@ -41,8 +42,8 @@ class OrderByStageTest {
         var row2 = Row.eager(Map.of(FieldKey.of("age"), SqlNumber.of(30)));
         var row3 = Row.eager(Map.of(FieldKey.of("age"), SqlNumber.of(20)));
 
-        List<Row> result = new OrderByStage(List.of(OrderByColumnDef.of("age", "DESC")), fn, NO_LIMIT)
-                .apply(Stream.of(row1, row2, row3)).toList();
+        List<RowAccessor> result = new OrderByStage(List.of(OrderByColumnDef.of("age", "DESC")), fn, NO_LIMIT)
+                .apply(Stream.<RowAccessor>of(row1, row2, row3)).toList();
 
         assertEquals(30.0, ((SqlNumber) result.get(0).get(FieldKey.of("age"))).doubleValue());
         assertEquals(20.0, ((SqlNumber) result.get(1).get(FieldKey.of("age"))).doubleValue());
@@ -58,10 +59,10 @@ class OrderByStageTest {
         var row3 = Row.eager(Map.of(FieldKey.of("dept"), new SqlString("IT"),
                 FieldKey.of("name"), new SqlString("Adam")));
 
-        List<Row> result = new OrderByStage(List.of(
+        List<RowAccessor> result = new OrderByStage(List.of(
                 OrderByColumnDef.of("dept", "ASC"),
                 OrderByColumnDef.of("name", "ASC")
-        ), fn, NO_LIMIT).apply(Stream.of(row1, row2, row3)).toList();
+        ), fn, NO_LIMIT).apply(Stream.<RowAccessor>of(row1, row2, row3)).toList();
 
         // HR before IT; within IT: Adam before Zara
         assertEquals("HR", ((SqlString) result.get(0).get(FieldKey.of("dept"))).value());
@@ -80,15 +81,15 @@ class OrderByStageTest {
         return Row.eager(Map.of(FieldKey.of("age"), SqlNumber.of(age)));
     }
 
-    private static int ageOf(Row r) {
+    private static int ageOf(RowAccessor r) {
         return (int) ((SqlNumber) r.get(FieldKey.of("age"))).doubleValue();
     }
 
     @Test
     void top_n_asc_returns_smallest_k() {
-        var input = Stream.of(ageRow(30), ageRow(10), ageRow(50), ageRow(20), ageRow(40));
+        var input = Stream.<RowAccessor>of(ageRow(30), ageRow(10), ageRow(50), ageRow(20), ageRow(40));
 
-        List<Row> result = new TopNOrderByStage(
+        List<RowAccessor> result = new TopNOrderByStage(
                 List.of(OrderByColumnDef.of("age", "ASC")), 0, 2, fn, NO_LIMIT)
                 .apply(input).toList();
 
@@ -99,9 +100,9 @@ class OrderByStageTest {
 
     @Test
     void top_n_desc_returns_largest_k() {
-        var input = Stream.of(ageRow(30), ageRow(10), ageRow(50), ageRow(20), ageRow(40));
+        var input = Stream.<RowAccessor>of(ageRow(30), ageRow(10), ageRow(50), ageRow(20), ageRow(40));
 
-        List<Row> result = new TopNOrderByStage(
+        List<RowAccessor> result = new TopNOrderByStage(
                 List.of(OrderByColumnDef.of("age", "DESC")), 0, 3, fn, NO_LIMIT)
                 .apply(input).toList();
 
@@ -113,9 +114,9 @@ class OrderByStageTest {
 
     @Test
     void top_n_with_offset_skips_first_k() {
-        var input = Stream.of(ageRow(30), ageRow(10), ageRow(50), ageRow(20), ageRow(40));
+        var input = Stream.<RowAccessor>of(ageRow(30), ageRow(10), ageRow(50), ageRow(20), ageRow(40));
 
-        List<Row> result = new TopNOrderByStage(
+        List<RowAccessor> result = new TopNOrderByStage(
                 List.of(OrderByColumnDef.of("age", "ASC")), 2, 2, fn, NO_LIMIT)
                 .apply(input).toList();
 
@@ -127,9 +128,9 @@ class OrderByStageTest {
 
     @Test
     void top_n_limit_larger_than_input_returns_all_sorted() {
-        var input = Stream.of(ageRow(30), ageRow(10), ageRow(20));
+        var input = Stream.<RowAccessor>of(ageRow(30), ageRow(10), ageRow(20));
 
-        List<Row> result = new TopNOrderByStage(
+        List<RowAccessor> result = new TopNOrderByStage(
                 List.of(OrderByColumnDef.of("age", "ASC")), 0, 100, fn, NO_LIMIT)
                 .apply(input).toList();
 
@@ -141,9 +142,9 @@ class OrderByStageTest {
 
     @Test
     void top_n_zero_limit_returns_empty() {
-        var input = Stream.of(ageRow(30), ageRow(10), ageRow(20));
+        var input = Stream.<RowAccessor>of(ageRow(30), ageRow(10), ageRow(20));
 
-        List<Row> result = new TopNOrderByStage(
+        List<RowAccessor> result = new TopNOrderByStage(
                 List.of(OrderByColumnDef.of("age", "ASC")), 0, 0, fn, NO_LIMIT)
                 .apply(input).toList();
 
@@ -152,10 +153,10 @@ class OrderByStageTest {
 
     @Test
     void top_n_offset_beyond_heap_returns_empty() {
-        var input = Stream.of(ageRow(30), ageRow(10), ageRow(20));
+        var input = Stream.<RowAccessor>of(ageRow(30), ageRow(10), ageRow(20));
 
         // Heap fills to 5, but only 3 rows actually arrive → offset 10 skips everything.
-        List<Row> result = new TopNOrderByStage(
+        List<RowAccessor> result = new TopNOrderByStage(
                 List.of(OrderByColumnDef.of("age", "ASC")), 10, 5, fn, NO_LIMIT)
                 .apply(input).toList();
 
@@ -171,9 +172,9 @@ class OrderByStageTest {
         var r3 = Row.eager(Map.of(FieldKey.of("dept"), new SqlString("IT"),
                 FieldKey.of("name"), new SqlString("Adam")));
 
-        List<Row> result = new TopNOrderByStage(
+        List<RowAccessor> result = new TopNOrderByStage(
                 List.of(OrderByColumnDef.of("dept", "ASC"), OrderByColumnDef.of("name", "ASC")),
-                0, 2, fn, NO_LIMIT).apply(Stream.of(r1, r2, r3)).toList();
+                0, 2, fn, NO_LIMIT).apply(Stream.<RowAccessor>of(r1, r2, r3)).toList();
 
         assertEquals(2, result.size());
         // Full order: (HR, Alice), (IT, Adam), (IT, Zara) → top 2
@@ -186,7 +187,7 @@ class OrderByStageTest {
     @Test
     void top_n_enforces_max_rows_on_input() {
         // 5 input rows, maxRows=3 — must throw before the 4th row is processed.
-        var input = Stream.of(ageRow(30), ageRow(10), ageRow(50), ageRow(20), ageRow(40));
+        var input = Stream.<RowAccessor>of(ageRow(30), ageRow(10), ageRow(50), ageRow(20), ageRow(40));
 
         var stage = new TopNOrderByStage(
                 List.of(OrderByColumnDef.of("age", "ASC")), 0, 2, fn, 3);
@@ -206,9 +207,9 @@ class OrderByStageTest {
     @Test
     void top_n_handles_limit_plus_offset_overflow() {
         // limit+offset overflows int — should still produce correct results (capped at maxRows).
-        var input = Stream.of(ageRow(30), ageRow(10), ageRow(20));
+        var input = Stream.<RowAccessor>of(ageRow(30), ageRow(10), ageRow(20));
 
-        List<Row> result = new TopNOrderByStage(
+        List<RowAccessor> result = new TopNOrderByStage(
                 List.of(OrderByColumnDef.of("age", "ASC")),
                 Integer.MAX_VALUE - 1, Integer.MAX_VALUE, fn, 100)
                 .apply(input).toList();

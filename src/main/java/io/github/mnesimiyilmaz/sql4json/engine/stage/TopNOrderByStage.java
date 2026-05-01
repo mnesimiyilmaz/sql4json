@@ -1,7 +1,7 @@
 package io.github.mnesimiyilmaz.sql4json.engine.stage;
 
 import io.github.mnesimiyilmaz.sql4json.engine.MaterializingPipelineStage;
-import io.github.mnesimiyilmaz.sql4json.engine.Row;
+import io.github.mnesimiyilmaz.sql4json.engine.RowAccessor;
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException;
 import io.github.mnesimiyilmaz.sql4json.parser.OrderByColumnDef;
 import io.github.mnesimiyilmaz.sql4json.registry.FunctionRegistry;
@@ -23,10 +23,10 @@ import java.util.stream.Stream;
  */
 public final class TopNOrderByStage implements MaterializingPipelineStage {
 
-    private final Comparator<Row> comparator;
-    private final int             offset;
-    private final int             limit;
-    private final int             maxRows;
+    private final Comparator<RowAccessor> comparator;
+    private final int                     offset;
+    private final int                     limit;
+    private final int                     maxRows;
 
     /**
      * Creates a TopNOrderByStage.
@@ -52,7 +52,7 @@ public final class TopNOrderByStage implements MaterializingPipelineStage {
     }
 
     @Override
-    public Stream<Row> apply(Stream<Row> input) {
+    public Stream<RowAccessor> apply(Stream<RowAccessor> input) {
         if (limit <= 0) {
             input.forEach(r -> { /* drain */ });
             return Stream.empty();
@@ -64,17 +64,17 @@ public final class TopNOrderByStage implements MaterializingPipelineStage {
 
         // Max-heap under the ORDER BY comparator: largest-so-far at the head,
         // so we can evict it when a smaller candidate arrives.
-        PriorityQueue<Row> heap = new PriorityQueue<>(
+        PriorityQueue<RowAccessor> heap = new PriorityQueue<>(
                 Math.min(capacity, 1024), comparator.reversed());
 
         long seen = 0;
-        Iterator<Row> it = input.iterator();
+        Iterator<RowAccessor> it = input.iterator();
         while (it.hasNext()) {
             if (seen >= maxRows) {
                 throw new SQL4JsonExecutionException(
                         "ORDER BY row count exceeds configured maximum (" + maxRows + ")");
             }
-            Row row = it.next();
+            RowAccessor row = it.next();
             seen++;
             if (heap.size() < capacity) {
                 heap.offer(row);
@@ -86,7 +86,7 @@ public final class TopNOrderByStage implements MaterializingPipelineStage {
 
         // Drain heap in ascending comparator order (poll returns largest first
         // because of the reversed comparator, so reverse at the end).
-        List<Row> sorted = new ArrayList<>(heap.size());
+        List<RowAccessor> sorted = new ArrayList<>(heap.size());
         while (!heap.isEmpty()) {
             sorted.add(heap.poll());
         }

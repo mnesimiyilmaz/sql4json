@@ -1,13 +1,16 @@
 package io.github.mnesimiyilmaz.sql4json;
 
 import io.github.mnesimiyilmaz.sql4json.engine.FieldKey;
-import io.github.mnesimiyilmaz.sql4json.engine.Row;
+import io.github.mnesimiyilmaz.sql4json.engine.FlatRow;
+import io.github.mnesimiyilmaz.sql4json.engine.RowSchema;
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonException;
 import io.github.mnesimiyilmaz.sql4json.json.JsonArrayValue;
 import io.github.mnesimiyilmaz.sql4json.json.JsonFlattener;
+import io.github.mnesimiyilmaz.sql4json.json.JsonObjectValue;
 import io.github.mnesimiyilmaz.sql4json.settings.Sql4jsonSettings;
 import io.github.mnesimiyilmaz.sql4json.types.JsonCodec;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
+import io.github.mnesimiyilmaz.sql4json.types.SqlNull;
 import io.github.mnesimiyilmaz.sql4json.types.SqlValue;
 
 import java.util.*;
@@ -163,7 +166,7 @@ public final class SQL4JsonEngineBuilder {
         JsonValue resolvedData = resolvePrimaryData(codec);
         Map<String, JsonValue> resolvedNamedSources = hasNamed ? resolveNamedSources(codec) : null;
 
-        List<Row> preFlattenedRows = resolvedData != null ? preFlattenRows(resolvedData) : List.of();
+        List<FlatRow> preFlattenedRows = resolvedData != null ? preFlattenRows(resolvedData) : List.of();
         QueryResultCache resolvedCache = resolveCache();
 
         if (!preFlattenedRows.isEmpty() && rawJson != null) {
@@ -199,21 +202,51 @@ public final class SQL4JsonEngineBuilder {
     }
 
     /**
-     * Pre-flatten all elements of a root JSON array into fully-resolved Rows.
+     * Pre-flatten all elements of a root JSON array into fully-resolved {@link FlatRow}s.
      * Returns an empty list if data is not an array (single object, primitive, etc.).
-     * The returned Rows are immutable and safe to share across concurrent queries.
+     * The returned rows share a single {@link RowSchema} (column union across all rows)
+     * and are immutable and safe to share across concurrent queries.
      */
-    private static List<Row> preFlattenRows(JsonValue data) {
+    private static List<FlatRow> preFlattenRows(JsonValue data) {
         if (!(data instanceof JsonArrayValue(var elements))) {
             return List.of();
         }
         FieldKey.Interner interner = new FieldKey.Interner();
-        List<Row> rows = new ArrayList<>(elements.size());
+        // Two-pass: first collect schema across all rows, then materialize each row.
+        var schemaBuilder = new RowSchema.Builder();
+        var rowMaps = new ArrayList<Map<FieldKey, SqlValue>>(elements.size());
         for (JsonValue element : elements) {
-            Map<FieldKey, SqlValue> fields = new HashMap<>();
+            Map<FieldKey, SqlValue> fields = HashMap.newHashMap(estimateFlatSize(element));
             JsonFlattener.flattenInto(element, fields, interner);
-            rows.add(Row.preFlattened(Collections.unmodifiableMap(fields)));
+            fields.keySet().forEach(schemaBuilder::add);
+            rowMaps.add(fields);
+        }
+        RowSchema schema = schemaBuilder.build();
+        var rows = new ArrayList<FlatRow>(rowMaps.size());
+        for (var fields : rowMaps) {
+            Object[] vals = new Object[schema.size()];
+            for (int i = 0; i < schema.size(); i++) {
+                FieldKey k = schema.columnAt(i);
+                SqlValue v = fields.get(k);
+                if (v != null && !(v instanceof SqlNull)) {
+                    vals[i] = v;
+                }
+            }
+            rows.add(FlatRow.preFlattened(schema, vals));
         }
         return Collections.unmodifiableList(rows);
+    }
+
+    /**
+     * Hint for {@link HashMap#newHashMap(int)} — keeps the per-row hash table
+     * from resizing 3-4 times during full flatten on typical 13-field rows.
+     * Falls back to a small default for non-object inputs (rare).
+     */
+    @io.github.mnesimiyilmaz.sql4json.internal.SkipCoverageGenerated
+    private static int estimateFlatSize(JsonValue v) {
+        if (v instanceof JsonObjectValue(var fields)) {
+            return Math.max(8, fields.size() + (fields.size() >>> 1));
+        }
+        return 8;
     }
 }

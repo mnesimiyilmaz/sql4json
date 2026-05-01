@@ -12,7 +12,6 @@ import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Stream;
 
 /**
@@ -64,7 +63,7 @@ public final class QueryExecutor {
      * @param settings         the settings controlling execution behaviour
      * @return the query result as a {@link JsonValue}
      */
-    public JsonValue execute(QueryDefinition query, JsonValue data, List<Row> preFlattenedRows,
+    public JsonValue execute(QueryDefinition query, JsonValue data, List<FlatRow> preFlattenedRows,
                              Sql4jsonSettings settings) {
         Objects.requireNonNull(settings, SETTINGS_PARAM);
         return executeWithDepth(query, data, preFlattenedRows, 0, settings);
@@ -88,10 +87,8 @@ public final class QueryExecutor {
         // Resolve FROM table
         JsonValue leftData = resolveSource(query.rootPath(), dataSources, settings);
         var leftSource = JoinExecutor.flattenSource(leftData, query.rootAlias(), interner);
-        List<Row> currentRows = leftSource.rows();
-
-        // Track schemas for NULL padding (accumulated left-side schema)
-        Set<FieldKey> accumulatedLeftSchema = new java.util.LinkedHashSet<>(leftSource.schema());
+        List<FlatRow> currentRows = leftSource.rows();
+        RowSchema accumulatedSchema = leftSource.schema();
 
         // Process each JOIN in order
         if (query.joins() != null) {
@@ -99,24 +96,22 @@ public final class QueryExecutor {
                 JsonValue rightData = resolveSource(join.tableName(), dataSources, settings);
                 var rightSource = JoinExecutor.flattenSource(rightData, join.alias(), interner);
 
-                // For RIGHT JOIN, the "opposite schema" is the left-side schema
-                Set<FieldKey> oppositeSchema = switch (join.joinType()) {
-                    case INNER -> Set.of(); // unused for INNER
-                    case LEFT -> rightSource.schema();
-                    case RIGHT -> accumulatedLeftSchema;
-                };
+                // Compute the merged schema once per join step. Merged columns
+                // are always left-then-right regardless of join direction —
+                // RIGHT joins still see left-side columns first.
+                RowSchema mergedSchema = accumulatedSchema.concat(rightSource.schema());
 
                 currentRows = JoinExecutor.execute(currentRows, rightSource.rows(),
-                        oppositeSchema, join, settings.limits().maxRowsPerQuery());
+                    mergedSchema, join, settings.limits().maxRowsPerQuery());
 
-                // After join, accumulate the right-side schema into the left
-                accumulatedLeftSchema.addAll(rightSource.schema());
+                accumulatedSchema = mergedSchema;
             }
         }
 
-        // Continue with normal pipeline (WHERE → GROUP BY → ...)
+        // Continue with normal pipeline (WHERE → GROUP BY → ...). The pipeline
+        // consumes Stream<RowAccessor>; FlatRow already implements RowAccessor.
         QueryPipeline pipeline = QueryPipeline.build(query, functionRegistry, settings);
-        List<Row> result = pipeline.execute(currentRows.stream());
+        List<RowAccessor> result = pipeline.execute(currentRows.stream().map(r -> r));
 
         return JsonUnflattener.unflatten(result, query.selectedColumns(), functionRegistry);
     }
@@ -126,57 +121,58 @@ public final class QueryExecutor {
         JsonValue data = dataSources.get(tableName);
         if (data == null) {
             String msg = settings.security().redactErrorDetails()
-                    ? "Unknown table"
-                    : "Unknown table: '" + tableName + "'. Available: " + dataSources.keySet();
+                ? "Unknown table"
+                : "Unknown table: '" + tableName + "'. Available: " + dataSources.keySet();
             throw new SQL4JsonExecutionException(msg);
         }
         return data;
     }
 
     private JsonValue executeWithDepth(QueryDefinition query, JsonValue data,
-                                       List<Row> preFlattenedRows,
+                                       List<FlatRow> preFlattenedRows,
                                        int currentDepth,
                                        Sql4jsonSettings settings) {
         int maxDepth = settings.limits().maxSubqueryDepth();
         if (currentDepth > maxDepth) {
             throw new SQL4JsonExecutionException(
-                    "Subquery depth exceeds configured maximum (" + maxDepth + ")");
+                "Subquery depth exceeds configured maximum (" + maxDepth + ")");
         }
         // Resolve FROM subquery recursively — pre-flattened rows don't apply to derived data
         if (query.fromSubQuery() != null) {
             data = executeWithDepth(
-                    QueryParser.parse(query.fromSubQuery(), settings, query.subqueryPositionalOffset()),
-                    data, List.of(), currentDepth + 1, settings);
+                QueryParser.parse(query.fromSubQuery(), settings, query.subqueryPositionalOffset()),
+                data, List.of(), currentDepth + 1, settings);
             preFlattenedRows = List.of();
         }
 
         // SHORT-CIRCUIT: SELECT * FROM $r with no filtering/sorting/grouping/limiting
         // Only possible when original data is available (not released by Engine).
         if (data != null
-                && query.isSelectAll()
-                && query.whereClause() == null
-                && query.groupBy() == null
-                && query.havingClause() == null
-                && query.orderBy() == null
-                && query.limit() == null
-                && !query.distinct()) {
+            && query.isSelectAll()
+            && query.whereClause() == null
+            && query.groupBy() == null
+            && query.havingClause() == null
+            && query.orderBy() == null
+            && query.limit() == null
+            && !query.distinct()) {
             JsonValue shortCircuit = JsonFlattener.navigateToPath(data, query.rootPath());
             if (shortCircuit instanceof JsonArrayValue) return shortCircuit;
             return new JsonArrayValue(java.util.List.of(shortCircuit));
         }
 
         // Use pre-flattened rows if available and FROM is root ($r)
-        Stream<Row> rows;
+        Stream<RowAccessor> rows;
         if (!preFlattenedRows.isEmpty()
-                && (query.rootPath() == null || query.rootPath().equals("$r"))) {
-            rows = preFlattenedRows.stream();
+            && (query.rootPath() == null || query.rootPath().equals("$r"))) {
+            rows = preFlattenedRows.stream().map(r -> r);
         } else {
             FieldKey.Interner interner = new FieldKey.Interner();
-            rows = JsonFlattener.streamLazy(data, query.rootPath(), interner);
+            rows = JsonFlattener.streamLazy(data, query.rootPath(), interner)
+                .map(r -> r);
         }
 
         QueryPipeline pipeline = QueryPipeline.build(query, functionRegistry, settings);
-        List<Row> result = pipeline.execute(rows);
+        List<RowAccessor> result = pipeline.execute(rows);
 
         return JsonUnflattener.unflatten(result, query.selectedColumns(), functionRegistry);
     }
@@ -207,11 +203,11 @@ public final class QueryExecutor {
     public String executeStreaming(QueryDefinition query, String jsonString, Sql4jsonSettings settings) {
         Objects.requireNonNull(settings, SETTINGS_PARAM);
         FieldKey.Interner interner = new FieldKey.Interner();
-        Stream<Row> rows = resolveStreamingRows(query, jsonString, settings, interner, 0);
+        Stream<RowAccessor> rows = resolveStreamingRows(query, jsonString, settings, interner, 0);
         QueryPipeline pipeline = QueryPipeline.build(query, functionRegistry, settings);
-        Stream<Row> result = pipeline.executeAsStream(rows);
+        Stream<RowAccessor> result = pipeline.executeAsStream(rows);
         return StreamingSerializer.serialize(result, query.selectedColumns(), functionRegistry,
-                settings.limits().maxRowsPerQuery());
+            settings.limits().maxRowsPerQuery());
     }
 
     /**
@@ -233,32 +229,33 @@ public final class QueryExecutor {
         int maxDepth = settings.limits().maxSubqueryDepth();
         if (currentDepth > maxDepth) {
             throw new SQL4JsonExecutionException(
-                    "Subquery depth exceeds configured maximum (" + maxDepth + ")");
+                "Subquery depth exceeds configured maximum (" + maxDepth + ")");
         }
         FieldKey.Interner interner = new FieldKey.Interner();
-        Stream<Row> rows = resolveStreamingRows(query, jsonString, settings, interner, currentDepth);
+        Stream<RowAccessor> rows = resolveStreamingRows(query, jsonString, settings, interner, currentDepth);
         QueryPipeline pipeline = QueryPipeline.build(query, functionRegistry, settings);
-        List<Row> result = pipeline.execute(rows);
+        List<RowAccessor> result = pipeline.execute(rows);
         return JsonUnflattener.unflatten(result, query.selectedColumns(), functionRegistry);
     }
 
-    private Stream<Row> resolveStreamingRows(QueryDefinition query, String jsonString,
-                                             Sql4jsonSettings settings,
-                                             FieldKey.Interner interner,
-                                             int currentDepth) {
+    private Stream<RowAccessor> resolveStreamingRows(QueryDefinition query, String jsonString,
+                                                     Sql4jsonSettings settings,
+                                                     FieldKey.Interner interner,
+                                                     int currentDepth) {
         // Handle FROM subquery: inner query streams and materializes to JsonValue,
         // outer query uses tree path on the smaller result.
         if (query.fromSubQuery() != null) {
             QueryDefinition innerQuery = QueryParser.parse(
-                    query.fromSubQuery(), settings, query.subqueryPositionalOffset());
+                query.fromSubQuery(), settings, query.subqueryPositionalOffset());
             JsonValue innerResult = executeStreamingAsJsonValueInternal(
-                    innerQuery, jsonString, settings, currentDepth + 1);
-            return JsonFlattener.streamLazy(innerResult, null, interner);
+                innerQuery, jsonString, settings, currentDepth + 1);
+            return JsonFlattener.streamLazy(innerResult, null, interner)
+                .map(r -> r);
         }
         DefaultJsonCodecSettings parserSettings = (settings.codec() instanceof DefaultJsonCodec dc)
-                ? dc.settings()
-                : DefaultJsonCodecSettings.defaults();
+            ? dc.settings()
+            : DefaultJsonCodecSettings.defaults();
         return StreamingJsonParser.streamArray(jsonString, query.rootPath(), parserSettings)
-                .map(element -> Row.lazy(element, interner));
+            .map(element -> Row.lazy(element, interner));
     }
 }

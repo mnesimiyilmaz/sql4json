@@ -350,7 +350,7 @@ class BranchCoverageTest {
 
         @Test
         void literalValue_now() {
-            // ParserListener: VALUE_FUNCTION (NOW()) in literal context
+            // ParserListener: NOW() dispatched as a zero-arg value function in literal context
             String result = SQL4Json.query("SELECT NOW() AS ts FROM $r LIMIT 1", EMPLOYEES);
             assertTrue(result.contains("ts"));
         }

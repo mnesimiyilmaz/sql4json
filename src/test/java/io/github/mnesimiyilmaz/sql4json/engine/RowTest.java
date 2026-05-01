@@ -1,6 +1,6 @@
 package io.github.mnesimiyilmaz.sql4json.engine;
 
-import io.github.mnesimiyilmaz.sql4json.json.JsonNumberValue;
+import io.github.mnesimiyilmaz.sql4json.json.JsonLongValue;
 import io.github.mnesimiyilmaz.sql4json.json.JsonObjectValue;
 import io.github.mnesimiyilmaz.sql4json.json.JsonStringValue;
 import io.github.mnesimiyilmaz.sql4json.types.SqlNull;
@@ -26,7 +26,7 @@ class RowTest {
     private static JsonObjectValue twoFieldObj() {
         var fields = new LinkedHashMap<String, io.github.mnesimiyilmaz.sql4json.types.JsonValue>();
         fields.put("name", new JsonStringValue("Alice"));
-        fields.put("age", new JsonNumberValue(30));
+        fields.put("age", new JsonLongValue(30L));
         return new JsonObjectValue(fields);
     }
 
@@ -37,7 +37,7 @@ class RowTest {
         var fields = new LinkedHashMap<String, io.github.mnesimiyilmaz.sql4json.types.JsonValue>();
         fields.put("name", new JsonStringValue("Bob"));
         fields.put("city", new JsonStringValue("NYC"));
-        fields.put("score", new JsonNumberValue(95));
+        fields.put("score", new JsonLongValue(95L));
         return new JsonObjectValue(fields);
     }
 
@@ -63,6 +63,18 @@ class RowTest {
     void lazy_cacheIsEmptyInitially() {
         Row row = Row.lazy(threeFieldObj(), new FieldKey.Interner());
         assertEquals(0, row.cachedFieldCount());
+    }
+
+    @Test
+    void lazy_acceptsNonObjectJsonValue() {
+        // JsonFlattener.streamLazy passes individual array elements to Row.lazy;
+        // those elements may be primitives (string/number/etc.) when the array
+        // holds non-object values. The lazy Row falls back to the default
+        // initial cache capacity in this case.
+        Row stringRow = Row.lazy(new io.github.mnesimiyilmaz.sql4json.json.JsonStringValue("hi"),
+                new FieldKey.Interner());
+        assertTrue(stringRow.originalValue().isPresent());
+        assertEquals(0, stringRow.cachedFieldCount());
     }
 
     // ── get() — lazy resolution ───────────────────────────────────────────────
@@ -244,45 +256,19 @@ class RowTest {
         assertSame(SqlNull.INSTANCE, result, "True out-of-bounds array index should return SqlNull");
     }
 
-    // ── putWindowResult() / window result storage ─────────────────────────────
+    // ── Lazy-Row RowAccessor surface ──────────────────────────────────────────
 
     @Test
-    void putWindowResult_is_returned_by_get() {
-        Row row = Row.eager(Map.of(FieldKey.of("name"), new SqlString("Alice")));
-        FieldKey winKey = FieldKey.of("row_num");
-
-        row.putWindowResult(winKey, SqlNumber.of(1));
-
-        assertEquals(SqlNumber.of(1), row.get(winKey));
-    }
-
-    @Test
-    void window_result_takes_precedence_over_cache() {
-        Row row = Row.eager(Map.of(FieldKey.of("val"), SqlNumber.of(100)));
-        FieldKey key = FieldKey.of("val");
-
-        row.putWindowResult(key, SqlNumber.of(999));
-
-        assertEquals(SqlNumber.of(999), row.get(key));
-    }
-
-    @Test
-    void get_returns_null_for_absent_window_key() {
-        Row row = Row.eager(Map.of(FieldKey.of("name"), new SqlString("Alice")));
-
-        assertEquals(SqlNull.INSTANCE, row.get(FieldKey.of("no_such_window")));
-    }
-
-    @Test
-    void project_preserves_window_results() {
-        Row row = Row.eager(Map.of(
-                FieldKey.of("name"), new SqlString("Alice"),
-                FieldKey.of("salary"), SqlNumber.of(90000)));
-        row.putWindowResult(FieldKey.of("row_num"), SqlNumber.of(1));
-
-        Row projected = row.project(Set.of(FieldKey.of("name"), FieldKey.of("row_num")));
-
-        assertEquals(new SqlString("Alice"), projected.get(FieldKey.of("name")));
-        assertEquals(SqlNumber.of(1), projected.get(FieldKey.of("row_num")));
+    void lazyRow_hasNoSchema_andNoWindowResults() {
+        // Lazy Rows are stream-flatten carriers — no schema, no window slots.
+        // RowAccessor consumers detect this via schema() == null and fall back to
+        // streaming entries() / get(FieldKey).
+        Row row = Row.lazy(twoFieldObj(), new FieldKey.Interner());
+        assertNull(row.schema());
+        assertFalse(row.hasWindowResults());
+        assertNull(row.getWindowResult(new Expression.WindowFnCall(
+                "ROW_NUMBER", List.of(), new WindowSpec(List.of(), List.of()))));
+        assertTrue(row.sourceGroup().isEmpty());
+        assertFalse(row.isAggregated());
     }
 }

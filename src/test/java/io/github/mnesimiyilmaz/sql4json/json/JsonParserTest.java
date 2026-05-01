@@ -54,7 +54,7 @@ class JsonParserTest {
         JsonValue v = JsonParser.parse("42");
         assertTrue(v.isNumber());
         assertEquals(42, v.asNumber().orElseThrow().intValue());
-        assertInstanceOf(Integer.class, v.asNumber().orElseThrow());
+        assertInstanceOf(Long.class, v.asNumber().orElseThrow());
     }
 
     @Test
@@ -398,7 +398,7 @@ class JsonParserTest {
     @Test
     void parse_integer_max_boundary() {
         JsonValue v = JsonParser.parse("2147483647"); // Integer.MAX_VALUE
-        assertInstanceOf(Integer.class, v.asNumber().orElseThrow());
+        assertInstanceOf(Long.class, v.asNumber().orElseThrow());
         assertEquals(Integer.MAX_VALUE, v.asNumber().orElseThrow().intValue());
     }
 
@@ -425,7 +425,7 @@ class JsonParserTest {
     @Test
     void parse_negative_integer_min_boundary() {
         JsonValue v = JsonParser.parse("-2147483648"); // Integer.MIN_VALUE
-        assertInstanceOf(Integer.class, v.asNumber().orElseThrow());
+        assertInstanceOf(Long.class, v.asNumber().orElseThrow());
         assertEquals(Integer.MIN_VALUE, v.asNumber().orElseThrow().intValue());
     }
 
@@ -498,5 +498,168 @@ class JsonParserTest {
         JsonValue v = JsonParser.parse("[42, 42]");
         List<JsonValue> arr = v.asArray().orElseThrow();
         assertSame(arr.get(0), arr.get(1));
+    }
+
+    // ── Additional branch-coverage edge cases ──────────────────────────────
+
+    @Test
+    void parse_unterminated_object_after_value_throws() {
+        // EOF after value, before ',' or '}' — exercises L145 in parseObject
+        assertThrows(SQL4JsonExecutionException.class, () -> JsonParser.parse("{\"a\":1"));
+    }
+
+    @Test
+    void parse_unterminated_array_after_element_throws() {
+        // EOF after element, before ',' or ']' — exercises L192 in parseArray
+        assertThrows(SQL4JsonExecutionException.class, () -> JsonParser.parse("[1"));
+    }
+
+    @Test
+    void parse_unterminated_array_open_only_throws() {
+        assertThrows(SQL4JsonExecutionException.class, () -> JsonParser.parse("["));
+    }
+
+    @Test
+    void parse_object_missing_colon_throws() {
+        assertThrows(SQL4JsonExecutionException.class, () -> JsonParser.parse("{\"a\" 1}"));
+    }
+
+    @Test
+    void parse_object_non_string_key_throws() {
+        assertThrows(SQL4JsonExecutionException.class, () -> JsonParser.parse("{1:2}"));
+    }
+
+    @Test
+    void parse_high_surrogate_followed_by_non_escape_kept_as_raw() {
+        // High surrogate followed by something other than backslash-u — falls through to else
+        // branch in appendUnicodeChar
+        JsonValue v = JsonParser.parse("\"\\uD83Dx\"");
+        assertNotNull(v.asString().orElseThrow());
+    }
+
+    @Test
+    void parse_high_surrogate_at_eof_kept_as_raw() {
+        // High surrogate at end of string — pos+1 not < endPos branch
+        JsonValue v = JsonParser.parse("\"\\uD83D\"");
+        assertNotNull(v.asString().orElseThrow());
+    }
+
+    @Test
+    void parse_just_minus_throws() {
+        // '-' followed by EOF — consumeIntegerPart sees pos>=endPos
+        assertThrows(SQL4JsonExecutionException.class, () -> JsonParser.parse("-"));
+    }
+
+    @Test
+    void parse_invalid_number_starting_letter_throws() {
+        // Triggers consumeIntegerPart "Invalid number" branch (L313)
+        assertThrows(SQL4JsonExecutionException.class, () -> JsonParser.parse("-x"));
+    }
+
+    @Test
+    void parse_truncated_true_throws() {
+        // 'tru' — pos+4 > endPos in parseBoolean
+        assertThrows(SQL4JsonExecutionException.class, () -> JsonParser.parse("tru"));
+    }
+
+    @Test
+    void parse_truncated_false_throws() {
+        // 'fals' — pos+5 > endPos in parseBoolean
+        assertThrows(SQL4JsonExecutionException.class, () -> JsonParser.parse("fals"));
+    }
+
+    @Test
+    void parse_truncated_null_throws() {
+        // 'nul' — pos+4 > endPos in parseNull
+        assertThrows(SQL4JsonExecutionException.class, () -> JsonParser.parse("nul"));
+    }
+
+    @Test
+    void parse_misspelled_true_throws() {
+        // 'trux' — startsWith fails in parseBoolean
+        assertThrows(SQL4JsonExecutionException.class, () -> JsonParser.parse("trux"));
+    }
+
+    @Test
+    void parse_misspelled_null_throws() {
+        // 'nuxx' — startsWith fails in parseNull
+        assertThrows(SQL4JsonExecutionException.class, () -> JsonParser.parse("nuxx"));
+    }
+
+    @Test
+    void parse_expect_at_eof_throws() {
+        // After parsing "1", expect(',') called at EOF — exercises expect() pos>=endPos branch
+        assertThrows(SQL4JsonExecutionException.class, () -> JsonParser.parse("[1 "));
+    }
+
+    // ── Shape sharing — Phase B ──────────────────────────────────────────────
+
+    @Test
+    void parseObject_sameShapeRecords_shareKeyArray() {
+        String json = "[" +
+                "{\"id\":1,\"name\":\"A\"}," +
+                "{\"id\":2,\"name\":\"B\"}," +
+                "{\"id\":3,\"name\":\"C\"}]";
+        JsonValue parsed = JsonParser.parse(json);
+        var arr = ((JsonArrayValue) parsed).elements();
+        String[] k0 = extractKeyArray(arr.get(0));
+        String[] k1 = extractKeyArray(arr.get(1));
+        String[] k2 = extractKeyArray(arr.get(2));
+        assertSame(k0, k1, "same-shape records must share key array");
+        assertSame(k1, k2);
+    }
+
+    @Test
+    void parseObject_differentShapes_doNotShareKeyArray() {
+        String json = "[" +
+                "{\"id\":1,\"name\":\"A\"}," +
+                "{\"id\":2,\"city\":\"X\"}]";
+        JsonValue parsed = JsonParser.parse(json);
+        var arr = ((JsonArrayValue) parsed).elements();
+        assertNotSame(extractKeyArray(arr.get(0)), extractKeyArray(arr.get(1)));
+    }
+
+    @Test
+    void parseObject_sameShapeNestedObjects_alsoShareKeyArray() {
+        String json = "[" +
+                "{\"a\":{\"x\":1,\"y\":2}}," +
+                "{\"a\":{\"x\":3,\"y\":4}}]";
+        JsonValue parsed = JsonParser.parse(json);
+        var arr = ((JsonArrayValue) parsed).elements();
+        JsonValue nested0 = ((JsonObjectValue) arr.get(0)).fields().get("a");
+        JsonValue nested1 = ((JsonObjectValue) arr.get(1)).fields().get("a");
+        assertSame(extractKeyArray(nested0), extractKeyArray(nested1));
+    }
+
+    @Test
+    void parseObject_exhaustsShapeRegistry_returnsExactFitWithoutSharing() {
+        StringBuilder sb = new StringBuilder("[");
+        // 257 distinct shapes — one more than MAX_SHAPES.
+        for (int i = 0; i < 257; i++) {
+            if (i > 0) sb.append(',');
+            sb.append("{\"k").append(i).append("\":1}");
+        }
+        // 258th distinct shape — exhausts cap; must still produce exact-fit array.
+        sb.append(",{\"k257\":1}]");
+        JsonValue parsed = JsonParser.parse(sb.toString());
+        var arr = ((JsonArrayValue) parsed).elements();
+        assertEquals(258, arr.size());
+        String[] last = extractKeyArray(arr.get(arr.size() - 1));
+        assertEquals(1, last.length, "bypass path must still return exact-fit");
+    }
+
+    // Reach the internal CompactStringMap.keys array via reflection.
+    // Justification: shape sharing is an internal optimisation; the public API doesn't
+    // expose it, but tests must verify identity to lock in the optimisation.
+    private static String[] extractKeyArray(JsonValue obj) {
+        try {
+            var fields = ((JsonObjectValue) obj).fields();
+            // CompactStringMap is package-private; reach via reflection.
+            java.lang.reflect.Field f = fields.getClass().getDeclaredField("keys");
+            f.setAccessible(true);
+            return (String[]) f.get(fields);
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError("CompactStringMap layout changed: " + e);
+        }
     }
 }

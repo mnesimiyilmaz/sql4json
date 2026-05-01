@@ -29,8 +29,10 @@ public final class BetweenConditionHandler implements ConditionHandler {
     public CriteriaNode handle(ConditionContext ctx,
                                OperatorRegistry operators,
                                FunctionRegistry functions) {
-        SqlValue lower = ctx.lowerBound();
-        SqlValue upper = ctx.upperBound();
+        SqlValue lowerLiteral = ctx.lowerBound();
+        SqlValue upperLiteral = ctx.upperBound();
+        Expression lowerExpr = ctx.lowerBoundExpr();
+        Expression upperExpr = ctx.upperBoundExpr();
         boolean negate = ctx.type() == ConditionContext.ConditionType.NOT_BETWEEN;
         Expression lhs = ctx.lhsExpression();
 
@@ -39,7 +41,16 @@ public final class BetweenConditionHandler implements ConditionHandler {
 
         return row -> {
             SqlValue fieldVal = ExpressionEvaluator.evaluate(lhs, row, functions);
-            if (fieldVal.isNull() || lower.isNull() || upper.isNull()) return false;
+            if (fieldVal.isNull()) return false;
+            // Evaluate bounds: use literal when available, otherwise evaluate expression per-row
+            // (covers ParameterRef after substitution and NowRef for dynamic value functions).
+            SqlValue lower = lowerExpr != null
+                    ? ExpressionEvaluator.evaluate(lowerExpr, row, functions)
+                    : lowerLiteral;
+            SqlValue upper = upperExpr != null
+                    ? ExpressionEvaluator.evaluate(upperExpr, row, functions)
+                    : upperLiteral;
+            if (lower == null || upper == null || lower.isNull() || upper.isNull()) return false;
             boolean inRange = gte.test(fieldVal, lower) && lte.test(fieldVal, upper);
             return negate != inRange;
         };

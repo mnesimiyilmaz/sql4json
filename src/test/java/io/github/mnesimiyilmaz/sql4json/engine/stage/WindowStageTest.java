@@ -3,9 +3,9 @@ package io.github.mnesimiyilmaz.sql4json.engine.stage;
 import io.github.mnesimiyilmaz.sql4json.engine.Expression;
 import io.github.mnesimiyilmaz.sql4json.engine.FieldKey;
 import io.github.mnesimiyilmaz.sql4json.engine.Row;
+import io.github.mnesimiyilmaz.sql4json.engine.RowAccessor;
 import io.github.mnesimiyilmaz.sql4json.engine.WindowSpec;
 import io.github.mnesimiyilmaz.sql4json.parser.OrderByColumnDef;
-import io.github.mnesimiyilmaz.sql4json.parser.SelectColumnDef;
 import io.github.mnesimiyilmaz.sql4json.registry.FunctionRegistry;
 import io.github.mnesimiyilmaz.sql4json.types.SqlNull;
 import io.github.mnesimiyilmaz.sql4json.types.SqlNumber;
@@ -32,12 +32,12 @@ class WindowStageTest {
                 FieldKey.of("salary"), SqlNumber.of(salary)));
     }
 
-    private SqlValue getWindowResult(Row row, String key) {
-        return row.get(FieldKey.of(key));
+    private SqlValue windowResult(RowAccessor row, Expression.WindowFnCall wfc) {
+        return row.getWindowResult(wfc);
     }
 
-    private int intResult(Row row, String key) {
-        return ((SqlNumber) getWindowResult(row, key)).value().intValue();
+    private int intResult(RowAccessor row, Expression.WindowFnCall wfc) {
+        return (int) ((SqlNumber) windowResult(row, wfc)).longValue();
     }
 
     @Test
@@ -45,13 +45,12 @@ class WindowStageTest {
         var rows = List.of(row("Bob", "Eng", 80000), row("Alice", "Eng", 90000), row("Charlie", "Eng", 70000));
         var winExpr = new Expression.WindowFnCall("ROW_NUMBER", List.of(),
                 new WindowSpec(List.of(), List.of(OrderByColumnDef.of("salary", "DESC"))));
-        var cols = List.of(SelectColumnDef.column("name"), SelectColumnDef.of(winExpr, "row_num"));
-        var stage = new WindowStage(cols, registry, NO_LIMIT);
-        List<Row> result = stage.apply(rows.stream()).toList();
+        var stage = new WindowStage(List.of(winExpr), List.of(), java.util.Set.of(FieldKey.of("name"), FieldKey.of("dept"), FieldKey.of("salary")), registry, NO_LIMIT);
+        List<RowAccessor> result = stage.apply(rows.stream().map(r -> (RowAccessor) r)).toList();
         assertEquals(3, result.size());
-        for (Row r : result) {
+        for (RowAccessor r : result) {
             String name = ((SqlString) r.get(FieldKey.of("name"))).value();
-            int rn = intResult(r, "row_num");
+            int rn = intResult(r, winExpr);
             switch (name) {
                 case "Alice" -> assertEquals(1, rn);
                 case "Bob" -> assertEquals(2, rn);
@@ -65,12 +64,11 @@ class WindowStageTest {
         var rows = List.of(row("A", "X", 100), row("B", "X", 100), row("C", "X", 80));
         var winExpr = new Expression.WindowFnCall("RANK", List.of(),
                 new WindowSpec(List.of(), List.of(OrderByColumnDef.of("salary", "DESC"))));
-        var cols = List.of(SelectColumnDef.column("name"), SelectColumnDef.of(winExpr, "rnk"));
-        var stage = new WindowStage(cols, registry, NO_LIMIT);
-        List<Row> result = stage.apply(rows.stream()).toList();
-        for (Row r : result) {
+        var stage = new WindowStage(List.of(winExpr), List.of(), java.util.Set.of(FieldKey.of("name"), FieldKey.of("dept"), FieldKey.of("salary")), registry, NO_LIMIT);
+        List<RowAccessor> result = stage.apply(rows.stream().map(r -> (RowAccessor) r)).toList();
+        for (RowAccessor r : result) {
             String name = ((SqlString) r.get(FieldKey.of("name"))).value();
-            int rnk = intResult(r, "rnk");
+            int rnk = intResult(r, winExpr);
             switch (name) {
                 case "A", "B" -> assertEquals(1, rnk);
                 case "C" -> assertEquals(3, rnk);
@@ -83,12 +81,11 @@ class WindowStageTest {
         var rows = List.of(row("A", "X", 100), row("B", "X", 100), row("C", "X", 80));
         var winExpr = new Expression.WindowFnCall("DENSE_RANK", List.of(),
                 new WindowSpec(List.of(), List.of(OrderByColumnDef.of("salary", "DESC"))));
-        var cols = List.of(SelectColumnDef.column("name"), SelectColumnDef.of(winExpr, "drnk"));
-        var stage = new WindowStage(cols, registry, NO_LIMIT);
-        List<Row> result = stage.apply(rows.stream()).toList();
-        for (Row r : result) {
+        var stage = new WindowStage(List.of(winExpr), List.of(), java.util.Set.of(FieldKey.of("name"), FieldKey.of("dept"), FieldKey.of("salary")), registry, NO_LIMIT);
+        List<RowAccessor> result = stage.apply(rows.stream().map(r -> (RowAccessor) r)).toList();
+        for (RowAccessor r : result) {
             String name = ((SqlString) r.get(FieldKey.of("name"))).value();
-            int drnk = intResult(r, "drnk");
+            int drnk = intResult(r, winExpr);
             switch (name) {
                 case "A", "B" -> assertEquals(1, drnk);
                 case "C" -> assertEquals(2, drnk);
@@ -103,12 +100,11 @@ class WindowStageTest {
         var winExpr = new Expression.WindowFnCall("NTILE",
                 List.of(new Expression.LiteralVal(SqlNumber.of(2))),
                 new WindowSpec(List.of(), List.of(OrderByColumnDef.of("salary", "DESC"))));
-        var cols = List.of(SelectColumnDef.column("name"), SelectColumnDef.of(winExpr, "half"));
-        var stage = new WindowStage(cols, registry, NO_LIMIT);
-        List<Row> result = stage.apply(rows.stream()).toList();
-        for (Row r : result) {
+        var stage = new WindowStage(List.of(winExpr), List.of(), java.util.Set.of(FieldKey.of("name"), FieldKey.of("dept"), FieldKey.of("salary")), registry, NO_LIMIT);
+        List<RowAccessor> result = stage.apply(rows.stream().map(r -> (RowAccessor) r)).toList();
+        for (RowAccessor r : result) {
             String name = ((SqlString) r.get(FieldKey.of("name"))).value();
-            int half = intResult(r, "half");
+            int half = intResult(r, winExpr);
             switch (name) {
                 case "A", "B", "C" -> assertEquals(1, half);
                 case "D", "E" -> assertEquals(2, half);
@@ -122,12 +118,11 @@ class WindowStageTest {
         var winExpr = new Expression.WindowFnCall("LAG",
                 List.of(new Expression.ColumnRef("salary")),
                 new WindowSpec(List.of(), List.of(OrderByColumnDef.of("salary", "ASC"))));
-        var cols = List.of(SelectColumnDef.column("name"), SelectColumnDef.of(winExpr, "prev"));
-        var stage = new WindowStage(cols, registry, NO_LIMIT);
-        List<Row> result = stage.apply(rows.stream()).toList();
-        for (Row r : result) {
+        var stage = new WindowStage(List.of(winExpr), List.of(), java.util.Set.of(FieldKey.of("name"), FieldKey.of("dept"), FieldKey.of("salary")), registry, NO_LIMIT);
+        List<RowAccessor> result = stage.apply(rows.stream().map(r -> (RowAccessor) r)).toList();
+        for (RowAccessor r : result) {
             String name = ((SqlString) r.get(FieldKey.of("name"))).value();
-            SqlValue prev = getWindowResult(r, "prev");
+            SqlValue prev = windowResult(r, winExpr);
             switch (name) {
                 case "A" -> assertEquals(SqlNull.INSTANCE, prev);
                 case "B" -> assertEquals(SqlNumber.of(100), prev);
@@ -142,12 +137,11 @@ class WindowStageTest {
         var winExpr = new Expression.WindowFnCall("LEAD",
                 List.of(new Expression.ColumnRef("salary")),
                 new WindowSpec(List.of(), List.of(OrderByColumnDef.of("salary", "ASC"))));
-        var cols = List.of(SelectColumnDef.column("name"), SelectColumnDef.of(winExpr, "next_sal"));
-        var stage = new WindowStage(cols, registry, NO_LIMIT);
-        List<Row> result = stage.apply(rows.stream()).toList();
-        for (Row r : result) {
+        var stage = new WindowStage(List.of(winExpr), List.of(), java.util.Set.of(FieldKey.of("name"), FieldKey.of("dept"), FieldKey.of("salary")), registry, NO_LIMIT);
+        List<RowAccessor> result = stage.apply(rows.stream().map(r -> (RowAccessor) r)).toList();
+        for (RowAccessor r : result) {
             String name = ((SqlString) r.get(FieldKey.of("name"))).value();
-            SqlValue next = getWindowResult(r, "next_sal");
+            SqlValue next = windowResult(r, winExpr);
             switch (name) {
                 case "A" -> assertEquals(SqlNumber.of(200), next);
                 case "B" -> assertEquals(SqlNumber.of(300), next);
@@ -162,12 +156,11 @@ class WindowStageTest {
         var winExpr = new Expression.WindowFnCall("LAG",
                 List.of(new Expression.ColumnRef("salary"), new Expression.LiteralVal(SqlNumber.of(2))),
                 new WindowSpec(List.of(), List.of(OrderByColumnDef.of("salary", "ASC"))));
-        var cols = List.of(SelectColumnDef.column("name"), SelectColumnDef.of(winExpr, "prev2"));
-        var stage = new WindowStage(cols, registry, NO_LIMIT);
-        List<Row> result = stage.apply(rows.stream()).toList();
-        for (Row r : result) {
+        var stage = new WindowStage(List.of(winExpr), List.of(), java.util.Set.of(FieldKey.of("name"), FieldKey.of("dept"), FieldKey.of("salary")), registry, NO_LIMIT);
+        List<RowAccessor> result = stage.apply(rows.stream().map(r -> (RowAccessor) r)).toList();
+        for (RowAccessor r : result) {
             String name = ((SqlString) r.get(FieldKey.of("name"))).value();
-            SqlValue prev2 = getWindowResult(r, "prev2");
+            SqlValue prev2 = windowResult(r, winExpr);
             switch (name) {
                 case "A", "B" -> assertEquals(SqlNull.INSTANCE, prev2);
                 case "C" -> assertEquals(SqlNumber.of(100), prev2);
@@ -182,12 +175,11 @@ class WindowStageTest {
         var winExpr = new Expression.WindowFnCall("SUM",
                 List.of(new Expression.ColumnRef("salary")),
                 new WindowSpec(List.of(new Expression.ColumnRef("dept")), List.of()));
-        var cols = List.of(SelectColumnDef.column("name"), SelectColumnDef.of(winExpr, "dept_total"));
-        var stage = new WindowStage(cols, registry, NO_LIMIT);
-        List<Row> result = stage.apply(rows.stream()).toList();
-        for (Row r : result) {
+        var stage = new WindowStage(List.of(winExpr), List.of(), java.util.Set.of(FieldKey.of("name"), FieldKey.of("dept"), FieldKey.of("salary")), registry, NO_LIMIT);
+        List<RowAccessor> result = stage.apply(rows.stream().map(r -> (RowAccessor) r)).toList();
+        for (RowAccessor r : result) {
             String name = ((SqlString) r.get(FieldKey.of("name"))).value();
-            double total = ((SqlNumber) getWindowResult(r, "dept_total")).value().doubleValue();
+            double total = ((SqlNumber) windowResult(r, winExpr)).doubleValue();
             switch (name) {
                 case "A", "B" -> assertEquals(300.0, total);
                 case "C" -> assertEquals(150.0, total);
@@ -200,12 +192,11 @@ class WindowStageTest {
         var rows = List.of(row("A", "Eng", 100), row("B", "Eng", 200), row("C", "Mkt", 150));
         var winExpr = new Expression.WindowFnCall("COUNT", List.of(),
                 new WindowSpec(List.of(new Expression.ColumnRef("dept")), List.of()));
-        var cols = List.of(SelectColumnDef.column("name"), SelectColumnDef.of(winExpr, "cnt"));
-        var stage = new WindowStage(cols, registry, NO_LIMIT);
-        List<Row> result = stage.apply(rows.stream()).toList();
-        for (Row r : result) {
+        var stage = new WindowStage(List.of(winExpr), List.of(), java.util.Set.of(FieldKey.of("name"), FieldKey.of("dept"), FieldKey.of("salary")), registry, NO_LIMIT);
+        List<RowAccessor> result = stage.apply(rows.stream().map(r -> (RowAccessor) r)).toList();
+        for (RowAccessor r : result) {
             String dept = ((SqlString) r.get(FieldKey.of("dept"))).value();
-            int cnt = intResult(r, "cnt");
+            int cnt = intResult(r, winExpr);
             switch (dept) {
                 case "Eng" -> assertEquals(2, cnt);
                 case "Mkt" -> assertEquals(1, cnt);
@@ -219,9 +210,8 @@ class WindowStageTest {
         var winExpr = new Expression.WindowFnCall("ROW_NUMBER", List.of(),
                 new WindowSpec(List.of(new Expression.ColumnRef("dept")),
                         List.of(OrderByColumnDef.of("salary", "ASC"))));
-        var cols = List.of(SelectColumnDef.column("name"), SelectColumnDef.of(winExpr, "rn"));
-        var stage = new WindowStage(cols, registry, NO_LIMIT);
-        List<Row> result = stage.apply(rows.stream()).toList();
+        var stage = new WindowStage(List.of(winExpr), List.of(), java.util.Set.of(FieldKey.of("name"), FieldKey.of("dept"), FieldKey.of("salary")), registry, NO_LIMIT);
+        List<RowAccessor> result = stage.apply(rows.stream().map(r -> (RowAccessor) r)).toList();
         assertEquals("C", ((SqlString) result.get(0).get(FieldKey.of("name"))).value());
         assertEquals("A", ((SqlString) result.get(1).get(FieldKey.of("name"))).value());
         assertEquals("B", ((SqlString) result.get(2).get(FieldKey.of("name"))).value());
@@ -231,9 +221,96 @@ class WindowStageTest {
     void empty_input_returns_empty() {
         var winExpr = new Expression.WindowFnCall("ROW_NUMBER", List.of(),
                 new WindowSpec(List.of(), List.of(OrderByColumnDef.of("salary", "ASC"))));
-        var cols = List.of(SelectColumnDef.of(winExpr, "rn"));
-        var stage = new WindowStage(cols, registry, NO_LIMIT);
-        List<Row> result = stage.apply(java.util.stream.Stream.<Row>empty()).toList();
+        var stage = new WindowStage(List.of(winExpr), List.of(), java.util.Set.of(FieldKey.of("name"), FieldKey.of("dept"), FieldKey.of("salary")), registry, NO_LIMIT);
+        List<RowAccessor> result = stage.apply(java.util.stream.Stream.<RowAccessor>empty()).toList();
         assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void flatRow_input_uses_first_row_schema_directly() {
+        // FlatRow stream (e.g. post-GROUP BY / post-JOIN) — schema is uniform; the
+        // stage should reuse it without scanning every row.
+        var schema = io.github.mnesimiyilmaz.sql4json.engine.RowSchema.of(List.of(
+                FieldKey.of("name"), FieldKey.of("dept"), FieldKey.of("salary")));
+        var fr1 = io.github.mnesimiyilmaz.sql4json.engine.FlatRow.of(schema,
+                new Object[]{ new SqlString("Alice"), new SqlString("Eng"), SqlNumber.of(100L) });
+        var fr2 = io.github.mnesimiyilmaz.sql4json.engine.FlatRow.of(schema,
+                new Object[]{ new SqlString("Bob"), new SqlString("Eng"), SqlNumber.of(80L) });
+        var winExpr = new Expression.WindowFnCall("ROW_NUMBER", List.of(),
+                new WindowSpec(List.of(), List.of(OrderByColumnDef.of("salary", "DESC"))));
+        var stage = new WindowStage(List.of(winExpr), List.of(), java.util.Set.of(FieldKey.of("name"), FieldKey.of("dept"), FieldKey.of("salary")), registry, NO_LIMIT);
+        List<RowAccessor> result = stage.apply(java.util.stream.Stream.<RowAccessor>of(fr1, fr2)).toList();
+        assertEquals(2, result.size());
+        // Verify the input schema's columns were preserved
+        for (RowAccessor r : result) {
+            String name = ((SqlString) r.get(FieldKey.of("name"))).value();
+            int rn = (int) ((SqlNumber) windowResult(r, winExpr)).longValue();
+            switch (name) {
+                case "Alice" -> assertEquals(1, rn);
+                case "Bob" -> assertEquals(2, rn);
+            }
+        }
+    }
+
+    @Test
+    void asterisk_select_falls_back_to_full_scan() {
+        // SELECT * — referencedColumns can't statically enumerate input fields, so the
+        // stage falls back to scanning every row's keys (the slow path). This exercises
+        // the asterisk branch of collectBaseSchema.
+        var asterisk = io.github.mnesimiyilmaz.sql4json.parser.SelectColumnDef.asterisk();
+        var rows = List.of(row("Alice", "Eng", 100), row("Bob", "Eng", 80));
+        var winExpr = new Expression.WindowFnCall("ROW_NUMBER", List.of(),
+                new WindowSpec(List.of(), List.of(OrderByColumnDef.of("salary", "DESC"))));
+        var stage = new WindowStage(List.of(winExpr), List.of(asterisk),
+                java.util.Set.of(), registry, NO_LIMIT);
+        List<RowAccessor> result = stage.apply(rows.stream().map(r -> (RowAccessor) r)).toList();
+        assertEquals(2, result.size());
+        // All input fields should still be reachable via the scanned schema.
+        for (RowAccessor r : result) {
+            String name = ((SqlString) r.get(FieldKey.of("name"))).value();
+            int rn = (int) ((SqlNumber) windowResult(r, winExpr)).longValue();
+            switch (name) {
+                case "Alice" -> assertEquals(1, rn);
+                case "Bob" -> assertEquals(2, rn);
+            }
+        }
+    }
+
+    @Test
+    void lazyRow_input_uses_referenced_columns_when_no_asterisk() {
+        // Lazy Row backed by a JsonValue tree, no SELECT * — the stage should use
+        // the parser-collected referencedColumns to size its base schema rather
+        // than triggering keys()-induced full flatten on every row.
+        var jsonA = new io.github.mnesimiyilmaz.sql4json.json.JsonObjectValue(new java.util.LinkedHashMap<>(Map.of(
+                "name", new io.github.mnesimiyilmaz.sql4json.json.JsonStringValue("Alice"),
+                "dept", new io.github.mnesimiyilmaz.sql4json.json.JsonStringValue("Eng"),
+                "salary", new io.github.mnesimiyilmaz.sql4json.json.JsonLongValue(100L),
+                "extra", new io.github.mnesimiyilmaz.sql4json.json.JsonStringValue("ignored"))));
+        var jsonB = new io.github.mnesimiyilmaz.sql4json.json.JsonObjectValue(new java.util.LinkedHashMap<>(Map.of(
+                "name", new io.github.mnesimiyilmaz.sql4json.json.JsonStringValue("Bob"),
+                "dept", new io.github.mnesimiyilmaz.sql4json.json.JsonStringValue("Eng"),
+                "salary", new io.github.mnesimiyilmaz.sql4json.json.JsonLongValue(80L),
+                "extra", new io.github.mnesimiyilmaz.sql4json.json.JsonStringValue("ignored"))));
+        var interner = new FieldKey.Interner();
+        var rA = Row.lazy(jsonA, interner);
+        var rB = Row.lazy(jsonB, interner);
+        var winExpr = new Expression.WindowFnCall("ROW_NUMBER", List.of(),
+                new WindowSpec(List.of(), List.of(OrderByColumnDef.of("salary", "DESC"))));
+        // referencedColumns covers what the query needs ("name", "salary" — partition/order/select)
+        java.util.Set<FieldKey> referenced = java.util.Set.of(FieldKey.of("name"), FieldKey.of("salary"));
+        var stage = new WindowStage(List.of(winExpr), List.of(), referenced, registry, NO_LIMIT);
+        List<RowAccessor> result = stage.apply(java.util.stream.Stream.<RowAccessor>of(rA, rB)).toList();
+        assertEquals(2, result.size());
+        // Output FlatRow schema = referencedColumns + window slot — "extra" is dropped.
+        for (RowAccessor r : result) {
+            String name = ((SqlString) r.get(FieldKey.of("name"))).value();
+            int rn = (int) ((SqlNumber) windowResult(r, winExpr)).longValue();
+            switch (name) {
+                case "Alice" -> assertEquals(1, rn);
+                case "Bob" -> assertEquals(2, rn);
+            }
+            // "extra" was not in referencedColumns — should resolve to SqlNull.
+            assertEquals(SqlNull.INSTANCE, r.get(FieldKey.of("extra")));
+        }
     }
 }

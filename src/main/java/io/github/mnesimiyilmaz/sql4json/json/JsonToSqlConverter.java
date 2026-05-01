@@ -21,7 +21,9 @@ public final class JsonToSqlConverter {
     public static SqlValue toSqlValue(JsonValue json) {
         return switch (json) {
             case JsonStringValue(var value) -> new SqlString(value);
-            case JsonNumberValue(var value) -> SqlNumber.of(value);
+            case JsonLongValue(long lv) -> SqlNumber.of(lv);
+            case JsonDoubleValue(double dv) -> SqlNumber.of(dv);
+            case JsonDecimalValue(var bdv) -> SqlNumber.of(bdv);
             case JsonBooleanValue(var value) -> SqlBoolean.of(value);
             case JsonNullValue ignored -> SqlNull.INSTANCE;
             case JsonObjectValue ignored ->
@@ -41,7 +43,9 @@ public final class JsonToSqlConverter {
     public static SqlValue toSqlValueSafe(JsonValue json) {
         return switch (json) {
             case JsonStringValue(var value) -> new SqlString(value);
-            case JsonNumberValue(var value) -> SqlNumber.of(value);
+            case JsonLongValue(long lv) -> SqlNumber.of(lv);
+            case JsonDoubleValue(double dv) -> SqlNumber.of(dv);
+            case JsonDecimalValue(var bdv) -> SqlNumber.of(bdv);
             case JsonBooleanValue(var value) -> SqlBoolean.of(value);
             case JsonNullValue ignored -> SqlNull.INSTANCE;
             case JsonObjectValue ignored -> SqlNull.INSTANCE;
@@ -58,7 +62,9 @@ public final class JsonToSqlConverter {
     public static JsonValue toJsonValue(SqlValue sql) {
         return switch (sql) {
             case SqlString(var value) -> new JsonStringValue(value);
-            case SqlNumber(var value) -> new JsonNumberValue(value);
+            case SqlLong(long lv) -> new JsonLongValue(lv);
+            case SqlDouble(double dv) -> new JsonDoubleValue(dv);
+            case SqlDecimal(var bdv) -> new JsonDecimalValue(bdv);
             case SqlBoolean(var value) -> value ? JsonBooleanValue.TRUE : JsonBooleanValue.FALSE;
             case SqlDate(var value) -> new JsonStringValue(value.toString());
             case SqlDateTime(var value) -> new JsonStringValue(value.toString());

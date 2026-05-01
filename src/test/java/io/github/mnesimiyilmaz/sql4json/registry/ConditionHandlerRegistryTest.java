@@ -5,7 +5,7 @@ import io.github.mnesimiyilmaz.sql4json.engine.Expression.ColumnRef;
 import io.github.mnesimiyilmaz.sql4json.engine.FieldKey;
 import io.github.mnesimiyilmaz.sql4json.engine.Row;
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException;
-import io.github.mnesimiyilmaz.sql4json.json.JsonNumberValue;
+import io.github.mnesimiyilmaz.sql4json.json.JsonLongValue;
 import io.github.mnesimiyilmaz.sql4json.json.JsonObjectValue;
 import io.github.mnesimiyilmaz.sql4json.json.JsonStringValue;
 import io.github.mnesimiyilmaz.sql4json.settings.Sql4jsonSettings;
@@ -44,8 +44,8 @@ class ConditionHandlerRegistryTest {
 
         CriteriaNode node = handlers.resolve(ctx);
 
-        assertTrue(node.test(rowWith("age", new JsonNumberValue(25))));
-        assertFalse(node.test(rowWith("age", new JsonNumberValue(15))));
+        assertTrue(node.test(rowWith("age", new JsonLongValue(25L))));
+        assertFalse(node.test(rowWith("age", new JsonLongValue(15L))));
     }
 
     @Test
@@ -152,13 +152,13 @@ class ConditionHandlerRegistryTest {
         CriteriaNode combined = new AndNode(ageNode, statusNode);
 
         var activeAdultFields = new LinkedHashMap<String, io.github.mnesimiyilmaz.sql4json.types.JsonValue>();
-        activeAdultFields.put("age", new JsonNumberValue(25));
+        activeAdultFields.put("age", new JsonLongValue(25L));
         activeAdultFields.put("status", new JsonStringValue("active"));
         Row activeAdult = Row.lazy(new JsonObjectValue(activeAdultFields), new FieldKey.Interner());
         assertTrue(combined.test(activeAdult));
 
         var youngActiveFields = new LinkedHashMap<String, io.github.mnesimiyilmaz.sql4json.types.JsonValue>();
-        youngActiveFields.put("age", new JsonNumberValue(15));
+        youngActiveFields.put("age", new JsonLongValue(15L));
         youngActiveFields.put("status", new JsonStringValue("active"));
         Row youngActive = Row.lazy(new JsonObjectValue(youngActiveFields), new FieldKey.Interner());
         assertFalse(combined.test(youngActive)); // age fails
@@ -189,14 +189,14 @@ class ConditionHandlerRegistryTest {
         // Matches via age — needs both fields
         var elderFields = new LinkedHashMap<String, io.github.mnesimiyilmaz.sql4json.types.JsonValue>();
         elderFields.put("name", new JsonStringValue("Bob"));
-        elderFields.put("age", new JsonNumberValue(60));
+        elderFields.put("age", new JsonLongValue(60L));
         Row elder = Row.lazy(new JsonObjectValue(elderFields), new FieldKey.Interner());
         assertTrue(combined.test(elder));
 
         // Neither matches
         var youngBobFields = new LinkedHashMap<String, io.github.mnesimiyilmaz.sql4json.types.JsonValue>();
         youngBobFields.put("name", new JsonStringValue("Bob"));
-        youngBobFields.put("age", new JsonNumberValue(25));
+        youngBobFields.put("age", new JsonLongValue(25L));
         Row youngBob = Row.lazy(new JsonObjectValue(youngBobFields), new FieldKey.Interner());
         assertFalse(combined.test(youngBob));
     }

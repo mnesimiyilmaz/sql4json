@@ -1,5 +1,6 @@
 package io.github.mnesimiyilmaz.sql4json.engine;
 
+import io.github.mnesimiyilmaz.sql4json.parser.ParameterPositionKind;
 import io.github.mnesimiyilmaz.sql4json.registry.CriteriaNode;
 import io.github.mnesimiyilmaz.sql4json.types.SqlValue;
 
@@ -163,10 +164,24 @@ public sealed interface Expression
      * Unresolved parameter placeholder. Substituted with a {@link LiteralVal} at execute
      * time by {@code ParameterSubstitutor}. Never seen by {@code ExpressionEvaluator}.
      *
-     * @param name  named-parameter name, or {@code null} for positional
-     * @param index positional index (0-based), or {@code -1} for named
+     * @param name         named-parameter name, or {@code null} for positional
+     * @param index        positional index (0-based), or {@code -1} for named
+     * @param positionKind syntactic position of this placeholder — drives bind-time
+     *                     validation (e.g. ARRAY[?] requires a scalar, bare-array RHS
+     *                     requires a Collection). Never {@code null}.
+     * @since 1.2.0
      */
-    record ParameterRef(String name, int index) implements Expression {
+    record ParameterRef(String name, int index, ParameterPositionKind positionKind) implements Expression {
+        /**
+         * Convenience constructor — defaults to {@link ParameterPositionKind#REGULAR_SCALAR}
+         * for callers that don't carry position context (e.g. test helpers).
+         *
+         * @param name  named-parameter name, or {@code null} for positional
+         * @param index positional index (0-based), or {@code -1} for named
+         */
+        public ParameterRef(String name, int index) {
+            this(name, index, ParameterPositionKind.REGULAR_SCALAR);
+        }
     }
 
     // ── Utility methods ───────────────────────────────────────────────────

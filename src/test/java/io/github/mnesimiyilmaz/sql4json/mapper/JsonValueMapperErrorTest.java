@@ -1,7 +1,7 @@
 package io.github.mnesimiyilmaz.sql4json.mapper;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonMappingException;
-import io.github.mnesimiyilmaz.sql4json.json.JsonNumberValue;
+import io.github.mnesimiyilmaz.sql4json.json.JsonLongValue;
 import io.github.mnesimiyilmaz.sql4json.json.JsonObjectValue;
 import io.github.mnesimiyilmaz.sql4json.json.JsonStringValue;
 import io.github.mnesimiyilmaz.sql4json.settings.MappingSettings;
@@ -79,7 +79,7 @@ class JsonValueMapperErrorTest {
 
     @Test
     void when_setter_throws_then_wrapped_with_cause() {
-        JsonValue v = obj(Map.of("age", new JsonNumberValue(-1)));
+        JsonValue v = obj(Map.of("age", new JsonLongValue(-1L)));
         SQL4JsonMappingException e = assertThrows(SQL4JsonMappingException.class,
                 () -> JsonValueMapper.INSTANCE.map(v, ThrowingSetter.class, S));
         assertInstanceOf(IllegalArgumentException.class, e.getCause());
@@ -88,7 +88,7 @@ class JsonValueMapperErrorTest {
 
     @Test
     void when_overloaded_setter_then_more_specific_picked() {
-        JsonValue v = obj(Map.of("value", new JsonNumberValue(42)));
+        JsonValue v = obj(Map.of("value", new JsonLongValue(42L)));
         Overloaded o = JsonValueMapper.INSTANCE.map(v, Overloaded.class, S);
         // Integer setter chosen — value stored as Integer not Double
         assertEquals(Integer.valueOf(42), o.getValue());

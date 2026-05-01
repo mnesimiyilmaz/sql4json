@@ -52,6 +52,10 @@ def rand_tags(max_tags=6):
     ]
     return random.sample(pool, k=random.randint(1, min(max_tags, len(pool))))
 
+def rand_uuid():
+    """Seedable UUID4 — derives bytes from the seeded `random` module."""
+    return str(uuid.UUID(int=random.getrandbits(128), version=4))
+
 
 # ---------------------------------------------------------------------------
 # Nested object builders  (depth up to 3)
@@ -141,7 +145,7 @@ def build_record(drop_chance=0.25, min_fields=7):
         )
         kept.extend(extras)
 
-    record["id"] = str(uuid.uuid4())
+    record["id"] = rand_uuid()
 
     field_builders = {
         "name": lambda: rand_str(6, 25),
@@ -244,6 +248,13 @@ def main():
         output_path=output,
         pretty=args.pretty,
     )
+
+    if args.seed is not None:
+        seed_dir = os.path.dirname(os.path.abspath(output)) or "."
+        seed_path = os.path.join(seed_dir, "SEED")
+        with open(seed_path, "w", encoding="utf-8") as f:
+            f.write(str(args.seed) + "\n")
+        print(f"Seed    : {args.seed} → wrote {seed_path}")
 
 
 if __name__ == "__main__":

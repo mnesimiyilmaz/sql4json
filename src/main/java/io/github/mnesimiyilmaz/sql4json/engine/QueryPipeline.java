@@ -36,9 +36,12 @@ final class QueryPipeline {
         if (query.havingClause() != null) {
             stages.add(new HavingStage(query.havingClause()));
         }
-        // Window functions: after HAVING, before ORDER BY (per SQL standard)
+        // Window functions: after HAVING, before ORDER BY (per SQL standard).
+        // The parser-collected list catches windows buried inside CASE WHEN conditions
+        // (where the CriteriaNode closure is opaque to expression-tree walks).
         if (query.containsWindowFunctions()) {
-            stages.add(new WindowStage(query.selectedColumns(), functionRegistry, maxRows));
+            stages.add(new WindowStage(query.windowFunctionCalls(), query.selectedColumns(),
+                    query.referencedColumns(), functionRegistry, maxRows));
         }
         // ORDER BY + LIMIT fast path: fold into a bounded max-heap (top-N) so we
         // don't sort the entire input just to take k rows. Plain ORDER BY (no LIMIT)
@@ -65,16 +68,16 @@ final class QueryPipeline {
         return query.offset() != null ? query.offset() : 0;
     }
 
-    List<Row> execute(Stream<Row> input) {
-        Stream<Row> current = input;
+    List<RowAccessor> execute(Stream<RowAccessor> input) {
+        Stream<RowAccessor> current = input;
         for (PipelineStage stage : stages) {
             current = stage.apply(current);
         }
         return StreamMaterializer.toList(current, maxRows, "PIPELINE");
     }
 
-    Stream<Row> executeAsStream(Stream<Row> input) {
-        Stream<Row> current = input;
+    Stream<RowAccessor> executeAsStream(Stream<RowAccessor> input) {
+        Stream<RowAccessor> current = input;
         for (PipelineStage stage : stages) {
             current = stage.apply(current);
         }

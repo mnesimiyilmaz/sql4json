@@ -42,7 +42,7 @@ class ParserValueObjectTest {
             var qd = new QueryDefinition(
                     List.of(SelectColumnDef.asterisk()),
                     "$r", null, null, null, null, null, Set.of(), false, null, null, false, null, null,
-                    null, null, 0, Set.of(), 0);
+                    null, null, 0, Set.of(), 0, List.of());
             assertTrue(qd.isSelectAll());
         }
 
@@ -51,7 +51,7 @@ class ParserValueObjectTest {
             var qd = new QueryDefinition(
                     List.of(SelectColumnDef.column("name")),
                     "$r", null, null, null, null, null, Set.of(), false, null, null, false, null, null,
-                    null, null, 0, Set.of(), 0);
+                    null, null, 0, Set.of(), 0, List.of());
             assertFalse(qd.isSelectAll());
         }
 
@@ -60,7 +60,7 @@ class ParserValueObjectTest {
             var qd = new QueryDefinition(
                     List.of(SelectColumnDef.column("dept")),
                     "$r", null, null, List.<Expression>of(new ColumnRef("dept")), null, null, Set.of(), false, null, null, false, null, null,
-                    null, null, 0, Set.of(), 0);
+                    null, null, 0, Set.of(), 0, List.of());
             assertTrue(qd.requiresFullFlatten());
         }
 
@@ -69,7 +69,7 @@ class ParserValueObjectTest {
             var qd = new QueryDefinition(
                     List.of(SelectColumnDef.asterisk()),
                     "$r", null, null, null, null, null, Set.of(), false, null, null, false, null, null,
-                    null, null, 0, Set.of(), 0);
+                    null, null, 0, Set.of(), 0, List.of());
             assertFalse(qd.requiresFullFlatten());
         }
 
@@ -78,7 +78,7 @@ class ParserValueObjectTest {
             var qd = new QueryDefinition(
                     List.of(SelectColumnDef.asterisk()),
                     "$r", null, null, null, null, null, Set.of(), false, null, null, false, null, null,
-                    null, null, 0, Set.of(), 0);
+                    null, null, 0, Set.of(), 0, List.of());
             assertNull(qd.fromSubQuery());
             assertEquals("$r", qd.rootPath());
         }

@@ -10,28 +10,36 @@ import java.util.List;
  * from a parsed WHERE/HAVING condition. Passed to {@link ConditionHandler} implementations.
  *
  * <p>The {@code *Expression} fields exist to defer materialisation when a right-hand side
- * contains a parameter placeholder — parameter substitution (Tasks 11-14) resolves them
- * into the classic literal/list/bound fields before the condition handler runs, so
- * handlers never see {@link Expression.ParameterRef} directly.</p>
+ * contains a non-literal expression — either a parameter placeholder (e.g.
+ * {@link Expression.ParameterRef}) or a dynamic value function such as
+ * {@link Expression.NowRef}. Handlers that receive these fields are responsible for
+ * evaluating them per-row via {@code ExpressionEvaluator}; handlers do see non-literal
+ * expressions (including {@link Expression.NowRef}) directly rather than having them
+ * pre-resolved.</p>
  *
  * @param type             the type of condition being evaluated
  * @param lhsExpression    the left-hand side expression tree
  * @param operator         the comparison operator string (e.g. {@code "="}, {@code "!="})
  * @param testValue        the literal value to compare against (for simple comparisons);
- *                         {@code null} when the RHS is a non-literal (column ref or parameter)
+ *                         {@code null} when the RHS is a non-literal (column ref, parameter,
+ *                         or dynamic value function)
  * @param rhsExpression    the right-hand side expression tree (column-to-column, dynamic LIKE,
- *                         or parameter placeholder for COMPARISON / LIKE / NOT_LIKE)
+ *                         parameter placeholder, or dynamic value function such as
+ *                         {@link Expression.NowRef} for COMPARISON / LIKE / NOT_LIKE)
  * @param valueList        the list of literal values for IN / NOT IN conditions; {@code null}
- *                         when any element is a parameter placeholder — see {@code valueExpressions}
+ *                         when any element is a non-literal expression — see {@code valueExpressions}
  * @param lowerBound       the literal lower bound for BETWEEN conditions; {@code null} when
- *                         the lower bound is a parameter — see {@code lowerBoundExpr}
+ *                         the lower bound is a non-literal — see {@code lowerBoundExpr}
  * @param upperBound       the literal upper bound for BETWEEN conditions; {@code null} when
- *                         the upper bound is a parameter — see {@code upperBoundExpr}
+ *                         the upper bound is a non-literal — see {@code upperBoundExpr}
  * @param valueExpressions the parallel expression list for IN / NOT IN when at least one
- *                         element is a parameter placeholder; {@code null} for all-literal lists
- * @param lowerBoundExpr   the lower-bound expression for BETWEEN when the bound is a parameter;
+ *                         element is a non-literal (parameter ref or dynamic value function
+ *                         such as {@link Expression.NowRef}); {@code null} for all-literal lists
+ * @param lowerBoundExpr   the lower-bound expression for BETWEEN when the bound is a non-literal
+ *                         (parameter ref or dynamic value function such as {@link Expression.NowRef});
  *                         {@code null} when the bound is a literal (captured in {@code lowerBound})
- * @param upperBoundExpr   the upper-bound expression for BETWEEN when the bound is a parameter;
+ * @param upperBoundExpr   the upper-bound expression for BETWEEN when the bound is a non-literal
+ *                         (parameter ref or dynamic value function such as {@link Expression.NowRef});
  *                         {@code null} when the bound is a literal (captured in {@code upperBound})
  */
 public record ConditionContext(
@@ -43,9 +51,9 @@ public record ConditionContext(
         List<SqlValue> valueList,     // IN / NOT IN value list (literal-only)
         SqlValue lowerBound,          // BETWEEN lower bound (literal)
         SqlValue upperBound,          // BETWEEN upper bound (literal)
-        List<Expression> valueExpressions,  // IN / NOT IN when any element is a ParameterRef
-        Expression lowerBoundExpr,          // BETWEEN lower bound when bound is a ParameterRef
-        Expression upperBoundExpr           // BETWEEN upper bound when bound is a ParameterRef
+        List<Expression> valueExpressions,  // IN / NOT IN when any element is non-literal (ParameterRef or NowRef)
+        Expression lowerBoundExpr,          // BETWEEN lower bound when bound is non-literal (ParameterRef or NowRef)
+        Expression upperBoundExpr           // BETWEEN upper bound when bound is non-literal (ParameterRef or NowRef)
 ) {
     /**
      * Backward compat: innermost column path.
@@ -95,6 +103,30 @@ public record ConditionContext(
         /**
          * A NOT LIKE pattern-matching condition.
          */
-        NOT_LIKE
+        NOT_LIKE,
+        /**
+         * A scalar-membership test on an array field (CONTAINS keyword operator).
+         */
+        CONTAINS,
+        /**
+         * Array contains-all (PostgreSQL {@code @>}).
+         */
+        ARRAY_CONTAINS,
+        /**
+         * Array contained-by (PostgreSQL {@code <@}).
+         */
+        ARRAY_CONTAINED_BY,
+        /**
+         * Array overlap (PostgreSQL {@code &&}).
+         */
+        ARRAY_OVERLAP,
+        /**
+         * Structural equality between an array column and an ARRAY[…] literal.
+         */
+        ARRAY_EQUALS,
+        /**
+         * Negation of ARRAY_EQUALS.
+         */
+        ARRAY_NOT_EQUALS
     }
 }

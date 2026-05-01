@@ -32,7 +32,7 @@ class JsonValueTest {
 
     @Test
     void jsonNumber_value() {
-        JsonNumberValue n = new JsonNumberValue(42);
+        JsonNumberValue n = new JsonLongValue(42L);
         assertTrue(n.isNumber());
         assertEquals(42, n.asNumber().orElseThrow().intValue());
     }
@@ -55,7 +55,7 @@ class JsonValueTest {
 
     @Test
     void jsonArray_value() {
-        JsonArrayValue arr = new JsonArrayValue(List.of(new JsonNumberValue(1), new JsonNumberValue(2)));
+        JsonArrayValue arr = new JsonArrayValue(List.of(new JsonLongValue(1L), new JsonLongValue(2L)));
         assertTrue(arr.isArray());
         assertFalse(arr.isObject());
         assertEquals(2, arr.asArray().orElseThrow().size());
@@ -97,7 +97,7 @@ class JsonValueTest {
 
     @Test
     void jsonArray_allTypeChecks() {
-        JsonArrayValue v = new JsonArrayValue(List.of(new JsonNumberValue(1)));
+        JsonArrayValue v = new JsonArrayValue(List.of(new JsonLongValue(1L)));
         assertFalse(v.isNull());
         assertFalse(v.isObject());
         assertTrue(v.isArray());
@@ -129,7 +129,7 @@ class JsonValueTest {
 
     @Test
     void jsonNumber_allTypeChecks() {
-        JsonNumberValue v = new JsonNumberValue(42);
+        JsonNumberValue v = new JsonLongValue(42L);
         assertFalse(v.isNull());
         assertFalse(v.isObject());
         assertFalse(v.isArray());
@@ -173,5 +173,24 @@ class JsonValueTest {
         assertTrue(v.asNumber().isEmpty());
         assertTrue(v.asString().isEmpty());
         assertTrue(v.asBoolean().isPresent());
+    }
+
+    @Test
+    void jsonNumber_sealedExhaustiveSwitch() {
+        JsonValue[] numbers = {
+                new JsonLongValue(1L),
+                new JsonDoubleValue(1.5),
+                new JsonDecimalValue(new java.math.BigDecimal("1.000000000000000001"))
+        };
+        for (JsonValue n : numbers) {
+            String tag = switch (n) {
+                case JsonLongValue ignored    -> "long";
+                case JsonDoubleValue ignored  -> "double";
+                case JsonDecimalValue ignored -> "decimal";
+                default                       -> "other";
+            };
+            assertNotEquals("other", tag);
+            assertTrue(n.isNumber());
+        }
     }
 }

@@ -21,7 +21,7 @@ class JsonToSqlConverterTest {
 
     @Test
     void number_toSqlNumber() {
-        SqlValue result = JsonToSqlConverter.toSqlValue(new JsonNumberValue(42));
+        SqlValue result = JsonToSqlConverter.toSqlValue(new JsonLongValue(42L));
         assertInstanceOf(SqlNumber.class, result);
         assertEquals(42.0, ((SqlNumber) result).doubleValue(), 1e-10);
     }
@@ -64,7 +64,7 @@ class JsonToSqlConverterTest {
     void sqlNumber_toJsonNumber() {
         JsonValue result = JsonToSqlConverter.toJsonValue(SqlNumber.of(7));
         assertInstanceOf(JsonNumberValue.class, result);
-        assertEquals(7, ((JsonNumberValue) result).value().intValue());
+        assertEquals(7, ((JsonNumberValue) result).numberValue().intValue());
     }
 
     @Test

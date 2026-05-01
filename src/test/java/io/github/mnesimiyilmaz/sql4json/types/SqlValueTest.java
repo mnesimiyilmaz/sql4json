@@ -42,15 +42,15 @@ class SqlValueTest {
     // SqlNumber
     @Test
     void sqlNumber_flyweight_smallIntegers() {
-        assertSame(SqlNumber.of(0), SqlNumber.of(0));
-        assertSame(SqlNumber.of(255), SqlNumber.of(255));
-        assertSame(SqlNumber.of(42), SqlNumber.of(42));
+        assertSame(SqlNumber.of(0L), SqlNumber.of(0L));
+        assertSame(SqlNumber.of(255L), SqlNumber.of(255L));
+        assertSame(SqlNumber.of(42L), SqlNumber.of(42L));
     }
 
     @Test
     void sqlNumber_flyweight_outOfRange_notCached() {
-        assertNotSame(SqlNumber.of(256), SqlNumber.of(256));
-        assertNotSame(SqlNumber.of(-1), SqlNumber.of(-1));
+        assertNotSame(SqlNumber.of(256L), SqlNumber.of(256L));
+        assertNotSame(SqlNumber.of(-1L), SqlNumber.of(-1L));
     }
 
     @Test
@@ -60,17 +60,17 @@ class SqlValueTest {
 
     @Test
     void sqlNumber_longValue() {
-        assertEquals(100L, SqlNumber.of(100).longValue());
+        assertEquals(100L, SqlNumber.of(100L).longValue());
     }
 
     @Test
     void sqlNumber_rawValue() {
-        assertEquals(42, SqlNumber.of(42).rawValue());
+        assertEquals(42L, SqlNumber.of(42L).rawValue());
     }
 
     @Test
     void sqlNumber_isNotNull() {
-        assertFalse(SqlNumber.of(1).isNull());
+        assertFalse(SqlNumber.of(1L).isNull());
     }
 
     // SqlString
@@ -107,7 +107,7 @@ class SqlValueTest {
     // Pattern matching exhaustiveness (compile-time check)
     @Test
     void patternMatching_exhaustive() {
-        SqlValue v = SqlNumber.of(1);
+        SqlValue v = SqlNumber.of(1L);
         String result = switch (v) {
             case SqlNumber n -> "number";
             case SqlString s -> "string";
@@ -126,7 +126,7 @@ class SqlValueTest {
         // SqlNumber.of(Number) with Integer in cache range
         Number n = Integer.valueOf(42);
         SqlNumber cached = SqlNumber.of(n);
-        assertSame(SqlNumber.of(42), cached);
+        assertSame(SqlNumber.of(42L), cached);
     }
 
     @Test
@@ -134,7 +134,7 @@ class SqlValueTest {
         // SqlNumber.of(Number) with Integer out of cache range
         Number n = Integer.valueOf(300);
         SqlNumber result = SqlNumber.of(n);
-        assertEquals(300, result.value().intValue());
+        assertEquals(300L, result.longValue());
     }
 
     @Test
@@ -142,7 +142,7 @@ class SqlValueTest {
         // SqlNumber.of(Number) with Long in cache range
         Number n = Long.valueOf(100);
         SqlNumber cached = SqlNumber.of(n);
-        assertSame(SqlNumber.of(100), cached);
+        assertSame(SqlNumber.of(100L), cached);
     }
 
     @Test
@@ -150,7 +150,7 @@ class SqlValueTest {
         // SqlNumber.of(Number) with Long out of cache range
         Number n = Long.valueOf(1000);
         SqlNumber result = SqlNumber.of(n);
-        assertEquals(1000L, result.value().longValue());
+        assertEquals(1000L, result.longValue());
     }
 
     @Test
@@ -158,7 +158,7 @@ class SqlValueTest {
         // SqlNumber.of(Number) with negative value → not cached
         Number n = Integer.valueOf(-1);
         SqlNumber result = SqlNumber.of(n);
-        assertEquals(-1, result.value().intValue());
+        assertEquals(-1L, result.longValue());
     }
 
     @Test
@@ -170,14 +170,32 @@ class SqlValueTest {
     }
 
     @Test
-    void sqlNumber_of_int_negative() {
-        SqlNumber result = SqlNumber.of(-5);
-        assertEquals(-5, result.value().intValue());
+    void sqlNumber_of_long_negative() {
+        SqlNumber result = SqlNumber.of(-5L);
+        assertEquals(-5L, result.longValue());
     }
 
     @Test
     void sqlNumber_of_long() {
         SqlNumber result = SqlNumber.of(123456789L);
         assertEquals(123456789L, result.longValue());
+    }
+
+    @Test
+    void sqlNumber_sealedExhaustive() {
+        SqlValue[] vals = {
+                SqlNumber.of(1L),
+                SqlNumber.of(1.5),
+                SqlNumber.of(new java.math.BigDecimal("1.0001"))
+        };
+        for (SqlValue v : vals) {
+            String tag = switch (v) {
+                case SqlLong ignored    -> "long";
+                case SqlDouble ignored  -> "double";
+                case SqlDecimal ignored -> "decimal";
+                default                 -> "other";
+            };
+            assertNotEquals("other", tag);
+        }
     }
 }

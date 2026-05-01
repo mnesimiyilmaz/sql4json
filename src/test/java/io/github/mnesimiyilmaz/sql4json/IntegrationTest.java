@@ -284,6 +284,13 @@ class IntegrationTest {
             assertEquals(2, arr(result).size());
         }
 
+        @Test
+        void distinct_nullValue() {
+            String data = "[{\"x\":null},{\"x\":null},{\"x\":1}]";
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT DISTINCT x FROM $r", data);
+            assertEquals(2, arr(result).size());
+        }
+
         // ── WHERE boolean literal (covers parser BOOLEAN value path) ──
 
         @Test
@@ -1747,12 +1754,16 @@ class IntegrationTest {
             assertTrue(engineResult.contains("\"name\":\"Frank\""));
             assertTrue(engineResult.contains("\"rnk\":1"));
 
-            // PreparedQuery API with window functions (single source)
+            // PreparedQuery API with window functions (single source).
+            // The outer ORDER BY rnk is required — a window's OVER (ORDER BY ...) only
+            // governs ranking, not the final output ordering, so without it the LIMIT 3
+            // could return any 3 of the matched rows in any order.
             PreparedQuery pq = SQL4Json.prepare("""
                     SELECT name, salary,
                         ROW_NUMBER() OVER (ORDER BY salary DESC) AS rnk
                     FROM $r
                     WHERE active = true
+                    ORDER BY rnk
                     LIMIT 3""");
 
             String pqResult = pq.execute(EMPLOYEES);

@@ -23,11 +23,13 @@ final class CompactStringMap<V> extends AbstractMap<String, V> {
     private final String[] keys;
     @SuppressWarnings("java:S2387")
     private final Object[] values;
+    private final int      size;
 
     CompactStringMap(LinkedHashMap<String, V> source) {
-        int size = source.size();
-        keys = new String[size];
-        values = new Object[size];
+        int n = source.size();
+        keys = new String[n];
+        values = new Object[n];
+        size = n;
         int i = 0;
         for (var entry : source.entrySet()) {
             keys[i] = entry.getKey();
@@ -36,14 +38,44 @@ final class CompactStringMap<V> extends AbstractMap<String, V> {
         }
     }
 
+    /**
+     * Wraps {@code keys} and {@code values} arrays directly. Caller transfers
+     * ownership — the arrays must not be mutated after construction. Used by
+     * {@link JsonParser} to skip the intermediate {@link LinkedHashMap} that
+     * the legacy constructor required.
+     *
+     * <p>Uses {@code keys.length} as the size — the arrays must be exact-fit.</p>
+     *
+     * @param keys   the key array; length must match {@code values.length}
+     * @param values the value array
+     */
+    CompactStringMap(String[] keys, Object[] values) {
+        this(keys, values, keys.length);
+    }
+
+    /**
+     * Wraps {@code keys} and {@code values} arrays with an explicit size when
+     * the arrays may have trailing unused slots (e.g. parser builders that
+     * skip trim allocations for nearly-full buffers).
+     *
+     * @param keys   the key array (capacity ≥ {@code size})
+     * @param values the value array (capacity ≥ {@code size})
+     * @param size   logical entry count
+     */
+    CompactStringMap(String[] keys, Object[] values, int size) {
+        this.keys = keys;
+        this.values = values;
+        this.size = size;
+    }
+
     @Override
     public int size() {
-        return keys.length;
+        return size;
     }
 
     @Override
     public boolean isEmpty() {
-        return keys.length == 0;
+        return size == 0;
     }
 
     @Override
@@ -67,7 +99,7 @@ final class CompactStringMap<V> extends AbstractMap<String, V> {
 
     private int indexOf(Object key) {
         if (key instanceof String s) {
-            for (int i = 0; i < keys.length; i++) {
+            for (int i = 0; i < size; i++) {
                 if (keys[i].equals(s)) return i;
             }
         }
@@ -88,8 +120,8 @@ final class CompactStringMap<V> extends AbstractMap<String, V> {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof Map<?, ?> other)) return false;
-        if (other.size() != keys.length) return false;
-        for (int i = 0; i < keys.length; i++) {
+        if (other.size() != size) return false;
+        for (int i = 0; i < size; i++) {
             if (!Objects.equals(values[i], other.get(keys[i]))) return false;
         }
         return true;
@@ -98,7 +130,7 @@ final class CompactStringMap<V> extends AbstractMap<String, V> {
     @Override
     public int hashCode() {
         int h = 0;
-        for (int i = 0; i < keys.length; i++) {
+        for (int i = 0; i < size; i++) {
             h += Objects.hashCode(keys[i]) ^ Objects.hashCode(values[i]);
         }
         return h;
@@ -107,7 +139,7 @@ final class CompactStringMap<V> extends AbstractMap<String, V> {
     private final class KeySet extends AbstractSet<String> {
         @Override
         public int size() {
-            return keys.length;
+            return size;
         }
 
         @Override
@@ -117,12 +149,12 @@ final class CompactStringMap<V> extends AbstractMap<String, V> {
 
                 @Override
                 public boolean hasNext() {
-                    return i < keys.length;
+                    return i < size;
                 }
 
                 @Override
                 public String next() {
-                    if (i >= keys.length) throw new NoSuchElementException();
+                    if (i >= size) throw new NoSuchElementException();
                     return keys[i++];
                 }
             };
@@ -137,7 +169,7 @@ final class CompactStringMap<V> extends AbstractMap<String, V> {
     private final class EntrySet extends AbstractSet<Entry<String, V>> {
         @Override
         public int size() {
-            return keys.length;
+            return size;
         }
 
         @Override
@@ -147,13 +179,13 @@ final class CompactStringMap<V> extends AbstractMap<String, V> {
 
                 @Override
                 public boolean hasNext() {
-                    return i < keys.length;
+                    return i < size;
                 }
 
                 @Override
                 @SuppressWarnings("unchecked")
                 public Entry<String, V> next() {
-                    if (i >= keys.length) throw new NoSuchElementException();
+                    if (i >= size) throw new NoSuchElementException();
                     int idx = i++;
                     return new AbstractMap.SimpleImmutableEntry<>(keys[idx], (V) values[idx]);
                 }

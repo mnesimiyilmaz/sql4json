@@ -1,6 +1,6 @@
 package io.github.mnesimiyilmaz.sql4json.mapper;
 
-import io.github.mnesimiyilmaz.sql4json.json.JsonNumberValue;
+import io.github.mnesimiyilmaz.sql4json.json.JsonLongValue;
 import io.github.mnesimiyilmaz.sql4json.json.JsonObjectValue;
 import io.github.mnesimiyilmaz.sql4json.json.JsonStringValue;
 import io.github.mnesimiyilmaz.sql4json.settings.MappingSettings;
@@ -82,7 +82,7 @@ class JsonValueMapperPojoTest {
     void when_pojo_mapped_from_json_object_then_setters_invoked() {
         JsonValue v = obj(Map.of(
                 "name", new JsonStringValue("Alice"),
-                "age", new JsonNumberValue(30)));
+                "age", new JsonLongValue(30L)));
         Employee e = JsonValueMapper.INSTANCE.map(v, Employee.class, S);
         assertEquals("Alice", e.getName());
         assertEquals(30, e.getAge());
@@ -99,7 +99,7 @@ class JsonValueMapperPojoTest {
     void when_pojo_inherits_setter_then_both_levels_populated() {
         JsonValue v = obj(Map.of(
                 "label", new JsonStringValue("L"),
-                "count", new JsonNumberValue(5)));
+                "count", new JsonLongValue(5L)));
         Child c = JsonValueMapper.INSTANCE.map(v, Child.class, S);
         assertEquals("L", c.getLabel());
         assertEquals(5, c.getCount());
@@ -109,9 +109,29 @@ class JsonValueMapperPojoTest {
     void when_pojo_has_extra_json_key_then_ignored() {
         JsonValue v = obj(Map.of(
                 "name", new JsonStringValue("X"),
-                "age", new JsonNumberValue(1),
+                "age", new JsonLongValue(1L),
                 "extra", new JsonStringValue("ignored")));
         Employee e = JsonValueMapper.INSTANCE.map(v, Employee.class, S);
         assertEquals("X", e.getName());
+    }
+
+    @Test
+    void when_pojo_field_missing_with_ignore_then_skipped() {
+        // Exercises the fieldValue == null branch in mapPojo
+        JsonValue v = obj(Map.of("name", new JsonStringValue("Y")));
+        Employee e = JsonValueMapper.INSTANCE.map(v, Employee.class, S);
+        assertEquals("Y", e.getName());
+        assertEquals(0, e.getAge());
+    }
+
+    @Test
+    void when_pojo_field_missing_with_fail_then_exception() {
+        var fail = MappingSettings.builder()
+                .missingFieldPolicy(io.github.mnesimiyilmaz.sql4json.settings.MissingFieldPolicy.FAIL)
+                .build();
+        JsonValue v = obj(Map.of("name", new JsonStringValue("Y")));
+        org.junit.jupiter.api.Assertions.assertThrows(
+                io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonMappingException.class,
+                () -> JsonValueMapper.INSTANCE.map(v, Employee.class, fail));
     }
 }

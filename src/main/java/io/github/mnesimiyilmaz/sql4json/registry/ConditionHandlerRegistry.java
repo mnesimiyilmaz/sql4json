@@ -98,6 +98,7 @@ public final class ConditionHandlerRegistry {
         r.register(new InConditionHandler());
         r.register(new BetweenConditionHandler());
         r.register(new NotLikeConditionHandler(patternCache));
+        r.register(new ArrayPredicateConditionHandler());
         r.freeze();
         return r;
     }

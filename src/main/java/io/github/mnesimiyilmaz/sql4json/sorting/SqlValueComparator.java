@@ -35,8 +35,16 @@ public final class SqlValueComparator {
     public static int compare(SqlValue a, SqlValue b) {
         return switch (a) {
             case SqlNull ignored -> b.isNull() ? 0 : -1;
-            case SqlNumber(var value) -> switch (b) {
-                case SqlNumber(var other) -> Double.compare(value.doubleValue(), other.doubleValue());
+            case SqlNumber lhsN -> switch (b) {
+                case SqlLong(long rhsL) when lhsN instanceof SqlLong(long lhsL) ->
+                        Long.compare(lhsL, rhsL);
+                case SqlDouble(double rhsD) when lhsN instanceof SqlLong(long lhsL) ->
+                        Double.compare(lhsL, rhsD);
+                case SqlLong(long rhsL) when lhsN instanceof SqlDouble(double lhsD) ->
+                        Double.compare(lhsD, rhsL);
+                case SqlDouble(double rhsD) when lhsN instanceof SqlDouble(double lhsD) ->
+                        Double.compare(lhsD, rhsD);
+                case SqlNumber rhsN -> Double.compare(lhsN.doubleValue(), rhsN.doubleValue());
                 case SqlNull ignored -> 1;
                 default -> Integer.compare(typeOrdinal(a), typeOrdinal(b));
             };

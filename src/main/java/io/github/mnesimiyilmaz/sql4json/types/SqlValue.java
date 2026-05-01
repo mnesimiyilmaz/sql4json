@@ -34,7 +34,7 @@ public sealed interface SqlValue permits SqlNumber, SqlString, SqlBoolean, SqlDa
      * <p>Return types by implementation:
      * <ul>
      *   <li>{@link SqlString} &rarr; {@link String}</li>
-     *   <li>{@link SqlNumber} &rarr; {@link Number} (may be {@link Integer}, {@link Long}, or {@link Double})</li>
+     *   <li>{@link SqlNumber} (variant {@link SqlLong} / {@link SqlDouble} / {@link SqlDecimal}) &rarr; the typed primitive or {@link java.math.BigDecimal}</li>
      *   <li>{@link SqlBoolean} &rarr; {@link Boolean}</li>
      *   <li>{@link SqlDate} &rarr; {@link java.time.LocalDate}</li>
      *   <li>{@link SqlDateTime} &rarr; {@link java.time.LocalDateTime}</li>

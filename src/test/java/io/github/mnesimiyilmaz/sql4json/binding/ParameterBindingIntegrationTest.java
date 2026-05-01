@@ -3,6 +3,7 @@ package io.github.mnesimiyilmaz.sql4json.binding;
 import io.github.mnesimiyilmaz.sql4json.BoundParameters;
 import io.github.mnesimiyilmaz.sql4json.PreparedQuery;
 import io.github.mnesimiyilmaz.sql4json.SQL4Json;
+import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonBindException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -223,5 +224,83 @@ class ParameterBindingIntegrationTest {
         String r = q.execute(JSON, BoundParameters.named().bind("d", "Eng"));
         assertTrue(r.contains("\"bucket\":\"primary\""));
         assertTrue(r.contains("\"bucket\":\"other\""));
+    }
+
+    @Test
+    void array_element_slot_rejects_collection_bind() {
+        var pq = SQL4Json.prepare("SELECT * FROM $r WHERE tags @> ARRAY[?]");
+        SQL4JsonBindException ex = assertThrows(SQL4JsonBindException.class, () ->
+                pq.execute("[]", BoundParameters.of(java.util.List.of(java.util.List.of("a", "b")))));
+        assertTrue(ex.getMessage().contains("ARRAY[?]"),
+                "expected message to mention ARRAY[?], was: " + ex.getMessage());
+        assertTrue(ex.getMessage().toLowerCase().contains("scalar"),
+                "expected message to mention 'scalar', was: " + ex.getMessage());
+    }
+
+    @Test
+    void bare_array_rhs_rejects_scalar_bind() {
+        var pq = SQL4Json.prepare("SELECT * FROM $r WHERE tags @> :req");
+        SQL4JsonBindException ex = assertThrows(SQL4JsonBindException.class, () ->
+                pq.execute("[]", BoundParameters.named().bind("req", "admin")));
+        assertTrue(ex.getMessage().contains(":req"), ex.getMessage());
+        assertTrue(ex.getMessage().contains("Collection"), ex.getMessage());
+    }
+
+    @Test
+    void bare_array_rhs_rejects_map_bind() {
+        var pq = SQL4Json.prepare("SELECT * FROM $r WHERE tags @> :req");
+        SQL4JsonBindException ex = assertThrows(SQL4JsonBindException.class, () ->
+                pq.execute("[]", BoundParameters.named().bind("req", java.util.Map.of("k", "v"))));
+        assertTrue(ex.getMessage().contains("Collection"), ex.getMessage());
+    }
+
+    @Test
+    void contains_keyword_rejects_collection_bind() {
+        var pq = SQL4Json.prepare("SELECT * FROM $r WHERE tags CONTAINS :v");
+        SQL4JsonBindException ex = assertThrows(SQL4JsonBindException.class, () ->
+                pq.execute("[]", BoundParameters.named().bind("v", java.util.List.of("a"))));
+        assertTrue(ex.getMessage().contains("CONTAINS"),
+                "expected message to mention CONTAINS, was: " + ex.getMessage());
+        assertTrue(ex.getMessage().toLowerCase().contains("scalar"),
+                "expected message to mention 'scalar', was: " + ex.getMessage());
+    }
+
+    @Test
+    void array_operator_accepts_java_array_bind() {
+        String json = """
+                [{"id": 1, "tags": ["admin","editor"]}, {"id": 2, "tags": ["viewer"]}]
+                """;
+        String result = SQL4Json.prepare("SELECT id FROM $r WHERE tags @> :req")
+                .execute(json,
+                        BoundParameters.named().bind("req", new String[]{"admin", "editor"}));
+        assertTrue(result.contains("\"id\":1"), result);
+        assertFalse(result.contains("\"id\":2"), result);
+    }
+
+    @Test
+    void array_operator_rejects_null_bind() {
+        var pq = SQL4Json.prepare("SELECT * FROM $r WHERE tags @> :req");
+        SQL4JsonBindException ex = assertThrows(SQL4JsonBindException.class, () ->
+                pq.execute("[]", BoundParameters.named().bind("req", (Object) null)));
+        assertTrue(ex.getMessage().toLowerCase().contains("null"),
+                "expected message to mention null, was: " + ex.getMessage());
+        assertTrue(ex.getMessage().contains("Collection"), ex.getMessage());
+    }
+
+    @Test
+    void array_operator_with_column_ref_rhs_via_parameter_substitution() {
+        // exercises substituteArrayPredicate Case C — column-ref via the substitution path
+        String json = """
+                [
+                  {"id": 1, "tags": ["a","b"], "required": ["a"]},
+                  {"id": 2, "tags": ["a"],     "required": ["b"]}
+                ]
+                """;
+        // The :ignored parameter is unused but forces the substituteConditionContext path
+        String result = SQL4Json.prepare(
+                        "SELECT id FROM $r WHERE tags @> required AND id != :ignored")
+                .execute(json, BoundParameters.named().bind("ignored", -1));
+        assertTrue(result.contains("\"id\":1"), result);
+        assertFalse(result.contains("\"id\":2"), result);
     }
 }

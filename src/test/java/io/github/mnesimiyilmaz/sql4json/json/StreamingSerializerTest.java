@@ -2,6 +2,7 @@ package io.github.mnesimiyilmaz.sql4json.json;
 
 import io.github.mnesimiyilmaz.sql4json.engine.FieldKey;
 import io.github.mnesimiyilmaz.sql4json.engine.Row;
+import io.github.mnesimiyilmaz.sql4json.engine.RowAccessor;
 import io.github.mnesimiyilmaz.sql4json.parser.SelectColumnDef;
 import io.github.mnesimiyilmaz.sql4json.registry.FunctionRegistry;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
@@ -67,16 +68,16 @@ class StreamingSerializerTest {
 
         // Tree path
         List<JsonValue> elements = JsonParser.parse(json).asArray().orElseThrow();
-        List<Row> rows = elements.stream()
-                .map(e -> Row.lazy(e, interner))
+        List<RowAccessor> rows = elements.stream()
+                .map(e -> (RowAccessor) Row.lazy(e, interner))
                 .toList();
         String treeResult = JsonSerializer.serialize(
                 JsonUnflattener.unflatten(rows, columns, REGISTRY));
 
         // Streaming path
         FieldKey.Interner interner2 = new FieldKey.Interner();
-        Stream<Row> rowStream = elements.stream()
-                .map(e -> Row.lazy(e, interner2));
+        Stream<RowAccessor> rowStream = elements.stream()
+                .map(e -> (RowAccessor) Row.lazy(e, interner2));
         String streamResult = StreamingSerializer.serialize(rowStream, columns, REGISTRY, Integer.MAX_VALUE);
 
         assertEquals(treeResult, streamResult);

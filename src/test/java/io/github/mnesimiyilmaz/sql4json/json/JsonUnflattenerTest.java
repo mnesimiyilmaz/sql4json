@@ -22,7 +22,7 @@ class JsonUnflattenerTest {
     private static JsonObjectValue personObj(String name, int age) {
         var fields = new LinkedHashMap<String, JsonValue>();
         fields.put("name", new JsonStringValue(name));
-        fields.put("age", new JsonNumberValue(age));
+        fields.put("age", new JsonLongValue(age));
         return new JsonObjectValue(fields);
     }
 
@@ -102,7 +102,7 @@ class JsonUnflattenerTest {
     void selectMultipleColumns_returnsOnlySelectedFields() {
         var fields = new LinkedHashMap<String, JsonValue>();
         fields.put("name", new JsonStringValue("Charlie"));
-        fields.put("age", new JsonNumberValue(40));
+        fields.put("age", new JsonLongValue(40L));
         fields.put("city", new JsonStringValue("LA"));
         JsonObjectValue original = new JsonObjectValue(fields);
 
@@ -158,7 +158,7 @@ class JsonUnflattenerTest {
         assertEquals("Engineering",
                 ((JsonStringValue) resultObj.fields().get("dept")).value());
         assertEquals(15.0,
-                ((JsonNumberValue) resultObj.fields().get("cnt")).value().doubleValue(), 1e-10);
+                ((JsonNumberValue) resultObj.fields().get("cnt")).numberValue().doubleValue(), 1e-10);
     }
 
     @Test

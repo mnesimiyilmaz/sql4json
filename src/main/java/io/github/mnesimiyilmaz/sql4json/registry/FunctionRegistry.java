@@ -110,25 +110,70 @@ public final class FunctionRegistry {
     }
 
     /**
-     * Returns a SqlNumber, normalizing whole-number doubles to int (so that
-     * SqlNumber.of(3) equals numOf(3.0) via record equality).
+     * Returns the names of all registered scalar functions (lowercase).
+     *
+     * <p>Intended for grammar/catalog introspection. Returns an unmodifiable
+     * snapshot; subsequent registrations are not reflected.
+     *
+     * @return the set of scalar function names
+     * @since 1.2.0
+     */
+    public Collection<String> scalarFunctionNames() {
+        return scalarFunctions.keySet();
+    }
+
+    /**
+     * Returns the names of all registered value-producing functions (lowercase).
+     *
+     * @return the set of value-function names
+     * @since 1.2.0
+     */
+    public Collection<String> valueFunctionNames() {
+        return valueFunctions.keySet();
+    }
+
+    /**
+     * Returns the names of all registered aggregate functions (lowercase).
+     *
+     * @return the set of aggregate-function names
+     * @since 1.2.0
+     */
+    public Collection<String> aggregateFunctionNames() {
+        return aggregateFunctions.keySet();
+    }
+
+    /**
+     * Returns a SqlNumber, normalizing whole-number doubles to {@link SqlLong}
+     * (so that {@code SqlNumber.of(3L)} equals {@code numOf(3.0)} via record
+     * equality on the underlying {@code long}).
      */
     private static SqlNumber numOf(double d) {
-        if (d == Math.floor(d) && !Double.isInfinite(d) && d >= Integer.MIN_VALUE && d <= Integer.MAX_VALUE) {
-            return SqlNumber.of((int) d);
+        if (d == Math.floor(d) && !Double.isInfinite(d) && d >= Long.MIN_VALUE && d <= Long.MAX_VALUE) {
+            return SqlNumber.of((long) d);
         }
         return SqlNumber.of(d);
     }
 
     /**
-     * Returns a SqlNumber from a long, using int when in range so it matches
-     * SqlNumber.of(int) cache equality.
+     * Returns a SqlNumber from a long &mdash; thin alias over
+     * {@link SqlNumber#of(long)}. Kept for symmetry with {@link #numOf(double)}.
      */
     private static SqlNumber numOf(long l) {
-        if (l >= Integer.MIN_VALUE && l <= Integer.MAX_VALUE) {
-            return SqlNumber.of((int) l);
-        }
         return SqlNumber.of(l);
+    }
+
+    /**
+     * Coerces any non-null {@link SqlValue} to its string form via
+     * {@link SqlValue#rawValue()} {@code .toString()}. Used by the string-shaped
+     * scalar functions to accept numeric / boolean / temporal inputs uniformly,
+     * mirroring how {@code CONCAT} already behaves. Callers must short-circuit
+     * {@link SqlNull} themselves before calling.
+     *
+     * @param v the non-null value to coerce
+     * @return the coerced string form
+     */
+    private static String coerceToString(SqlValue v) {
+        return v instanceof SqlString(var s) ? s : v.rawValue().toString();
     }
 
     /**
@@ -422,25 +467,31 @@ public final class FunctionRegistry {
     // ── Core string function bodies ────────────────────────────────────
 
     private static SqlValue lowerFn(SqlValue val, List<SqlValue> args) {
-        if (!(val instanceof SqlString(var value))) return val;
+        if (val.isNull()) return SqlNull.INSTANCE;
+        if (!args.isEmpty() && args.getFirst().isNull()) return SqlNull.INSTANCE;
+        String value = coerceToString(val);
         Locale locale = args.isEmpty() ? Locale.getDefault()
-                : Locale.forLanguageTag(((SqlString) args.getFirst()).value());
+                : Locale.forLanguageTag(coerceToString(args.getFirst()));
         return new SqlString(value.toLowerCase(locale));
     }
 
     private static SqlValue upperFn(SqlValue val, List<SqlValue> args) {
-        if (!(val instanceof SqlString(var value))) return val;
+        if (val.isNull()) return SqlNull.INSTANCE;
+        if (!args.isEmpty() && args.getFirst().isNull()) return SqlNull.INSTANCE;
+        String value = coerceToString(val);
         Locale locale = args.isEmpty() ? Locale.getDefault()
-                : Locale.forLanguageTag(((SqlString) args.getFirst()).value());
+                : Locale.forLanguageTag(coerceToString(args.getFirst()));
         return new SqlString(value.toUpperCase(locale));
     }
 
     private static SqlValue toDateFn(SqlValue val, List<SqlValue> args) {
-        if (!(val instanceof SqlString(var value))) return val;
+        if (val.isNull()) return SqlNull.INSTANCE;
+        if (val instanceof SqlDate || val instanceof SqlDateTime) return val;
+        String value = coerceToString(val);
         if (args.isEmpty()) {
             return parseToDateWithoutFormat(value);
         }
-        String format = ((SqlString) args.getFirst()).value();
+        String format = coerceToString(args.getFirst());
         return parseToDateWithFormat(value, format);
     }
 
@@ -460,7 +511,7 @@ public final class FunctionRegistry {
 
     private static SqlValue substringFn(SqlValue val, List<SqlValue> args) {
         if (val.isNull()) return SqlNull.INSTANCE;
-        if (!(val instanceof SqlString(var value))) return val;
+        String value = coerceToString(val);
         int start = args.isEmpty() ? 1 : (int) ((SqlNumber) args.get(0)).doubleValue();
         int length = args.size() < 2 ? value.length() : (int) ((SqlNumber) args.get(1)).doubleValue();
         if (length <= 0) return new SqlString("");
@@ -478,21 +529,21 @@ public final class FunctionRegistry {
 
     private static SqlValue trimFn(SqlValue val, List<SqlValue> args) {
         if (val.isNull()) return SqlNull.INSTANCE;
-        if (!(val instanceof SqlString(var value))) return val;
+        String value = coerceToString(val);
         return new SqlString(value.strip());
     }
 
     private static SqlValue lengthFn(SqlValue val, List<SqlValue> args) {
         if (val.isNull()) return SqlNull.INSTANCE;
-        if (!(val instanceof SqlString(var value))) return val;
+        String value = coerceToString(val);
         return SqlNumber.of(value.length());
     }
 
     private static SqlValue replaceFn(SqlValue val, List<SqlValue> args) {
-        if (val.isNull()) return SqlNull.INSTANCE;
-        if (!(val instanceof SqlString(var value))) return val;
-        String search = ((SqlString) args.get(0)).value();
-        String replacement = ((SqlString) args.get(1)).value();
+        if (val.isNull() || args.get(0).isNull() || args.get(1).isNull()) return SqlNull.INSTANCE;
+        String value = coerceToString(val);
+        String search = coerceToString(args.get(0));
+        String replacement = coerceToString(args.get(1));
         return new SqlString(value.replace(search, replacement));
     }
 
@@ -500,7 +551,7 @@ public final class FunctionRegistry {
 
     private static SqlValue leftFn(SqlValue val, List<SqlValue> args) {
         if (val.isNull()) return SqlNull.INSTANCE;
-        if (!(val instanceof SqlString(var value))) return val;
+        String value = coerceToString(val);
         int n = (int) ((SqlNumber) args.getFirst()).doubleValue();
         int end = Math.min(n, value.length());
         return new SqlString(value.substring(0, end));
@@ -508,7 +559,7 @@ public final class FunctionRegistry {
 
     private static SqlValue rightFn(SqlValue val, List<SqlValue> args) {
         if (val.isNull()) return SqlNull.INSTANCE;
-        if (!(val instanceof SqlString(var value))) return val;
+        String value = coerceToString(val);
         int n = (int) ((SqlNumber) args.getFirst()).doubleValue();
         int len = value.length();
         int start = Math.max(0, len - n);
@@ -524,10 +575,10 @@ public final class FunctionRegistry {
     }
 
     private static SqlValue padFn(SqlValue val, List<SqlValue> args, boolean leftPad) {
-        if (val.isNull()) return SqlNull.INSTANCE;
-        if (!(val instanceof SqlString(var value))) return val;
+        if (val.isNull() || args.get(0).isNull() || args.get(1).isNull()) return SqlNull.INSTANCE;
+        String value = coerceToString(val);
         int targetLen = (int) ((SqlNumber) args.get(0)).doubleValue();
-        String padStr = ((SqlString) args.get(1)).value();
+        String padStr = coerceToString(args.get(1));
         if (value.length() >= targetLen) return new SqlString(value.substring(0, targetLen));
         String padding = repeatPad(padStr, targetLen - value.length());
         return new SqlString(leftPad ? padding + value : value + padding);
@@ -541,14 +592,14 @@ public final class FunctionRegistry {
 
     private static SqlValue reverseFn(SqlValue val, List<SqlValue> args) {
         if (val.isNull()) return SqlNull.INSTANCE;
-        if (!(val instanceof SqlString(var value))) return val;
+        String value = coerceToString(val);
         return new SqlString(new StringBuilder(value).reverse().toString());
     }
 
     private static SqlValue positionFn(SqlValue val, List<SqlValue> args) {
-        if (val.isNull()) return SqlNull.INSTANCE;
-        if (!(val instanceof SqlString(var value))) return val;
-        String str = ((SqlString) args.getFirst()).value();
+        if (val.isNull() || args.getFirst().isNull()) return SqlNull.INSTANCE;
+        String value = coerceToString(val);
+        String str = coerceToString(args.getFirst());
         int idx = str.indexOf(value);
         return SqlNumber.of(idx < 0 ? 0 : idx + 1);
     }

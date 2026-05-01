@@ -1,7 +1,7 @@
 package io.github.mnesimiyilmaz.sql4json.mapper;
 
 import io.github.mnesimiyilmaz.sql4json.json.JsonArrayValue;
-import io.github.mnesimiyilmaz.sql4json.json.JsonNumberValue;
+import io.github.mnesimiyilmaz.sql4json.json.JsonLongValue;
 import io.github.mnesimiyilmaz.sql4json.json.JsonObjectValue;
 import io.github.mnesimiyilmaz.sql4json.json.JsonStringValue;
 import io.github.mnesimiyilmaz.sql4json.settings.MappingSettings;
@@ -35,7 +35,7 @@ class JsonValueMapperPassthroughTest {
     @Test
     void when_target_is_object_for_json_object_then_linkedhashmap() {
         JsonValue v = new JsonObjectValue(new LinkedHashMap<>(Map.of(
-                "a", new JsonNumberValue(1),
+                "a", new JsonLongValue(1L),
                 "b", new JsonStringValue("hi"))));
         Object out = JsonValueMapper.INSTANCE.map(v, Object.class, S);
         assertInstanceOf(LinkedHashMap.class, out);
@@ -47,7 +47,7 @@ class JsonValueMapperPassthroughTest {
     @Test
     void when_target_is_object_for_json_array_then_arraylist() {
         JsonValue v = new JsonArrayValue(List.of(
-                new JsonNumberValue(1), new JsonStringValue("x")));
+                new JsonLongValue(1L), new JsonStringValue("x")));
         Object out = JsonValueMapper.INSTANCE.map(v, Object.class, S);
         assertInstanceOf(ArrayList.class, out);
         List<?> l = (List<?>) out;

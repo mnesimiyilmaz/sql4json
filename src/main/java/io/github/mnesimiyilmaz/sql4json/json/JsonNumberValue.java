@@ -7,52 +7,84 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * JSON number value.
+ * JSON number value — sealed root of the numeric family.
  *
- * @param value the numeric value
+ * <p>Implementations store primitives unboxed where possible:
+ * <ul>
+ *   <li>{@link JsonLongValue} — integer values that fit in a {@code long}</li>
+ *   <li>{@link JsonDoubleValue} — fractional / exponent values that fit in a {@code double}</li>
+ *   <li>{@link JsonDecimalValue} — anything else, kept as {@link java.math.BigDecimal}</li>
+ * </ul>
+ *
+ * <p>{@link #numberValue()} returns a {@link Number} view for callers that need
+ * the legacy boxed shape.</p>
+ *
+ * @since 1.2.0
  */
-public record JsonNumberValue(Number value) implements JsonValue {
-    public boolean isNull() {
-        return false;
-    }
+public sealed interface JsonNumberValue extends JsonValue
+        permits JsonLongValue, JsonDoubleValue, JsonDecimalValue {
 
-    public boolean isObject() {
-        return false;
-    }
+    /**
+     * Returns this number as a {@link Number}. Boxes the underlying primitive
+     * for {@link JsonLongValue} / {@link JsonDoubleValue}; passes the
+     * {@link java.math.BigDecimal} through for {@link JsonDecimalValue}.
+     *
+     * @return the numeric value as a boxed {@link Number}
+     */
+    Number numberValue();
 
-    public boolean isArray() {
-        return false;
-    }
-
-    public boolean isNumber() {
+    @Override
+    default boolean isNumber() {
         return true;
     }
 
-    public boolean isString() {
+    @Override
+    default Optional<Number> asNumber() {
+        return Optional.of(numberValue());
+    }
+
+    @Override
+    default boolean isObject() {
         return false;
     }
 
-    public boolean isBoolean() {
+    @Override
+    default boolean isArray() {
         return false;
     }
 
-    public Optional<Map<String, JsonValue>> asObject() {
+    @Override
+    default boolean isString() {
+        return false;
+    }
+
+    @Override
+    default boolean isBoolean() {
+        return false;
+    }
+
+    @Override
+    default boolean isNull() {
+        return false;
+    }
+
+    @Override
+    default Optional<Map<String, JsonValue>> asObject() {
         return Optional.empty();
     }
 
-    public Optional<List<JsonValue>> asArray() {
+    @Override
+    default Optional<List<JsonValue>> asArray() {
         return Optional.empty();
     }
 
-    public Optional<Number> asNumber() {
-        return Optional.of(value);
-    }
-
-    public Optional<String> asString() {
+    @Override
+    default Optional<String> asString() {
         return Optional.empty();
     }
 
-    public Optional<Boolean> asBoolean() {
+    @Override
+    default Optional<Boolean> asBoolean() {
         return Optional.empty();
     }
 }

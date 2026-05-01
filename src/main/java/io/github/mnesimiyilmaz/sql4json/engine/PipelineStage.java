@@ -16,7 +16,7 @@ public sealed interface PipelineStage permits LazyPipelineStage, MaterializingPi
      * @param input the incoming row stream
      * @return the transformed row stream
      */
-    Stream<Row> apply(Stream<Row> input);
+    Stream<RowAccessor> apply(Stream<RowAccessor> input);
 
     /**
      * Returns {@code true} if this stage processes rows lazily without buffering.

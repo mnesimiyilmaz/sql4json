@@ -36,7 +36,7 @@ public final class ExpressionEvaluator {
      * @param registry function registry for scalar function lookup
      * @return the computed SQL value
      */
-    public static SqlValue evaluate(Expression expr, Row row, FunctionRegistry registry) {
+    public static SqlValue evaluate(Expression expr, RowAccessor row, FunctionRegistry registry) {
         return switch (expr) {
             case ColumnRef(var path) -> row.get(FieldKey.of(path));
             case LiteralVal(var value) -> value;
@@ -58,8 +58,7 @@ public final class ExpressionEvaluator {
             }
             case AggregateFnCall ignored -> throw new SQL4JsonExecutionException(
                     "Aggregate function cannot be evaluated per-row. Use evaluateAggregate().");
-            case Expression.WindowFnCall ignored -> throw new SQL4JsonExecutionException(
-                    "Window function cannot be evaluated per-row. Use WindowStage.");
+            case Expression.WindowFnCall wfc -> resolveWindowResult(wfc, row);
             case SimpleCaseWhen(var subject, var clauses, var elseExpr) -> {
                 SqlValue subjectVal = evaluate(subject, row, registry);
                 for (var wc : clauses) {
@@ -95,7 +94,7 @@ public final class ExpressionEvaluator {
      * @param registry function registry for function lookup
      * @return the computed aggregate SQL value
      */
-    public static SqlValue evaluateAggregate(Expression expr, List<Row> group,
+    public static SqlValue evaluateAggregate(Expression expr, List<? extends RowAccessor> group,
                                              FunctionRegistry registry) {
         return switch (expr) {
             case AggregateFnCall(var name, var inner) -> {
@@ -131,8 +130,7 @@ public final class ExpressionEvaluator {
             }
             case ColumnRef ignored -> evaluate(expr, group.getFirst(), registry);
             case LiteralVal ignored -> evaluate(expr, group.getFirst(), registry);
-            case Expression.WindowFnCall ignored -> throw new SQL4JsonExecutionException(
-                    "Window function cannot be evaluated in aggregate context. Use WindowStage.");
+            case Expression.WindowFnCall wfc -> resolveWindowResult(wfc, group.getFirst());
             case SimpleCaseWhen(var subject, var clauses, var elseExpr) ->
                     aggregateSimpleCase(subject, clauses, elseExpr, group, registry);
             case SearchedCaseWhen(var clauses, var elseExpr) ->
@@ -147,16 +145,28 @@ public final class ExpressionEvaluator {
      * Evaluate an expression in aggregate context: if it contains an aggregate,
      * delegate to evaluateAggregate; otherwise evaluate against the first row.
      */
-    private static SqlValue evalExpr(Expression expr, List<Row> group,
+    private static SqlValue evalExpr(Expression expr, List<? extends RowAccessor> group,
                                      FunctionRegistry registry) {
         return expr.containsAggregate()
                 ? evaluateAggregate(expr, group, registry)
                 : evaluate(expr, group.getFirst(), registry);
     }
 
+    private static SqlValue resolveWindowResult(Expression.WindowFnCall wfc, RowAccessor row) {
+        SqlValue v = row.getWindowResult(wfc);
+        if (v == null) {
+            throw new SQL4JsonExecutionException(
+                    "Window function '" + wfc.name()
+                            + "' cannot be evaluated here — window functions are only valid in"
+                            + " SELECT (and CASE expressions inside SELECT). They cannot appear"
+                            + " in WHERE, HAVING, GROUP BY, or JOIN ON.");
+        }
+        return v;
+    }
+
     private static SqlValue aggregateSimpleCase(
             Expression subject, List<Expression.WhenClause.ValueWhen> clauses,
-            Expression elseExpr, List<Row> group, FunctionRegistry registry) {
+            Expression elseExpr, List<? extends RowAccessor> group, FunctionRegistry registry) {
         SqlValue subjectVal = evalExpr(subject, group, registry);
         for (var wc : clauses) {
             SqlValue whenVal = evalExpr(wc.value(), group, registry);
@@ -170,7 +180,7 @@ public final class ExpressionEvaluator {
 
     private static SqlValue aggregateSearchedCase(
             List<Expression.WhenClause.SearchWhen> clauses,
-            Expression elseExpr, List<Row> group, FunctionRegistry registry) {
+            Expression elseExpr, List<? extends RowAccessor> group, FunctionRegistry registry) {
         for (var wc : clauses) {
             if (wc.condition().test(group.getFirst())) {
                 return evalExpr(wc.result(), group, registry);

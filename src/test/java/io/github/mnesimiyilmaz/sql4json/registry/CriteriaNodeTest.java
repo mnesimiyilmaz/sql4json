@@ -122,4 +122,27 @@ class CriteriaNodeTest {
                 new AndNode(row -> true, row -> false));
         assertFalse(and.test(ANY_ROW));
     }
+
+    // ── ConditionContext ─────────────────────────────────────────────────────
+
+    @Test
+    void conditionContext_columnName_returns_null_when_lhsExpression_is_null() {
+        var ctx = new ConditionContext(
+                ConditionContext.ConditionType.IS_NULL,
+                null,         // lhsExpression intentionally null
+                null, null, null, null, null, null,
+                null, null, null);
+        assertNull(ctx.columnName());
+    }
+
+    @Test
+    void conditionContext_columnName_returns_innermost_path_when_lhsExpression_present() {
+        var lhs = new io.github.mnesimiyilmaz.sql4json.engine.Expression.ColumnRef("foo.bar");
+        var ctx = new ConditionContext(
+                ConditionContext.ConditionType.IS_NULL,
+                lhs,
+                null, null, null, null, null, null,
+                null, null, null);
+        assertEquals("foo.bar", ctx.columnName());
+    }
 }

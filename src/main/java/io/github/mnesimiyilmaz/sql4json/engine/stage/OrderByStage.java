@@ -2,7 +2,7 @@ package io.github.mnesimiyilmaz.sql4json.engine.stage;
 
 import io.github.mnesimiyilmaz.sql4json.engine.ExpressionEvaluator;
 import io.github.mnesimiyilmaz.sql4json.engine.MaterializingPipelineStage;
-import io.github.mnesimiyilmaz.sql4json.engine.Row;
+import io.github.mnesimiyilmaz.sql4json.engine.RowAccessor;
 import io.github.mnesimiyilmaz.sql4json.engine.StreamMaterializer;
 import io.github.mnesimiyilmaz.sql4json.parser.OrderByColumnDef;
 import io.github.mnesimiyilmaz.sql4json.registry.FunctionRegistry;
@@ -18,8 +18,8 @@ import java.util.stream.Stream;
  */
 public final class OrderByStage implements MaterializingPipelineStage {
 
-    private final Comparator<Row> comparator;
-    private final int             maxRows;
+    private final Comparator<RowAccessor> comparator;
+    private final int                     maxRows;
 
     /**
      * Creates a new OrderByStage from the given column definitions.
@@ -37,17 +37,17 @@ public final class OrderByStage implements MaterializingPipelineStage {
     }
 
     @Override
-    public Stream<Row> apply(Stream<Row> input) {
-        List<Row> materialized = StreamMaterializer.toList(input, maxRows, "ORDER BY");
+    public Stream<RowAccessor> apply(Stream<RowAccessor> input) {
+        List<RowAccessor> materialized = StreamMaterializer.toList(input, maxRows, "ORDER BY");
         materialized.sort(comparator);
         return materialized.stream();
     }
 
-    static Comparator<Row> columnComparator(OrderByColumnDef col,
-                                            FunctionRegistry functionRegistry) {
+    static Comparator<RowAccessor> columnComparator(OrderByColumnDef col,
+                                                    FunctionRegistry functionRegistry) {
         var expr = col.expression();
-        Comparator<Row> cmp = Comparator.comparing(
-                (Row row) -> expr.containsAggregate()
+        Comparator<RowAccessor> cmp = Comparator.comparing(
+                (RowAccessor row) -> expr.containsAggregate()
                         ? row.sourceGroup()
                           .map(group -> ExpressionEvaluator.evaluateAggregate(expr, group, functionRegistry))
                           .orElseGet(() -> ExpressionEvaluator.evaluate(expr, row, functionRegistry))

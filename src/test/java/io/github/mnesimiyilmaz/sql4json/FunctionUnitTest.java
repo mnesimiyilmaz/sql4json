@@ -599,8 +599,10 @@ class FunctionUnitTest {
         }
 
         @Test
-        void substring_nonString_passThrough() {
-            assertEquals(SqlNumber.of(42), apply("substring", SqlNumber.of(42), SqlNumber.of(1), SqlNumber.of(3)));
+        void substring_nonString_coerced() {
+            // val coerced to "42"; substring("42", 1, 3) → "42"
+            assertEquals(new SqlString("42"),
+                    apply("substring", SqlNumber.of(42), SqlNumber.of(1), SqlNumber.of(3)));
         }
 
         @Test
@@ -625,8 +627,8 @@ class FunctionUnitTest {
         }
 
         @Test
-        void trim_nonString_passThrough() {
-            assertEquals(SqlNumber.of(42), apply("trim", SqlNumber.of(42)));
+        void trim_nonString_coerced() {
+            assertEquals(new SqlString("42"), apply("trim", SqlNumber.of(42)));
         }
 
         @Test
@@ -635,8 +637,9 @@ class FunctionUnitTest {
         }
 
         @Test
-        void length_nonString_passThrough() {
-            assertEquals(SqlNumber.of(42), apply("length", SqlNumber.of(42)));
+        void length_nonString_coerced() {
+            // "42".length() == 2
+            assertEquals(SqlNumber.of(2), apply("length", SqlNumber.of(42)));
         }
 
         @Test
@@ -645,8 +648,10 @@ class FunctionUnitTest {
         }
 
         @Test
-        void replace_nonString_passThrough() {
-            assertEquals(SqlNumber.of(42), apply("replace", SqlNumber.of(42), new SqlString("a"), new SqlString("b")));
+        void replace_nonString_coerced() {
+            // "42".replace("4", "b") → "b2"
+            assertEquals(new SqlString("b2"),
+                    apply("replace", SqlNumber.of(42), new SqlString("4"), new SqlString("b")));
         }
 
         @Test
@@ -655,8 +660,9 @@ class FunctionUnitTest {
         }
 
         @Test
-        void left_nonString_passThrough() {
-            assertEquals(SqlNumber.of(42), apply("left", SqlNumber.of(42), SqlNumber.of(3)));
+        void left_nonString_coerced() {
+            // "42" with n=3 — capped at length, returns "42"
+            assertEquals(new SqlString("42"), apply("left", SqlNumber.of(42), SqlNumber.of(3)));
         }
 
         @Test
@@ -665,8 +671,9 @@ class FunctionUnitTest {
         }
 
         @Test
-        void right_nonString_passThrough() {
-            assertEquals(SqlNumber.of(42), apply("right", SqlNumber.of(42), SqlNumber.of(3)));
+        void right_nonString_coerced() {
+            // "42" with n=3 — capped at length, returns "42"
+            assertEquals(new SqlString("42"), apply("right", SqlNumber.of(42), SqlNumber.of(3)));
         }
 
         @Test
@@ -675,8 +682,10 @@ class FunctionUnitTest {
         }
 
         @Test
-        void lpad_nonString_passThrough() {
-            assertEquals(SqlNumber.of(42), apply("lpad", SqlNumber.of(42), SqlNumber.of(5), new SqlString("*")));
+        void lpad_nonString_coerced() {
+            // "42" padded to 5 with '*' → "***42"
+            assertEquals(new SqlString("***42"),
+                    apply("lpad", SqlNumber.of(42), SqlNumber.of(5), new SqlString("*")));
         }
 
         @Test
@@ -685,8 +694,10 @@ class FunctionUnitTest {
         }
 
         @Test
-        void rpad_nonString_passThrough() {
-            assertEquals(SqlNumber.of(42), apply("rpad", SqlNumber.of(42), SqlNumber.of(5), new SqlString("*")));
+        void rpad_nonString_coerced() {
+            // "42" padded to 5 with '*' → "42***"
+            assertEquals(new SqlString("42***"),
+                    apply("rpad", SqlNumber.of(42), SqlNumber.of(5), new SqlString("*")));
         }
 
         @Test
@@ -695,8 +706,9 @@ class FunctionUnitTest {
         }
 
         @Test
-        void reverse_nonString_passThrough() {
-            assertEquals(SqlNumber.of(42), apply("reverse", SqlNumber.of(42)));
+        void reverse_nonString_coerced() {
+            // "42" reversed → "24"
+            assertEquals(new SqlString("24"), apply("reverse", SqlNumber.of(42)));
         }
 
         @Test
@@ -705,8 +717,9 @@ class FunctionUnitTest {
         }
 
         @Test
-        void position_nonString_passThrough() {
-            assertEquals(SqlNumber.of(42), apply("position", SqlNumber.of(42), new SqlString("hello")));
+        void position_nonString_coerced() {
+            // POSITION(substr=42, str="hello") → "hello".indexOf("42") == -1 → 0
+            assertEquals(SqlNumber.of(0), apply("position", SqlNumber.of(42), new SqlString("hello")));
         }
 
         @Test
@@ -717,9 +730,45 @@ class FunctionUnitTest {
         }
 
         @Test
-        void upper_nonString_passThrough() {
+        void upper_nonString_coerced() {
+            // UPPER(42) → "42" (digits are unchanged)
             var fn = registry.getScalar("upper").orElseThrow();
-            assertEquals(SqlNumber.of(42), fn.apply().apply(SqlNumber.of(42), List.of()));
+            assertEquals(new SqlString("42"), fn.apply().apply(SqlNumber.of(42), List.of()));
+        }
+
+        @Test
+        void lower_nonString_coerced() {
+            // LOWER(42) → "42" (digits are unchanged)
+            var fn = registry.getScalar("lower").orElseThrow();
+            assertEquals(new SqlString("42"), fn.apply().apply(SqlNumber.of(42), List.of()));
+        }
+
+        @Test
+        void lpad_padArgNonString_coerced() {
+            // pad arg is numeric 0; coerced to "0" — pad by repeating "0"
+            assertEquals(new SqlString("00042"),
+                    apply("lpad", SqlNumber.of(42), SqlNumber.of(5), SqlNumber.of(0)));
+        }
+
+        @Test
+        void replace_searchArgNonString_coerced() {
+            // search arg is numeric 2; coerced to "2" — "h2llo".replace("2", "e")
+            assertEquals(new SqlString("hello"),
+                    apply("replace", new SqlString("h2llo"), SqlNumber.of(2), new SqlString("e")));
+        }
+
+        @Test
+        void replace_replacementArgNonString_coerced() {
+            // replacement arg numeric 0 → "0"
+            assertEquals(new SqlString("h0llo"),
+                    apply("replace", new SqlString("hello"), new SqlString("e"), SqlNumber.of(0)));
+        }
+
+        @Test
+        void position_strArgNonString_coerced() {
+            // POSITION("4", 142) → "142".indexOf("4") = 1 → 1-based = 2
+            assertEquals(SqlNumber.of(2),
+                    apply("position", new SqlString("4"), SqlNumber.of(142)));
         }
 
         @Test

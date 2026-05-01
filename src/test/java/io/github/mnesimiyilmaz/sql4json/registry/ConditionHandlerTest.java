@@ -4,7 +4,7 @@ import io.github.mnesimiyilmaz.sql4json.engine.Expression;
 import io.github.mnesimiyilmaz.sql4json.engine.Expression.ColumnRef;
 import io.github.mnesimiyilmaz.sql4json.engine.FieldKey;
 import io.github.mnesimiyilmaz.sql4json.engine.Row;
-import io.github.mnesimiyilmaz.sql4json.json.JsonNumberValue;
+import io.github.mnesimiyilmaz.sql4json.json.JsonLongValue;
 import io.github.mnesimiyilmaz.sql4json.json.JsonObjectValue;
 import io.github.mnesimiyilmaz.sql4json.json.JsonStringValue;
 import io.github.mnesimiyilmaz.sql4json.types.SqlNull;
@@ -154,7 +154,7 @@ class ConditionHandlerTest {
 
         private static Row rowWithNumber(String field, int value) {
             var fields = new LinkedHashMap<String, io.github.mnesimiyilmaz.sql4json.types.JsonValue>();
-            fields.put(field, new JsonNumberValue(value));
+            fields.put(field, new JsonLongValue(value));
             return Row.lazy(new JsonObjectValue(fields), new FieldKey.Interner());
         }
 

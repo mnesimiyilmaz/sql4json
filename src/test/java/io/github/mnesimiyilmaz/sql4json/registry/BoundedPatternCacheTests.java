@@ -47,6 +47,20 @@ class BoundedPatternCacheTests {
     }
 
     @Test
+    void size_reflects_inserted_entries() {
+        var cache = new BoundedPatternCache(4);
+        assertEquals(0, cache.size());
+        cache.computeIfAbsent("a", k -> Pattern.compile("a"));
+        cache.computeIfAbsent("b", k -> Pattern.compile("b"));
+        assertEquals(2, cache.size());
+        cache.computeIfAbsent("a", k -> {
+            fail("should not recompile");
+            return null;
+        });
+        assertEquals(2, cache.size());
+    }
+
+    @Test
     void evicts_least_recently_used_when_capacity_exceeded() {
         var cache = new BoundedPatternCache(2);
         cache.computeIfAbsent("a", k -> Pattern.compile("a"));
