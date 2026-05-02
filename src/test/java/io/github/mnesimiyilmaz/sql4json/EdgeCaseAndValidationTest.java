@@ -1,16 +1,16 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json;
-
-import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonException;
-import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonException;
+import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 
 class EdgeCaseAndValidationTest {
 
@@ -109,7 +109,9 @@ class EdgeCaseAndValidationTest {
             JsonValue result = execute("SELECT * FROM $r", data);
             assertEquals(2, arr(result).size());
             assertEquals("\u6771\u4EAC", str(obj(arr(result).get(0)).get("name")));
-            assertEquals("\u0645\u0631\u062D\u0628\u0627", str(obj(arr(result).get(1)).get("name")));
+            assertEquals(
+                    "\u0645\u0631\u062D\u0628\u0627",
+                    str(obj(arr(result).get(1)).get("name")));
         }
 
         @Test
@@ -128,20 +130,17 @@ class EdgeCaseAndValidationTest {
 
         @Test
         void nullSql_throwsException() {
-            assertThrows(SQL4JsonException.class,
-                    () -> SQL4Json.query(null, "[]"));
+            assertThrows(SQL4JsonException.class, () -> SQL4Json.query(null, "[]"));
         }
 
         @Test
         void nullInputData_throwsException() {
-            assertThrows(SQL4JsonException.class,
-                    () -> SQL4Json.query("SELECT * FROM $r", (String) null));
+            assertThrows(SQL4JsonException.class, () -> SQL4Json.query("SELECT * FROM $r", (String) null));
         }
 
         @Test
         void malformedJsonInput_throwsExecutionException() {
-            assertThrows(SQL4JsonException.class,
-                    () -> SQL4Json.query("SELECT * FROM $r", "{broken json"));
+            assertThrows(SQL4JsonException.class, () -> SQL4Json.query("SELECT * FROM $r", "{broken json"));
         }
     }
 }

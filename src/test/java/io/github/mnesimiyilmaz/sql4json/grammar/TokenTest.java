@@ -1,9 +1,10 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.grammar;
-
-import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+
+import org.junit.jupiter.api.Test;
 
 class TokenTest {
 

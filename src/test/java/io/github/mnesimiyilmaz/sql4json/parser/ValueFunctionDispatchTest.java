@@ -1,22 +1,21 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.parser;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.BoundParameters;
 import io.github.mnesimiyilmaz.sql4json.SQL4Json;
 import io.github.mnesimiyilmaz.sql4json.engine.Expression;
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
- * Confirms the C2 grammar refactor preserves NOW() semantics after VALUE_FUNCTION
- * is removed and NOW() parses through the generic functionCall rule.
+ * Confirms the C2 grammar refactor preserves NOW() semantics after VALUE_FUNCTION is removed and NOW() parses through
+ * the generic functionCall rule.
  *
- * <p>Key invariant: NOW() that was originally lazy (per-row) in v1.1.x stays lazy
- * after the refactor. NOW() that was originally eager (CAST inner, nested function
- * args on RHS) stays eager.
+ * <p>Key invariant: NOW() that was originally lazy (per-row) in v1.1.x stays lazy after the refactor. NOW() that was
+ * originally eager (CAST inner, nested function args on RHS) stays eager.
  */
 class ValueFunctionDispatchTest {
 
@@ -78,8 +77,7 @@ class ValueFunctionDispatchTest {
         // It must still produce a usable SqlDateTime at parse time and run to
         // completion without throwing.
         String json = "[{\"n\": \"hello\"}]";
-        String result = SQL4Json.query(
-                "SELECT n FROM $r WHERE n != CAST(NOW() AS STRING)", json);
+        String result = SQL4Json.query("SELECT n FROM $r WHERE n != CAST(NOW() AS STRING)", json);
         assertTrue(result.contains("hello"));
     }
 
@@ -87,22 +85,20 @@ class ValueFunctionDispatchTest {
     void nowInsideDateAddArgStaysNonDeterministic() {
         // DATE_ADD(NOW(), -1, 'DAY') — NowRef inside a nested function arg.
         // Also verifies end-to-end execution against a date-typed column.
-        var qd = QueryParser.parse(
-                "SELECT * FROM $r WHERE created > DATE_ADD(NOW(), -1, 'DAY')");
+        var qd = QueryParser.parse("SELECT * FROM $r WHERE created > DATE_ADD(NOW(), -1, 'DAY')");
         assertTrue(qd.containsNonDeterministic());
 
         // Runtime: no rows expected (test values are not real dates), but must not throw.
         String json = "[{\"created\": \"2020-01-01T00:00:00\"}]";
-        String result = SQL4Json.query(
-                "SELECT * FROM $r WHERE created > DATE_ADD(NOW(), -1, 'DAY')", json);
+        String result = SQL4Json.query("SELECT * FROM $r WHERE created > DATE_ADD(NOW(), -1, 'DAY')", json);
         assertNotNull(result);
     }
 
     @Test
     void unknownZeroArgFunctionStillFails() {
         String json = "[{\"x\": 1}]";
-        var ex = assertThrows(SQL4JsonExecutionException.class,
-                () -> SQL4Json.query("SELECT bogus() AS b FROM $r", json));
+        var ex = assertThrows(
+                SQL4JsonExecutionException.class, () -> SQL4Json.query("SELECT bogus() AS b FROM $r", json));
         assertTrue(ex.getMessage().toLowerCase().contains("bogus"));
     }
 

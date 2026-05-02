@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.registry;
 
 import io.github.mnesimiyilmaz.sql4json.json.IsoTemporals;
@@ -5,18 +6,16 @@ import io.github.mnesimiyilmaz.sql4json.types.SqlDate;
 import io.github.mnesimiyilmaz.sql4json.types.SqlDateTime;
 import io.github.mnesimiyilmaz.sql4json.types.SqlString;
 import io.github.mnesimiyilmaz.sql4json.types.SqlValue;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 final class DateCoercion {
 
-    private DateCoercion() {
-    }
+    private DateCoercion() {}
 
     /**
-     * Coerces a {@link SqlValue} to a {@link LocalDate}.
-     * Handles {@link SqlDate}, {@link SqlDateTime}, and ISO date/datetime {@link SqlString} values.
+     * Coerces a {@link SqlValue} to a {@link LocalDate}. Handles {@link SqlDate}, {@link SqlDateTime}, and ISO
+     * date/datetime {@link SqlString} values.
      *
      * @param val the SQL value to coerce
      * @return a {@link LocalDate}, or {@code null} if coercion is not possible
@@ -31,8 +30,8 @@ final class DateCoercion {
     }
 
     /**
-     * Coerces a {@link SqlValue} to a {@link LocalDateTime}.
-     * Handles {@link SqlDateTime}, {@link SqlDate}, and ISO date/datetime {@link SqlString} values.
+     * Coerces a {@link SqlValue} to a {@link LocalDateTime}. Handles {@link SqlDateTime}, {@link SqlDate}, and ISO
+     * date/datetime {@link SqlString} values.
      *
      * @param val the SQL value to coerce
      * @return a {@link LocalDateTime}, or {@code null} if coercion is not possible

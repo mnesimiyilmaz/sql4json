@@ -1,12 +1,13 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.registry.ConditionHandlerRegistry;
 import io.github.mnesimiyilmaz.sql4json.registry.FunctionRegistry;
 import io.github.mnesimiyilmaz.sql4json.registry.OperatorRegistry;
 import io.github.mnesimiyilmaz.sql4json.settings.Sql4jsonSettings;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class RegistrySingletonTest {
 
@@ -44,8 +45,7 @@ class RegistrySingletonTest {
     @Test
     void functionRegistry_default_isFrozen_registerScalarThrows() {
         FunctionRegistry reg = FunctionRegistry.getDefault();
-        var fn = new io.github.mnesimiyilmaz.sql4json.registry.ScalarFunction(
-                "dummy", (val, args) -> val);
+        var fn = new io.github.mnesimiyilmaz.sql4json.registry.ScalarFunction("dummy", (val, args) -> val);
         assertThrows(UnsupportedOperationException.class, () -> reg.registerScalar(fn));
     }
 
@@ -69,20 +69,16 @@ class RegistrySingletonTest {
     void operatorRegistry_default_isFrozen_registerThrows() {
         OperatorRegistry reg = OperatorRegistry.getDefault();
         var op = new io.github.mnesimiyilmaz.sql4json.registry.ComparisonOperatorDef(
-                "??",
-                io.github.mnesimiyilmaz.sql4json.registry.OperatorType.BINARY,
-                (a, b) -> false);
+                "??", io.github.mnesimiyilmaz.sql4json.registry.OperatorType.BINARY, (a, b) -> false);
         assertThrows(UnsupportedOperationException.class, () -> reg.register(op));
     }
 
     @Test
     void conditionHandlerRegistry_default_isFrozen_registerThrows() {
-        ConditionHandlerRegistry reg =
-                ConditionHandlerRegistry.forSettings(Sql4jsonSettings.defaults());
+        ConditionHandlerRegistry reg = ConditionHandlerRegistry.forSettings(Sql4jsonSettings.defaults());
         var handler = new io.github.mnesimiyilmaz.sql4json.registry.ConditionHandler() {
             @Override
-            public boolean canHandle(
-                    io.github.mnesimiyilmaz.sql4json.registry.ConditionContext ctx) {
+            public boolean canHandle(io.github.mnesimiyilmaz.sql4json.registry.ConditionContext ctx) {
                 return false;
             }
 

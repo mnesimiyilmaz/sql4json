@@ -1,27 +1,25 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.mapper;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.github.mnesimiyilmaz.sql4json.json.JsonLongValue;
 import io.github.mnesimiyilmaz.sql4json.json.JsonObjectValue;
 import io.github.mnesimiyilmaz.sql4json.json.JsonStringValue;
 import io.github.mnesimiyilmaz.sql4json.settings.MappingSettings;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
-import org.junit.jupiter.api.Test;
-
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.Test;
 
 class JsonValueMapperRecordTest {
 
     private static final MappingSettings S = MappingSettings.defaults();
 
-    record Person(String name, int age, LocalDate birthDate) {
-    }
+    record Person(String name, int age, LocalDate birthDate) {}
 
-    record Order(String id, Person customer) {
-    }
+    record Order(String id, Person customer) {}
 
     private static JsonValue obj(Map<String, JsonValue> m) {
         return new JsonObjectValue(new LinkedHashMap<>(m));
@@ -43,9 +41,7 @@ class JsonValueMapperRecordTest {
                 "name", new JsonStringValue("Bob"),
                 "age", new JsonLongValue(40L),
                 "birthDate", new JsonStringValue("1984-05-05")));
-        JsonValue order = obj(Map.of(
-                "id", new JsonStringValue("o1"),
-                "customer", customer));
+        JsonValue order = obj(Map.of("id", new JsonStringValue("o1"), "customer", customer));
         Order o = JsonValueMapper.INSTANCE.map(order, Order.class, S);
         assertEquals("o1", o.id());
         assertEquals("Bob", o.customer().name());

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.cli;
 
 import java.util.LinkedHashMap;
@@ -6,10 +7,9 @@ import java.util.Map;
 /**
  * Hand-rolled state-machine parser for CLI arguments.
  *
- * <p>Walks {@code args} once and produces a {@link ParsedArgs}. Has no third-party
- * dependencies. Validation is shallow at this layer: structural problems and mutual
- * exclusions are surfaced; semantic checks (file exists, query non-empty, source
- * count vs. SQL shape) belong to {@link CliRunner}.</p>
+ * <p>Walks {@code args} once and produces a {@link ParsedArgs}. Has no third-party dependencies. Validation is shallow
+ * at this layer: structural problems and mutual exclusions are surfaced; semantic checks (file exists, query non-empty,
+ * source count vs. SQL shape) belong to {@link CliRunner}.
  *
  * @since 1.2.0
  */
@@ -24,9 +24,8 @@ final class ArgParser {
      *
      * @param args raw command-line arguments
      * @return populated {@link ParsedArgs}
-     * @throws UsageException for missing values, unknown flags, duplicate single-value
-     *                        flags, malformed {@code --data} / {@code -p} arguments,
-     *                        and the {@code -f}/{@code --data} mutual exclusion
+     * @throws UsageException for missing values, unknown flags, duplicate single-value flags, malformed {@code --data}
+     *     / {@code -p} arguments, and the {@code -f}/{@code --data} mutual exclusion
      */
     static ParsedArgs parse(String[] args) {
         State state = new State();
@@ -41,19 +40,19 @@ final class ArgParser {
     }
 
     /**
-     * Mutable parser state. Each {@link #consume(String[], int)} call dispatches one
-     * argument and returns the next index — splitting the per-flag work out of
-     * {@link ArgParser#parse(String[])} keeps that method's cognitive complexity flat.
+     * Mutable parser state. Each {@link #consume(String[], int)} call dispatches one argument and returns the next
+     * index — splitting the per-flag work out of {@link ArgParser#parse(String[])} keeps that method's cognitive
+     * complexity flat.
      */
     private static final class State {
-        String              querySource;
-        String              filePath;
-        String              outputPath;
+        String querySource;
+        String filePath;
+        String outputPath;
         final Map<String, String> dataSources = new LinkedHashMap<>();
         final Map<String, Object> namedParams = new LinkedHashMap<>();
-        boolean             pretty;
-        boolean             help;
-        boolean             version;
+        boolean pretty;
+        boolean help;
+        boolean version;
 
         int consume(String[] args, int i) {
             String arg = args[i];
@@ -95,8 +94,7 @@ final class ArgParser {
         }
 
         ParsedArgs toParsedArgs() {
-            return new ParsedArgs(querySource, filePath, outputPath, dataSources, namedParams,
-                pretty, help, version);
+            return new ParsedArgs(querySource, filePath, outputPath, dataSources, namedParams, pretty, help, version);
         }
 
         private static String requireUniqueValue(String[] args, int idx, String existing, String flag, String label) {
@@ -116,8 +114,8 @@ final class ArgParser {
 
         private static UsageException unexpectedArgument(String arg) {
             return arg.startsWith("-")
-                ? new UsageException("Unknown flag: " + arg)
-                : new UsageException("Unexpected positional argument: " + arg);
+                    ? new UsageException("Unknown flag: " + arg)
+                    : new UsageException("Unexpected positional argument: " + arg);
         }
 
         private static void addDataSource(Map<String, String> sources, String raw) {
@@ -154,5 +152,4 @@ final class ArgParser {
             return args[idx + 1];
         }
     }
-
 }

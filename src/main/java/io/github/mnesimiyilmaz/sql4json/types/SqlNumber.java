@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.types;
 
 import java.math.BigDecimal;
@@ -6,16 +7,16 @@ import java.math.BigDecimal;
  * Sealed numeric SQL value &mdash; root of the numeric family.
  *
  * <p>Three variants permit unboxed primitive storage where possible:
+ *
  * <ul>
- *   <li>{@link SqlLong} &mdash; integer in {@code long} range</li>
- *   <li>{@link SqlDouble} &mdash; fraction / exponent</li>
- *   <li>{@link SqlDecimal} &mdash; arbitrary precision</li>
+ *   <li>{@link SqlLong} &mdash; integer in {@code long} range
+ *   <li>{@link SqlDouble} &mdash; fraction / exponent
+ *   <li>{@link SqlDecimal} &mdash; arbitrary precision
  * </ul>
  *
  * @since 1.2.0
  */
-public sealed interface SqlNumber extends SqlValue
-        permits SqlLong, SqlDouble, SqlDecimal {
+public sealed interface SqlNumber extends SqlValue permits SqlLong, SqlDouble, SqlDecimal {
 
     /**
      * Returns this value as a primitive {@code long} (truncating fractions).
@@ -39,9 +40,8 @@ public sealed interface SqlNumber extends SqlValue
     BigDecimal bigDecimalValue();
 
     /**
-     * Returns this value as a boxed {@link Number}. {@link SqlLong} returns a
-     * {@link Long}, {@link SqlDouble} returns a {@link Double}, {@link SqlDecimal}
-     * returns the underlying {@link BigDecimal}.
+     * Returns this value as a boxed {@link Number}. {@link SqlLong} returns a {@link Long}, {@link SqlDouble} returns a
+     * {@link Double}, {@link SqlDecimal} returns the underlying {@link BigDecimal}.
      *
      * @return a boxed {@link Number} view of this value
      */
@@ -85,14 +85,14 @@ public sealed interface SqlNumber extends SqlValue
      */
     static SqlNumber of(Number value) {
         return switch (value) {
-            case Long l        -> of(l.longValue());
-            case Integer i     -> of(i.longValue());
-            case Short s       -> of(s.longValue());
-            case Byte b        -> of(b.longValue());
-            case Double d      -> of(d.doubleValue());
-            case Float f       -> of(f.doubleValue());
+            case Long l -> of(l.longValue());
+            case Integer i -> of(i.longValue());
+            case Short s -> of(s.longValue());
+            case Byte b -> of(b.longValue());
+            case Double d -> of(d.doubleValue());
+            case Float f -> of(f.doubleValue());
             case BigDecimal bd -> of(bd);
-            default            -> of(value.doubleValue());
+            default -> of(value.doubleValue());
         };
     }
 }

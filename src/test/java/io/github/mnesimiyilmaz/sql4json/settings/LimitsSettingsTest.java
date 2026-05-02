@@ -1,9 +1,10 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.settings;
-
-import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import org.junit.jupiter.api.Test;
 
 class LimitsSettingsTest {
 
@@ -20,9 +21,9 @@ class LimitsSettingsTest {
 
     @Test
     void when_builder_rejects_non_positive_max_parameters() {
-        assertThrows(IllegalArgumentException.class,
-                () -> LimitsSettings.builder().maxParameters(0));
-        assertThrows(IllegalArgumentException.class,
-                () -> LimitsSettings.builder().maxParameters(-1));
+        assertThrows(
+                IllegalArgumentException.class, () -> LimitsSettings.builder().maxParameters(0));
+        assertThrows(
+                IllegalArgumentException.class, () -> LimitsSettings.builder().maxParameters(-1));
     }
 }

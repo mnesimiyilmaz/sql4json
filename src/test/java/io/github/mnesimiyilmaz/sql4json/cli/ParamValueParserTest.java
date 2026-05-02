@@ -1,12 +1,12 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.cli;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class ParamValueParserTest {
 
@@ -98,37 +98,32 @@ class ParamValueParserTest {
 
     @Test
     void parse_objectLiteral_throwsUsage() {
-        UsageException ex = assertThrows(UsageException.class,
-                () -> ParamValueParser.parse("o={\"k\":1}"));
+        UsageException ex = assertThrows(UsageException.class, () -> ParamValueParser.parse("o={\"k\":1}"));
         assertTrue(ex.getMessage().contains("'o'"));
         assertTrue(ex.getMessage().contains("object"));
     }
 
     @Test
     void parse_missingEquals_throwsUsage() {
-        UsageException ex = assertThrows(UsageException.class,
-                () -> ParamValueParser.parse("noequals"));
+        UsageException ex = assertThrows(UsageException.class, () -> ParamValueParser.parse("noequals"));
         assertTrue(ex.getMessage().contains("name=<json>"));
     }
 
     @Test
     void parse_emptyName_throwsUsage() {
-        UsageException ex = assertThrows(UsageException.class,
-                () -> ParamValueParser.parse("=42"));
+        UsageException ex = assertThrows(UsageException.class, () -> ParamValueParser.parse("=42"));
         assertTrue(ex.getMessage().contains("name"));
     }
 
     @Test
     void parse_emptyValue_throwsUsage() {
-        UsageException ex = assertThrows(UsageException.class,
-                () -> ParamValueParser.parse("name="));
+        UsageException ex = assertThrows(UsageException.class, () -> ParamValueParser.parse("name="));
         assertTrue(ex.getMessage().contains("'name'"));
     }
 
     @Test
     void parse_malformedJsonValue_throwsUsage() {
-        UsageException ex = assertThrows(UsageException.class,
-                () -> ParamValueParser.parse("name=not-valid-json"));
+        UsageException ex = assertThrows(UsageException.class, () -> ParamValueParser.parse("name=not-valid-json"));
         assertTrue(ex.getMessage().contains("'name'"));
     }
 

@@ -1,16 +1,16 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.json;
 
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 /**
  * Represents JSON null as a sealed record type.
- * <p>Use {@link #INSTANCE} — do not call {@code new JsonNullValue()} directly.
- * The singleton property is a convention; the Java record type system does not
- * enforce private construction.
+ *
+ * <p>Use {@link #INSTANCE} — do not call {@code new JsonNullValue()} directly. The singleton property is a convention;
+ * the Java record type system does not enforce private construction.
  */
 public record JsonNullValue() implements JsonValue {
     public static final JsonNullValue INSTANCE = new JsonNullValue();

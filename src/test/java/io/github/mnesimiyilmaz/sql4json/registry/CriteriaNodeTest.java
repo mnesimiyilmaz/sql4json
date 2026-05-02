@@ -1,11 +1,11 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.registry;
 
-import io.github.mnesimiyilmaz.sql4json.engine.Row;
-import org.junit.jupiter.api.Test;
-
-import java.util.Map;
-
 import static org.junit.jupiter.api.Assertions.*;
+
+import io.github.mnesimiyilmaz.sql4json.engine.Row;
+import java.util.Map;
+import org.junit.jupiter.api.Test;
 
 class CriteriaNodeTest {
 
@@ -99,27 +99,21 @@ class CriteriaNodeTest {
     @Test
     void nested_andInsideOr() {
         // (false AND true) OR true → true
-        OrNode or = new OrNode(
-                new AndNode(row -> false, row -> true),
-                row -> true);
+        OrNode or = new OrNode(new AndNode(row -> false, row -> true), row -> true);
         assertTrue(or.test(ANY_ROW));
     }
 
     @Test
     void nested_orInsideAnd() {
         // (true OR false) AND (false OR true) → true
-        AndNode and = new AndNode(
-                new OrNode(row -> true, row -> false),
-                new OrNode(row -> false, row -> true));
+        AndNode and = new AndNode(new OrNode(row -> true, row -> false), new OrNode(row -> false, row -> true));
         assertTrue(and.test(ANY_ROW));
     }
 
     @Test
     void nested_allFalse() {
         // (false OR false) AND (true AND false) → false
-        AndNode and = new AndNode(
-                new OrNode(row -> false, row -> false),
-                new AndNode(row -> true, row -> false));
+        AndNode and = new AndNode(new OrNode(row -> false, row -> false), new AndNode(row -> true, row -> false));
         assertFalse(and.test(ANY_ROW));
     }
 
@@ -129,9 +123,16 @@ class CriteriaNodeTest {
     void conditionContext_columnName_returns_null_when_lhsExpression_is_null() {
         var ctx = new ConditionContext(
                 ConditionContext.ConditionType.IS_NULL,
-                null,         // lhsExpression intentionally null
-                null, null, null, null, null, null,
-                null, null, null);
+                null, // lhsExpression intentionally null
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
         assertNull(ctx.columnName());
     }
 
@@ -139,10 +140,7 @@ class CriteriaNodeTest {
     void conditionContext_columnName_returns_innermost_path_when_lhsExpression_present() {
         var lhs = new io.github.mnesimiyilmaz.sql4json.engine.Expression.ColumnRef("foo.bar");
         var ctx = new ConditionContext(
-                ConditionContext.ConditionType.IS_NULL,
-                lhs,
-                null, null, null, null, null, null,
-                null, null, null);
+                ConditionContext.ConditionType.IS_NULL, lhs, null, null, null, null, null, null, null, null, null);
         assertEquals("foo.bar", ctx.columnName());
     }
 }

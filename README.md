@@ -10,7 +10,7 @@
     <a href="https://github.com/mnesimiyilmaz/sql4json/blob/main/LICENSE"><img src="https://img.shields.io/github/license/mnesimiyilmaz/sql4json?style=flat-square" alt="License"></a>
     <img src="https://img.shields.io/badge/Java-21%2B-blue?style=flat-square" alt="Java 21+">
     <img src="https://img.shields.io/badge/runtime_deps-ANTLR_only-brightgreen?style=flat-square" alt="Zero runtime dependencies">
-    <img src="https://img.shields.io/badge/coverage-95%25-brightgreen?style=flat-square" alt="Code coverage 95%">
+    <a href="https://codecov.io/gh/mnesimiyilmaz/sql4json"><img src="https://img.shields.io/codecov/c/github/mnesimiyilmaz/sql4json?style=flat-square&label=coverage" alt="Code coverage"></a>
     <img src="https://img.shields.io/badge/branch_coverage-90%25-brightgreen?style=flat-square" alt="Branch coverage 90%">
   </p>
 </p>
@@ -89,14 +89,14 @@ ORDER BY avgSalary DESC LIMIT 10
 <dependency>
     <groupId>io.github.mnesimiyilmaz</groupId>
     <artifactId>sql4json</artifactId>
-    <version>1.2.0</version>
+    <version>1.3.0</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```groovy
-implementation 'io.github.mnesimiyilmaz:sql4json:1.2.0'
+implementation 'io.github.mnesimiyilmaz:sql4json:1.3.0'
 ```
 
 ## Quick Start
@@ -127,13 +127,13 @@ A command-line entrypoint ships as a separate shaded jar published alongside the
 <dependency>
     <groupId>io.github.mnesimiyilmaz</groupId>
     <artifactId>sql4json</artifactId>
-    <version>1.2.0</version>
+    <version>1.3.0</version>
     <classifier>cli</classifier>
 </dependency>
 ```
 
 ```bash
-java -jar sql4json-1.2.0-cli.jar -q "SELECT name FROM \$r WHERE age > 25" -f data.json
+java -jar sql4json-1.3.0-cli.jar -q "SELECT name FROM \$r WHERE age > 25" -f data.json
 ```
 
 ### Options
@@ -153,21 +153,21 @@ java -jar sql4json-1.2.0-cli.jar -q "SELECT name FROM \$r WHERE age > 25" -f dat
 
 ```bash
 # Read from a file
-java -jar sql4json-1.2.0-cli.jar \
+java -jar sql4json-1.3.0-cli.jar \
   -q "SELECT * FROM \$r WHERE age > 25" -f data.json
 
 # Pipe from stdin and pretty-print
-cat data.json | java -jar sql4json-1.2.0-cli.jar \
+cat data.json | java -jar sql4json-1.3.0-cli.jar \
   -q @query.sql --pretty
 
 # JOIN across multiple sources
-java -jar sql4json-1.2.0-cli.jar \
+java -jar sql4json-1.3.0-cli.jar \
   -q @join.sql \
   --data users=users.json \
   --data orders=orders.json
 
 # Parameter binding (named only — positional ? is not exposed by the CLI)
-java -jar sql4json-1.2.0-cli.jar \
+java -jar sql4json-1.3.0-cli.jar \
   -q "SELECT * FROM \$r WHERE id = :id AND tags @> :allowed" \
   -p id=42 \
   -p 'allowed=["admin","editor"]' \
@@ -187,6 +187,8 @@ Set `SQL4JSON_DEBUG=1` to attach the full stack trace to failure messages on std
 ## Performance
 
 Numbers below are median wall-clock time across 3 runs on a single reference machine (OpenJDK 21.0.1+12-LTS / Windows 11 amd64 / 32 cores / 64 GB RAM / `-Xmx 8g -Xms 1g`) against synthetic data generated with `--seed 20260428`. Re-run `./mvnw test -Plarge-tests -Dtest=ProfilingTest` to reproduce on your hardware.
+
+> **Single-threaded.** Each query runs end-to-end on the calling thread — there is no internal parallelism. Multi-core scaling, if any, comes from running independent queries concurrently in your application.
 
 | Query                                                          | 8 MB | 32 MB | 128 MB | 512 MB | Rows out (at 512 MB) |
 |----------------------------------------------------------------|-----:|------:|-------:|-------:|---------------------:|
@@ -1114,7 +1116,7 @@ All limits are enforced by default via `SQL4Json.query(sql, json)`; pass a custo
 | Setting                         | Default         | Protects against                                                                                                                     | When to loosen                                                     |
 |---------------------------------|-----------------|--------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------|
 | `security.maxLikeWildcards`     | 16              | Soft ReDoS via `LIKE '%a%b%c%...'` patterns                                                                                          | Queries with many literal wildcards                                |
-| `security.redactErrorDetails`   | true            | Leaking data source names, format strings, or user input into error messages (multi-tenant info disclosure)                          | Single-tenant dev/debug where verbose errors help                  |
+| `security.redactErrorDetails`   | false           | Leaking data source names, format strings, or user input into error messages (multi-tenant info disclosure)                          | Already off by default — set to `true` in multi-tenant deployments |
 | `limits.maxSqlLength`           | 65 536 (64 KiB) | Unbounded SQL input consuming parser memory                                                                                          | Generated SQL longer than 64 KiB                                   |
 | `limits.maxSubqueryDepth`       | 16              | Recursion bomb via deeply nested FROM subqueries                                                                                     | Programmatically generated deep nestings                           |
 | `limits.maxInListSize`          | 1 024           | Parse-time amplification attacks via huge `IN (...)` lists                                                                           | Bulk filter UIs that pass large allow-lists                        |

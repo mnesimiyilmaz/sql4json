@@ -1,30 +1,29 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.engine;
 
 import io.github.mnesimiyilmaz.sql4json.engine.stage.*;
 import io.github.mnesimiyilmaz.sql4json.parser.QueryDefinition;
 import io.github.mnesimiyilmaz.sql4json.registry.FunctionRegistry;
 import io.github.mnesimiyilmaz.sql4json.settings.Sql4jsonSettings;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
 /**
- * Assembles and executes a pipeline of stages derived from a QueryDefinition.
- * Stage order: WHERE → GROUP BY → HAVING → WINDOW → ORDER BY → LIMIT → SELECT → DISTINCT.
+ * Assembles and executes a pipeline of stages derived from a QueryDefinition. Stage order: WHERE → GROUP BY → HAVING →
+ * WINDOW → ORDER BY → LIMIT → SELECT → DISTINCT.
  */
 final class QueryPipeline {
 
     private final List<PipelineStage> stages;
-    private final int                 maxRows;
+    private final int maxRows;
 
     private QueryPipeline(List<PipelineStage> stages, int maxRows) {
         this.stages = stages;
         this.maxRows = maxRows;
     }
 
-    static QueryPipeline build(QueryDefinition query, FunctionRegistry functionRegistry,
-                               Sql4jsonSettings settings) {
+    static QueryPipeline build(QueryDefinition query, FunctionRegistry functionRegistry, Sql4jsonSettings settings) {
         var stages = new ArrayList<PipelineStage>();
         int maxRows = settings.limits().maxRowsPerQuery();
         if (query.whereClause() != null) {
@@ -40,8 +39,12 @@ final class QueryPipeline {
         // The parser-collected list catches windows buried inside CASE WHEN conditions
         // (where the CriteriaNode closure is opaque to expression-tree walks).
         if (query.containsWindowFunctions()) {
-            stages.add(new WindowStage(query.windowFunctionCalls(), query.selectedColumns(),
-                    query.referencedColumns(), functionRegistry, maxRows));
+            stages.add(new WindowStage(
+                    query.windowFunctionCalls(),
+                    query.selectedColumns(),
+                    query.referencedColumns(),
+                    functionRegistry,
+                    maxRows));
         }
         // ORDER BY + LIMIT fast path: fold into a bounded max-heap (top-N) so we
         // don't sort the entire input just to take k rows. Plain ORDER BY (no LIMIT)

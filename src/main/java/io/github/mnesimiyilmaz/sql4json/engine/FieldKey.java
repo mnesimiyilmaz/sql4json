@@ -1,29 +1,27 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.engine;
 
 import java.util.HashMap;
 
 /**
- * Immutable key for a flattened JSON field path. Tracks both the full key
- * (e.g. {@code "items[0].name"}) and its array-index-stripped family
- * (e.g. {@code "items.name"}) for nested field grouping during unflattening.
+ * Immutable key for a flattened JSON field path. Tracks both the full key (e.g. {@code "items[0].name"}) and its
+ * array-index-stripped family (e.g. {@code "items.name"}) for nested field grouping during unflattening.
  */
 public final class FieldKey {
 
     private final String key;
     private final String family;
-    private final int    hashCode; // Pre-computed for performance
+    private final int hashCode; // Pre-computed for performance
 
     /**
-     * Query-scoped interner — created once per query execution, GC'd when query finishes.
-     * Sharing identical path strings and FieldKey instances across rows reduces GC pressure.
+     * Query-scoped interner — created once per query execution, GC'd when query finishes. Sharing identical path
+     * strings and FieldKey instances across rows reduces GC pressure.
      */
     public static final class Interner {
-        private final HashMap<String, String>   stringPool   = new HashMap<>();
+        private final HashMap<String, String> stringPool = new HashMap<>();
         private final HashMap<String, FieldKey> fieldKeyPool = new HashMap<>();
 
-        /**
-         * Creates a new empty interner.
-         */
+        /** Creates a new empty interner. */
         public Interner() {
             // Pools are initialized eagerly via field initializers.
         }
@@ -31,10 +29,9 @@ public final class FieldKey {
         /**
          * Interns a string, returning the canonical instance.
          *
-         * <p>Hand-rolled get/put pair instead of {@code computeIfAbsent(s, k -> k)} —
-         * the lambda form allocates a fresh closure on every call (cache hit or miss),
-         * which dominated allocations during JsonParser-heavy workloads (profiler:
-         * 537 MB of {@code FieldKey$Interner$$Lambda} on a 512 MB GROUP BY query).</p>
+         * <p>Hand-rolled get/put pair instead of {@code computeIfAbsent(s, k -> k)} — the lambda form allocates a fresh
+         * closure on every call (cache hit or miss), which dominated allocations during JsonParser-heavy workloads
+         * (profiler: 537 MB of {@code FieldKey$Interner$$Lambda} on a 512 MB GROUP BY query).
          *
          * @param s the string to intern
          * @return the canonical instance of the string
@@ -49,7 +46,7 @@ public final class FieldKey {
         /**
          * Interns a FieldKey, returning the canonical instance for the given key path.
          *
-         * <p>Lambda-free hot path — see {@link #intern(String)} for the rationale.</p>
+         * <p>Lambda-free hot path — see {@link #intern(String)} for the rationale.
          *
          * @param key the field key path to intern
          * @return the canonical FieldKey instance for the given path
@@ -59,9 +56,7 @@ public final class FieldKey {
             if (cached != null) return cached;
             String internedKey = intern(key);
             String derivedFamily = stripArrayIndices(internedKey);
-            String internedFamily = derivedFamily.equals(internedKey)
-                    ? internedKey
-                    : intern(derivedFamily);
+            String internedFamily = derivedFamily.equals(internedKey) ? internedKey : intern(derivedFamily);
             FieldKey fresh = new FieldKey(internedKey, internedFamily);
             fieldKeyPool.put(key, fresh);
             return fresh;
@@ -71,7 +66,7 @@ public final class FieldKey {
     /**
      * Primary factory — uses interner for string and FieldKey instance sharing.
      *
-     * @param key      the field key path
+     * @param key the field key path
      * @param interner the interner to use for deduplication
      * @return the interned FieldKey instance
      */
@@ -91,10 +86,9 @@ public final class FieldKey {
     }
 
     /**
-     * Strips array index brackets from a field path.
-     * "items[0].name" → "items.name", "matrix[0][1]" → "matrix"
-     * Returns the input string unchanged (same reference) if no indices found.
-     * Only called with paths produced by JsonFlattener, which always generates well-formed [N] indices.
+     * Strips array index brackets from a field path. "items[0].name" → "items.name", "matrix[0][1]" → "matrix" Returns
+     * the input string unchanged (same reference) if no indices found. Only called with paths produced by
+     * JsonFlattener, which always generates well-formed [N] indices.
      */
     static String stripArrayIndices(String path) {
         int bracketIdx = path.indexOf('[');

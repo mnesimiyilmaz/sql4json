@@ -1,13 +1,13 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.json;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException;
 import io.github.mnesimiyilmaz.sql4json.types.*;
-import org.junit.jupiter.api.Test;
-
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class JsonToSqlConverterTest {
 
@@ -41,15 +41,13 @@ class JsonToSqlConverterTest {
     @Test
     void object_throwsException() {
         JsonObjectValue input = new JsonObjectValue(Map.of());
-        assertThrows(SQL4JsonExecutionException.class,
-                () -> JsonToSqlConverter.toSqlValue(input));
+        assertThrows(SQL4JsonExecutionException.class, () -> JsonToSqlConverter.toSqlValue(input));
     }
 
     @Test
     void array_throwsException() {
         JsonArrayValue input = new JsonArrayValue(List.of());
-        assertThrows(SQL4JsonExecutionException.class,
-                () -> JsonToSqlConverter.toSqlValue(input));
+        assertThrows(SQL4JsonExecutionException.class, () -> JsonToSqlConverter.toSqlValue(input));
     }
 
     // SqlValue → JsonValue

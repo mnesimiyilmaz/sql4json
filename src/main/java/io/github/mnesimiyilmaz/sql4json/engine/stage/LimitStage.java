@@ -1,13 +1,13 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.engine.stage;
 
 import io.github.mnesimiyilmaz.sql4json.engine.LazyPipelineStage;
 import io.github.mnesimiyilmaz.sql4json.engine.RowAccessor;
-
 import java.util.stream.Stream;
 
 /**
- * Pipeline stage that applies SQL LIMIT and OFFSET to the row stream.
- * This is a lazy stage — rows are skipped and limited without materializing the full stream.
+ * Pipeline stage that applies SQL LIMIT and OFFSET to the row stream. This is a lazy stage — rows are skipped and
+ * limited without materializing the full stream.
  */
 public final class LimitStage implements LazyPipelineStage {
 
@@ -17,7 +17,7 @@ public final class LimitStage implements LazyPipelineStage {
     /**
      * Creates a new LimitStage with the given limit and offset.
      *
-     * @param limit  the maximum number of rows to emit
+     * @param limit the maximum number of rows to emit
      * @param offset the number of rows to skip before emitting
      */
     public LimitStage(int limit, int offset) {

@@ -1,11 +1,11 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.types;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class SqlValueTest {
 
@@ -108,14 +108,15 @@ class SqlValueTest {
     @Test
     void patternMatching_exhaustive() {
         SqlValue v = SqlNumber.of(1L);
-        String result = switch (v) {
-            case SqlNumber n -> "number";
-            case SqlString s -> "string";
-            case SqlBoolean b -> "boolean";
-            case SqlDate d -> "date";
-            case SqlDateTime dt -> "datetime";
-            case SqlNull ignored -> "null";
-        };
+        String result =
+                switch (v) {
+                    case SqlNumber n -> "number";
+                    case SqlString s -> "string";
+                    case SqlBoolean b -> "boolean";
+                    case SqlDate d -> "date";
+                    case SqlDateTime dt -> "datetime";
+                    case SqlNull ignored -> "null";
+                };
         assertEquals("number", result);
     }
 
@@ -183,18 +184,15 @@ class SqlValueTest {
 
     @Test
     void sqlNumber_sealedExhaustive() {
-        SqlValue[] vals = {
-                SqlNumber.of(1L),
-                SqlNumber.of(1.5),
-                SqlNumber.of(new java.math.BigDecimal("1.0001"))
-        };
+        SqlValue[] vals = {SqlNumber.of(1L), SqlNumber.of(1.5), SqlNumber.of(new java.math.BigDecimal("1.0001"))};
         for (SqlValue v : vals) {
-            String tag = switch (v) {
-                case SqlLong ignored    -> "long";
-                case SqlDouble ignored  -> "double";
-                case SqlDecimal ignored -> "decimal";
-                default                 -> "other";
-            };
+            String tag =
+                    switch (v) {
+                        case SqlLong ignored -> "long";
+                        case SqlDouble ignored -> "double";
+                        case SqlDecimal ignored -> "decimal";
+                        default -> "other";
+                    };
             assertNotEquals("other", tag);
         }
     }

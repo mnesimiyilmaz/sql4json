@@ -1,20 +1,24 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.mapper;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonMappingException;
 import io.github.mnesimiyilmaz.sql4json.json.JsonNullValue;
 import io.github.mnesimiyilmaz.sql4json.settings.MappingSettings;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
-import org.junit.jupiter.api.Test;
-
 import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class JsonValueMapperScalarTest {
 
     private static final MappingSettings S = MappingSettings.defaults();
 
-    enum Color {RED, GREEN, BLUE}
+    enum Color {
+        RED,
+        GREEN,
+        BLUE
+    }
 
     @Test
     void when_null_mapped_to_reference_type_then_null() {
@@ -50,8 +54,7 @@ class JsonValueMapperScalarTest {
     @Test
     void when_json_boolean_mapped_to_int_then_exception() {
         JsonValue v = new io.github.mnesimiyilmaz.sql4json.json.JsonBooleanValue(true);
-        assertThrows(SQL4JsonMappingException.class,
-                () -> JsonValueMapper.INSTANCE.map(v, Integer.class, S));
+        assertThrows(SQL4JsonMappingException.class, () -> JsonValueMapper.INSTANCE.map(v, Integer.class, S));
     }
 
     @Test
@@ -109,65 +112,62 @@ class JsonValueMapperScalarTest {
     @Test
     void when_json_number_non_integer_mapped_to_big_integer_throws() {
         JsonValue v = new io.github.mnesimiyilmaz.sql4json.json.JsonDoubleValue(3.14);
-        assertThrows(SQL4JsonMappingException.class,
-                () -> JsonValueMapper.INSTANCE.map(v, java.math.BigInteger.class, S));
+        assertThrows(
+                SQL4JsonMappingException.class, () -> JsonValueMapper.INSTANCE.map(v, java.math.BigInteger.class, S));
     }
 
     @Test
     void when_json_number_mapped_to_unsupported_type_throws() {
         // java.util.UUID has no number conversion path
         JsonValue v = new io.github.mnesimiyilmaz.sql4json.json.JsonLongValue(7L);
-        assertThrows(SQL4JsonMappingException.class,
-                () -> JsonValueMapper.INSTANCE.map(v, java.util.UUID.class, S));
+        assertThrows(SQL4JsonMappingException.class, () -> JsonValueMapper.INSTANCE.map(v, java.util.UUID.class, S));
     }
 
     @Test
     void when_json_string_mapped_to_unsupported_type_throws() {
         JsonValue v = new io.github.mnesimiyilmaz.sql4json.json.JsonStringValue("foo");
-        assertThrows(SQL4JsonMappingException.class,
-                () -> JsonValueMapper.INSTANCE.map(v, java.util.UUID.class, S));
+        assertThrows(SQL4JsonMappingException.class, () -> JsonValueMapper.INSTANCE.map(v, java.util.UUID.class, S));
     }
 
     @Test
     void when_invalid_iso_date_then_exception() {
         JsonValue v = new io.github.mnesimiyilmaz.sql4json.json.JsonStringValue("not-a-date");
-        assertThrows(SQL4JsonMappingException.class,
-                () -> JsonValueMapper.INSTANCE.map(v, java.time.LocalDate.class, S));
+        assertThrows(
+                SQL4JsonMappingException.class, () -> JsonValueMapper.INSTANCE.map(v, java.time.LocalDate.class, S));
     }
 
     @Test
     void when_invalid_iso_datetime_then_exception() {
         JsonValue v = new io.github.mnesimiyilmaz.sql4json.json.JsonStringValue("not-a-datetime");
-        assertThrows(SQL4JsonMappingException.class,
+        assertThrows(
+                SQL4JsonMappingException.class,
                 () -> JsonValueMapper.INSTANCE.map(v, java.time.LocalDateTime.class, S));
     }
 
     @Test
     void when_invalid_iso_instant_then_exception() {
         JsonValue v = new io.github.mnesimiyilmaz.sql4json.json.JsonStringValue("not-an-instant");
-        assertThrows(SQL4JsonMappingException.class,
-                () -> JsonValueMapper.INSTANCE.map(v, java.time.Instant.class, S));
+        assertThrows(SQL4JsonMappingException.class, () -> JsonValueMapper.INSTANCE.map(v, java.time.Instant.class, S));
     }
 
     @Test
     void when_invalid_string_to_big_decimal_then_exception() {
         JsonValue v = new io.github.mnesimiyilmaz.sql4json.json.JsonStringValue("not a number");
-        assertThrows(SQL4JsonMappingException.class,
-                () -> JsonValueMapper.INSTANCE.map(v, java.math.BigDecimal.class, S));
+        assertThrows(
+                SQL4JsonMappingException.class, () -> JsonValueMapper.INSTANCE.map(v, java.math.BigDecimal.class, S));
     }
 
     @Test
     void when_string_to_big_integer_valid() {
         JsonValue v = new io.github.mnesimiyilmaz.sql4json.json.JsonStringValue("42");
-        assertEquals(new java.math.BigInteger("42"),
-                JsonValueMapper.INSTANCE.map(v, java.math.BigInteger.class, S));
+        assertEquals(new java.math.BigInteger("42"), JsonValueMapper.INSTANCE.map(v, java.math.BigInteger.class, S));
     }
 
     @Test
     void when_invalid_string_to_big_integer_then_exception() {
         JsonValue v = new io.github.mnesimiyilmaz.sql4json.json.JsonStringValue("3.14");
-        assertThrows(SQL4JsonMappingException.class,
-                () -> JsonValueMapper.INSTANCE.map(v, java.math.BigInteger.class, S));
+        assertThrows(
+                SQL4JsonMappingException.class, () -> JsonValueMapper.INSTANCE.map(v, java.math.BigInteger.class, S));
     }
 
     @Test
@@ -187,21 +187,23 @@ class JsonValueMapperScalarTest {
     @Test
     void when_json_number_mapped_to_big_decimal_lossless() {
         JsonValue v = new io.github.mnesimiyilmaz.sql4json.json.JsonLongValue(Long.MAX_VALUE);
-        assertEquals(new java.math.BigDecimal(String.valueOf(Long.MAX_VALUE)),
+        assertEquals(
+                new java.math.BigDecimal(String.valueOf(Long.MAX_VALUE)),
                 JsonValueMapper.INSTANCE.map(v, java.math.BigDecimal.class, S));
     }
 
     @Test
     void when_json_number_mapped_to_big_integer_integer_valued_ok() {
         JsonValue v = new io.github.mnesimiyilmaz.sql4json.json.JsonLongValue(1234567890L);
-        assertEquals(new java.math.BigInteger("1234567890"),
-                JsonValueMapper.INSTANCE.map(v, java.math.BigInteger.class, S));
+        assertEquals(
+                new java.math.BigInteger("1234567890"), JsonValueMapper.INSTANCE.map(v, java.math.BigInteger.class, S));
     }
 
     @Test
     void when_json_number_mapped_to_instant_epoch_millis() {
         JsonValue v = new io.github.mnesimiyilmaz.sql4json.json.JsonLongValue(1_700_000_000_000L);
-        assertEquals(java.time.Instant.ofEpochMilli(1_700_000_000_000L),
+        assertEquals(
+                java.time.Instant.ofEpochMilli(1_700_000_000_000L),
                 JsonValueMapper.INSTANCE.map(v, java.time.Instant.class, S));
     }
 
@@ -226,8 +228,8 @@ class JsonValueMapperScalarTest {
     @Test
     void when_json_string_mapped_to_enum_invalid_constant_then_exception_lists_available() {
         JsonValue v = new io.github.mnesimiyilmaz.sql4json.json.JsonStringValue("PURPLE");
-        SQL4JsonMappingException e = assertThrows(SQL4JsonMappingException.class,
-                () -> JsonValueMapper.INSTANCE.map(v, Color.class, S));
+        SQL4JsonMappingException e =
+                assertThrows(SQL4JsonMappingException.class, () -> JsonValueMapper.INSTANCE.map(v, Color.class, S));
         assertTrue(e.getMessage().contains("PURPLE"));
         assertTrue(e.getMessage().contains("RED"));
     }
@@ -235,36 +237,38 @@ class JsonValueMapperScalarTest {
     @Test
     void when_iso_date_string_mapped_to_local_date() {
         JsonValue v = new io.github.mnesimiyilmaz.sql4json.json.JsonStringValue("2026-04-21");
-        assertEquals(java.time.LocalDate.of(2026, 4, 21),
-                JsonValueMapper.INSTANCE.map(v, java.time.LocalDate.class, S));
+        assertEquals(
+                java.time.LocalDate.of(2026, 4, 21), JsonValueMapper.INSTANCE.map(v, java.time.LocalDate.class, S));
     }
 
     @Test
     void when_iso_datetime_string_mapped_to_local_datetime() {
         JsonValue v = new io.github.mnesimiyilmaz.sql4json.json.JsonStringValue("2026-04-21T10:15:30");
-        assertEquals(java.time.LocalDateTime.of(2026, 4, 21, 10, 15, 30),
+        assertEquals(
+                java.time.LocalDateTime.of(2026, 4, 21, 10, 15, 30),
                 JsonValueMapper.INSTANCE.map(v, java.time.LocalDateTime.class, S));
     }
 
     @Test
     void when_iso_instant_string_mapped_to_instant() {
         JsonValue v = new io.github.mnesimiyilmaz.sql4json.json.JsonStringValue("2026-04-21T10:15:30Z");
-        assertEquals(java.time.Instant.parse("2026-04-21T10:15:30Z"),
+        assertEquals(
+                java.time.Instant.parse("2026-04-21T10:15:30Z"),
                 JsonValueMapper.INSTANCE.map(v, java.time.Instant.class, S));
     }
 
     @Test
     void when_numeric_string_mapped_to_big_decimal() {
         JsonValue v = new io.github.mnesimiyilmaz.sql4json.json.JsonStringValue("12345.678");
-        assertEquals(new java.math.BigDecimal("12345.678"),
-                JsonValueMapper.INSTANCE.map(v, java.math.BigDecimal.class, S));
+        assertEquals(
+                new java.math.BigDecimal("12345.678"), JsonValueMapper.INSTANCE.map(v, java.math.BigDecimal.class, S));
     }
 
     @Test
     void when_bad_iso_date_string_then_exception_includes_input() {
         JsonValue v = new io.github.mnesimiyilmaz.sql4json.json.JsonStringValue("21/04/2026");
-        SQL4JsonMappingException e = assertThrows(SQL4JsonMappingException.class,
-                () -> JsonValueMapper.INSTANCE.map(v, java.time.LocalDate.class, S));
+        SQL4JsonMappingException e = assertThrows(
+                SQL4JsonMappingException.class, () -> JsonValueMapper.INSTANCE.map(v, java.time.LocalDate.class, S));
         assertTrue(e.getMessage().contains("21/04/2026"));
     }
 }

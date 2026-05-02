@@ -1,35 +1,27 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.registry;
 
 import io.github.mnesimiyilmaz.sql4json.engine.Expression;
 import io.github.mnesimiyilmaz.sql4json.engine.ExpressionEvaluator;
 import io.github.mnesimiyilmaz.sql4json.sorting.SqlValueComparator;
 import io.github.mnesimiyilmaz.sql4json.types.SqlValue;
-
 import java.util.List;
 
 /**
- * Handles IN and NOT IN conditions.
- * Evaluates whether a column value is contained in (or absent from) a list of values.
+ * Handles IN and NOT IN conditions. Evaluates whether a column value is contained in (or absent from) a list of values.
  */
 public final class InConditionHandler implements ConditionHandler {
 
-    /**
-     * Creates a new instance.
-     */
-    InConditionHandler() {
-    }
-
+    /** Creates a new instance. */
+    InConditionHandler() {}
 
     @Override
     public boolean canHandle(ConditionContext ctx) {
-        return ctx.type() == ConditionContext.ConditionType.IN
-                || ctx.type() == ConditionContext.ConditionType.NOT_IN;
+        return ctx.type() == ConditionContext.ConditionType.IN || ctx.type() == ConditionContext.ConditionType.NOT_IN;
     }
 
     @Override
-    public CriteriaNode handle(ConditionContext ctx,
-                               OperatorRegistry operators,
-                               FunctionRegistry functions) {
+    public CriteriaNode handle(ConditionContext ctx, OperatorRegistry operators, FunctionRegistry functions) {
         List<SqlValue> valueList = ctx.valueList();
         List<Expression> valueExprs = ctx.valueExpressions();
         boolean negate = ctx.type() == ConditionContext.ConditionType.NOT_IN;

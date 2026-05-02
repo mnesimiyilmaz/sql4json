@@ -1,19 +1,17 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.json;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException;
 import io.github.mnesimiyilmaz.sql4json.types.*;
 
-/**
- * Converts between {@link JsonValue} and {@link SqlValue} representations.
- */
+/** Converts between {@link JsonValue} and {@link SqlValue} representations. */
 public final class JsonToSqlConverter {
 
-    private JsonToSqlConverter() {
-    }
+    private JsonToSqlConverter() {}
 
     /**
-     * Converts a {@link JsonValue} to its corresponding {@link SqlValue}.
-     * Throws for objects and arrays that have not been flattened.
+     * Converts a {@link JsonValue} to its corresponding {@link SqlValue}. Throws for objects and arrays that have not
+     * been flattened.
      *
      * @param json the JSON value to convert
      * @return the corresponding SQL value
@@ -27,15 +25,15 @@ public final class JsonToSqlConverter {
             case JsonBooleanValue(var value) -> SqlBoolean.of(value);
             case JsonNullValue ignored -> SqlNull.INSTANCE;
             case JsonObjectValue ignored ->
-                    throw new SQL4JsonExecutionException("Cannot convert JSON object to SqlValue — flatten first");
+                throw new SQL4JsonExecutionException("Cannot convert JSON object to SqlValue — flatten first");
             case JsonArrayValue ignored ->
-                    throw new SQL4JsonExecutionException("Cannot convert JSON array to SqlValue — flatten first");
+                throw new SQL4JsonExecutionException("Cannot convert JSON array to SqlValue — flatten first");
         };
     }
 
     /**
-     * Safe variant: returns SqlNull for objects and arrays instead of throwing.
-     * Used when the caller will fall back to original JsonValue navigation (e.g. cherryPick).
+     * Safe variant: returns SqlNull for objects and arrays instead of throwing. Used when the caller will fall back to
+     * original JsonValue navigation (e.g. cherryPick).
      *
      * @param json the JSON value to convert
      * @return the corresponding SQL value, or {@link SqlNull} for objects and arrays

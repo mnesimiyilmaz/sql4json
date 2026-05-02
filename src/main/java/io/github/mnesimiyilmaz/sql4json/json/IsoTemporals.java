@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.json;
 
 import java.time.Instant;
@@ -9,17 +10,15 @@ import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;
 
 /**
- * Internal ISO temporal parsing helpers shared across the library. The {@code json} package
- * is not exported from the JPMS module, so this class is only reachable from sibling
- * internal packages ({@code mapper}, {@code registry}).
+ * Internal ISO temporal parsing helpers shared across the library. The {@code json} package is not exported from the
+ * JPMS module, so this class is only reachable from sibling internal packages ({@code mapper}, {@code registry}).
  *
- * <p>All methods are null-safe on failure — they return {@code null} rather than throwing,
- * so callers can chain fallbacks.
+ * <p>All methods are null-safe on failure — they return {@code null} rather than throwing, so callers can chain
+ * fallbacks.
  */
 public final class IsoTemporals {
 
-    private IsoTemporals() {
-    }
+    private IsoTemporals() {}
 
     /**
      * Parse an ISO date or ISO datetime string, returning the date portion.

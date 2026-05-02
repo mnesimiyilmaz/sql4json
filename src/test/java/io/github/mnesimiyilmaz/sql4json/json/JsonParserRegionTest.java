@@ -1,10 +1,11 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.json;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class JsonParserRegionTest {
 
@@ -13,7 +14,9 @@ class JsonParserRegionTest {
         String json = "XXXXX{\"name\":\"Alice\",\"age\":30}YYYYY";
         JsonValue v = JsonParser.parseRegion(json, 5, 30);
         assertEquals("Alice", v.asObject().orElseThrow().get("name").asString().orElseThrow());
-        assertEquals(30, v.asObject().orElseThrow().get("age").asNumber().orElseThrow().intValue());
+        assertEquals(
+                30,
+                v.asObject().orElseThrow().get("age").asNumber().orElseThrow().intValue());
     }
 
     @Test
@@ -54,29 +57,25 @@ class JsonParserRegionTest {
     @Test
     void parseRegion_boolean_true_would_read_past_endPos() {
         String json = "true";
-        assertThrows(SQL4JsonExecutionException.class,
-                () -> JsonParser.parseRegion(json, 0, 3));
+        assertThrows(SQL4JsonExecutionException.class, () -> JsonParser.parseRegion(json, 0, 3));
     }
 
     @Test
     void parseRegion_boolean_false_would_read_past_endPos() {
         String json = "false";
-        assertThrows(SQL4JsonExecutionException.class,
-                () -> JsonParser.parseRegion(json, 0, 4));
+        assertThrows(SQL4JsonExecutionException.class, () -> JsonParser.parseRegion(json, 0, 4));
     }
 
     @Test
     void parseRegion_null_would_read_past_endPos() {
         String json = "null";
-        assertThrows(SQL4JsonExecutionException.class,
-                () -> JsonParser.parseRegion(json, 0, 3));
+        assertThrows(SQL4JsonExecutionException.class, () -> JsonParser.parseRegion(json, 0, 3));
     }
 
     @Test
     void parseRegion_trailing_content_throws() {
         String json = "42 extra";
-        assertThrows(SQL4JsonExecutionException.class,
-                () -> JsonParser.parseRegion(json, 0, 8));
+        assertThrows(SQL4JsonExecutionException.class, () -> JsonParser.parseRegion(json, 0, 8));
     }
 
     @Test
@@ -105,9 +104,6 @@ class JsonParserRegionTest {
         String json = "{\"x\":true,\"y\":[1,2,3]}";
         JsonValue fromParse = JsonParser.parse(json);
         JsonValue fromRegion = JsonParser.parseRegion(json, 0, json.length());
-        assertEquals(
-                JsonSerializer.serialize(fromParse),
-                JsonSerializer.serialize(fromRegion)
-        );
+        assertEquals(JsonSerializer.serialize(fromParse), JsonSerializer.serialize(fromRegion));
     }
 }

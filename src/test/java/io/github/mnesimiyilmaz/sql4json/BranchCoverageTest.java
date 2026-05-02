@@ -1,19 +1,19 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonException;
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonParseException;
 import io.github.mnesimiyilmaz.sql4json.settings.Sql4jsonSettings;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
+import java.util.Map;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
- * Tests targeting specific branch coverage gaps identified by JaCoCo.
- * Each test documents which class/branch it targets.
+ * Tests targeting specific branch coverage gaps identified by JaCoCo. Each test documents which class/branch it
+ * targets.
  */
 class BranchCoverageTest {
 
@@ -47,21 +47,19 @@ class BranchCoverageTest {
 
         @Test
         void query_nullData_throws() {
-            assertThrows(SQL4JsonException.class,
-                    () -> SQL4Json.query("SELECT * FROM $r", (String) null));
+            assertThrows(SQL4JsonException.class, () -> SQL4Json.query("SELECT * FROM $r", (String) null));
         }
 
         @Test
         void query_nullSettings_throws() {
-            assertThrows(NullPointerException.class,
-                    () -> SQL4Json.query("SELECT * FROM $r", "[]", null));
+            assertThrows(NullPointerException.class, () -> SQL4Json.query("SELECT * FROM $r", "[]", null));
         }
 
         // queryAsJsonValue overloads
         @Test
         void queryAsJsonValue_nullJsonValueData_throws() {
-            assertThrows(SQL4JsonException.class,
-                    () -> SQL4Json.queryAsJsonValue("SELECT * FROM $r", (JsonValue) null));
+            assertThrows(
+                    SQL4JsonException.class, () -> SQL4Json.queryAsJsonValue("SELECT * FROM $r", (JsonValue) null));
         }
 
         @Test
@@ -74,31 +72,27 @@ class BranchCoverageTest {
         // Multi-source query: null/empty dataSources
         @Test
         void query_multiSource_nullSources_throws() {
-            assertThrows(SQL4JsonException.class,
-                    () -> SQL4Json.query("SELECT * FROM users", (Map<String, String>) null));
+            assertThrows(
+                    SQL4JsonException.class, () -> SQL4Json.query("SELECT * FROM users", (Map<String, String>) null));
         }
 
         @Test
         void query_multiSource_emptySources_throws() {
-            assertThrows(SQL4JsonException.class,
-                    () -> SQL4Json.query("SELECT * FROM users", Map.of()));
+            assertThrows(SQL4JsonException.class, () -> SQL4Json.query("SELECT * FROM users", Map.of()));
         }
 
         @Test
         void query_multiSource_nullSourceValue_throws() {
             Map<String, String> sources = new java.util.HashMap<>();
             sources.put("users", null);
-            assertThrows(SQL4JsonException.class,
-                    () -> SQL4Json.query("SELECT * FROM users", sources));
+            assertThrows(SQL4JsonException.class, () -> SQL4Json.query("SELECT * FROM users", sources));
         }
 
         @Test
         void queryAsJsonValue_multiSource_defaultSettings() {
             String users = """
                     [{"id": 1, "name": "Alice"}]""";
-            var result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM users",
-                    Map.of("users", users));
+            var result = SQL4Json.queryAsJsonValue("SELECT * FROM users", Map.of("users", users));
             assertNotNull(result);
         }
 
@@ -127,8 +121,7 @@ class BranchCoverageTest {
         @Test
         void equals_boolean_values() {
             // OperatorRegistry: SqlBoolean equality branch
-            String result = SQL4Json.query(
-                    "SELECT name FROM $r WHERE active = true", EMPLOYEES);
+            String result = SQL4Json.query("SELECT name FROM $r WHERE active = true", EMPLOYEES);
             assertTrue(result.contains("Alice"));
             assertTrue(result.contains("Charlie"));
             assertFalse(result.contains("Bob"));
@@ -137,8 +130,8 @@ class BranchCoverageTest {
         @Test
         void equals_date_values() {
             // OperatorRegistry: SqlDate equality branch
-            String result = SQL4Json.query(
-                    "SELECT name FROM $r WHERE TO_DATE(hire_date) = TO_DATE('2020-01-15')", EMPLOYEES);
+            String result =
+                    SQL4Json.query("SELECT name FROM $r WHERE TO_DATE(hire_date) = TO_DATE('2020-01-15')", EMPLOYEES);
             assertTrue(result.contains("Alice"));
             assertFalse(result.contains("Bob"));
         }
@@ -146,16 +139,15 @@ class BranchCoverageTest {
         @Test
         void notEquals_boolean() {
             // OperatorRegistry: != with boolean
-            String result = SQL4Json.query(
-                    "SELECT name FROM $r WHERE active != false", EMPLOYEES);
+            String result = SQL4Json.query("SELECT name FROM $r WHERE active != false", EMPLOYEES);
             assertTrue(result.contains("Alice"));
         }
 
         @Test
         void greaterThan_dates_via_cast() {
             // OperatorRegistry: > with date comparison via SqlValueComparator
-            String result = SQL4Json.query(
-                    "SELECT name FROM $r WHERE TO_DATE(hire_date) > TO_DATE('2020-06-01')", EMPLOYEES);
+            String result =
+                    SQL4Json.query("SELECT name FROM $r WHERE TO_DATE(hire_date) > TO_DATE('2020-06-01')", EMPLOYEES);
             assertTrue(result.contains("Bob"));
             assertFalse(result.contains("Alice"));
         }
@@ -169,9 +161,8 @@ class BranchCoverageTest {
         @Test
         void simpleCaseWhen_noMatch_nullElse() {
             // ExpressionEvaluator: SimpleCaseWhen no match, elseExpr=null → SqlNull
-            String result = SQL4Json.query(
-                    "SELECT CASE dept WHEN 'finance' THEN 'F' END AS dept_code FROM $r",
-                    EMPLOYEES);
+            String result =
+                    SQL4Json.query("SELECT CASE dept WHEN 'finance' THEN 'F' END AS dept_code FROM $r", EMPLOYEES);
             assertTrue(result.contains("null"));
         }
 
@@ -180,17 +171,14 @@ class BranchCoverageTest {
             // ExpressionEvaluator: SimpleCaseWhen with null subject → skip all
             String json = """
                     [{"status": null}]""";
-            String result = SQL4Json.query(
-                    "SELECT CASE status WHEN 'active' THEN 'A' ELSE 'X' END AS s FROM $r", json);
+            String result = SQL4Json.query("SELECT CASE status WHEN 'active' THEN 'A' ELSE 'X' END AS s FROM $r", json);
             assertTrue(result.contains("X"));
         }
 
         @Test
         void searchedCaseWhen_noMatch_nullElse() {
             // ExpressionEvaluator: SearchedCaseWhen no match, elseExpr=null → SqlNull
-            String result = SQL4Json.query(
-                    "SELECT CASE WHEN age > 100 THEN 'ancient' END AS label FROM $r",
-                    EMPLOYEES);
+            String result = SQL4Json.query("SELECT CASE WHEN age > 100 THEN 'ancient' END AS label FROM $r", EMPLOYEES);
             assertTrue(result.contains("null"));
         }
 
@@ -211,8 +199,9 @@ class BranchCoverageTest {
             String json = """
                     [{"dept":"eng","salary":50000},{"dept":"eng","salary":60000},{"dept":"hr","salary":40000}]""";
             String result = SQL4Json.query(
-                    "SELECT dept, CASE dept WHEN 'eng' THEN SUM(salary) ELSE 0 END AS budget " +
-                            "FROM $r GROUP BY dept", json);
+                    "SELECT dept, CASE dept WHEN 'eng' THEN SUM(salary) ELSE 0 END AS budget "
+                            + "FROM $r GROUP BY dept",
+                    json);
             assertNotNull(result);
             assertTrue(result.contains("budget"));
         }
@@ -221,16 +210,16 @@ class BranchCoverageTest {
         void simpleCaseWhen_withAggregate_groupBy() {
             // ExpressionEvaluator: aggregateSimpleCase path
             String result = SQL4Json.query(
-                    "SELECT dept, CASE dept WHEN 'eng' THEN SUM(salary) ELSE 0 END AS eng_total " +
-                            "FROM $r GROUP BY dept", EMPLOYEES);
+                    "SELECT dept, CASE dept WHEN 'eng' THEN SUM(salary) ELSE 0 END AS eng_total "
+                            + "FROM $r GROUP BY dept",
+                    EMPLOYEES);
             assertNotNull(result);
         }
 
         @Test
         void countStar_aggregate() {
             // ExpressionEvaluator: AggregateFnCall with null inner (COUNT(*))
-            String result = SQL4Json.query(
-                    "SELECT dept, COUNT(*) AS cnt FROM $r GROUP BY dept", EMPLOYEES);
+            String result = SQL4Json.query("SELECT dept, COUNT(*) AS cnt FROM $r GROUP BY dept", EMPLOYEES);
             assertTrue(result.contains("cnt"));
         }
     }
@@ -243,32 +232,28 @@ class BranchCoverageTest {
         @Test
         void castExpression_inSelect() {
             // ParserListener: CastExprColumnContext branch
-            String result = SQL4Json.query(
-                    "SELECT CAST(age AS STRING) AS age_str FROM $r", EMPLOYEES);
+            String result = SQL4Json.query("SELECT CAST(age AS STRING) AS age_str FROM $r", EMPLOYEES);
             assertTrue(result.contains("30"));
         }
 
         @Test
         void castExpression_inWhere() {
             // ParserListener: RhsCastExprContext branch
-            String result = SQL4Json.query(
-                    "SELECT name FROM $r WHERE age = CAST('30' AS NUMBER)", EMPLOYEES);
+            String result = SQL4Json.query("SELECT name FROM $r WHERE age = CAST('30' AS NUMBER)", EMPLOYEES);
             assertTrue(result.contains("Alice"));
         }
 
         @Test
         void functionCall_inWhereRhs() {
             // ParserListener: RhsFunctionCallContext branch
-            String result = SQL4Json.query(
-                    "SELECT name FROM $r WHERE LOWER(name) = LOWER('ALICE')", EMPLOYEES);
+            String result = SQL4Json.query("SELECT name FROM $r WHERE LOWER(name) = LOWER('ALICE')", EMPLOYEES);
             assertTrue(result.contains("Alice"));
         }
 
         @Test
         void columnRef_inWhereRhs() {
             // ParserListener: RhsColumnRefContext for comparison
-            String result = SQL4Json.query(
-                    "SELECT name FROM $r WHERE name = name", EMPLOYEES);
+            String result = SQL4Json.query("SELECT name FROM $r WHERE name = name", EMPLOYEES);
             assertTrue(result.contains("Alice"));
         }
 
@@ -279,7 +264,8 @@ class BranchCoverageTest {
                     [{"id": 1}]""";
             String orders = """
                     [{"user_id": 1}]""";
-            assertThrows(SQL4JsonParseException.class,
+            assertThrows(
+                    SQL4JsonParseException.class,
                     () -> SQL4Json.query(
                             "SELECT * FROM users u JOIN orders o ON u.id > o.user_id",
                             Map.of("users", users, "orders", orders)));
@@ -318,8 +304,7 @@ class BranchCoverageTest {
             // ParserListener: FROM tableName alias branch (identifierOrKeyword + IDENTIFIER)
             String users = """
                     [{"name": "Alice"}]""";
-            String result = SQL4Json.query(
-                    "SELECT u.name FROM users u", Map.of("users", users));
+            String result = SQL4Json.query("SELECT u.name FROM users u", Map.of("users", users));
             assertTrue(result.contains("Alice"));
         }
 
@@ -328,8 +313,7 @@ class BranchCoverageTest {
             // ParserListener: FROM tableName without alias (aliasToken == null)
             String users = """
                     [{"name": "Alice"}]""";
-            String result = SQL4Json.query(
-                    "SELECT users.name FROM users", Map.of("users", users));
+            String result = SQL4Json.query("SELECT users.name FROM users", Map.of("users", users));
             assertTrue(result.contains("Alice"));
         }
 
@@ -365,8 +349,7 @@ class BranchCoverageTest {
         @Test
         void subquery_from() {
             // ParserListener: FROM (SELECT ...) subquery branch
-            String result = SQL4Json.query(
-                    "SELECT name FROM (SELECT name, age FROM $r WHERE age > 25)", EMPLOYEES);
+            String result = SQL4Json.query("SELECT name FROM (SELECT name, age FROM $r WHERE age > 25)", EMPLOYEES);
             assertTrue(result.contains("Alice"));
             assertTrue(result.contains("Charlie"));
         }
@@ -382,8 +365,7 @@ class BranchCoverageTest {
         @Test
         void betweenCondition() {
             // ParserListener: BETWEEN condition branch
-            String result = SQL4Json.query(
-                    "SELECT name FROM $r WHERE age BETWEEN 25 AND 30", EMPLOYEES);
+            String result = SQL4Json.query("SELECT name FROM $r WHERE age BETWEEN 25 AND 30", EMPLOYEES);
             assertTrue(result.contains("Alice"));
             assertTrue(result.contains("Bob"));
         }
@@ -391,16 +373,14 @@ class BranchCoverageTest {
         @Test
         void notBetweenCondition() {
             // ParserListener: NOT BETWEEN condition branch
-            String result = SQL4Json.query(
-                    "SELECT name FROM $r WHERE age NOT BETWEEN 25 AND 30", EMPLOYEES);
+            String result = SQL4Json.query("SELECT name FROM $r WHERE age NOT BETWEEN 25 AND 30", EMPLOYEES);
             assertTrue(result.contains("Charlie"));
         }
 
         @Test
         void inCondition() {
             // ParserListener: IN condition branch
-            String result = SQL4Json.query(
-                    "SELECT name FROM $r WHERE dept IN ('eng')", EMPLOYEES);
+            String result = SQL4Json.query("SELECT name FROM $r WHERE dept IN ('eng')", EMPLOYEES);
             assertTrue(result.contains("Alice"));
             assertTrue(result.contains("Bob"));
         }
@@ -408,16 +388,14 @@ class BranchCoverageTest {
         @Test
         void notInCondition() {
             // ParserListener: NOT IN condition branch
-            String result = SQL4Json.query(
-                    "SELECT name FROM $r WHERE dept NOT IN ('eng')", EMPLOYEES);
+            String result = SQL4Json.query("SELECT name FROM $r WHERE dept NOT IN ('eng')", EMPLOYEES);
             assertTrue(result.contains("Charlie"));
         }
 
         @Test
         void notLikeCondition() {
             // ParserListener: NOT LIKE condition branch
-            String result = SQL4Json.query(
-                    "SELECT name FROM $r WHERE name NOT LIKE 'A%'", EMPLOYEES);
+            String result = SQL4Json.query("SELECT name FROM $r WHERE name NOT LIKE 'A%'", EMPLOYEES);
             assertTrue(result.contains("Bob"));
             assertFalse(result.contains("Alice"));
         }
@@ -439,8 +417,7 @@ class BranchCoverageTest {
         @Test
         void orCondition() {
             // ParserListener: OR conditions branch
-            String result = SQL4Json.query(
-                    "SELECT name FROM $r WHERE dept = 'eng' OR dept = 'hr'", EMPLOYEES);
+            String result = SQL4Json.query("SELECT name FROM $r WHERE dept = 'eng' OR dept = 'hr'", EMPLOYEES);
             assertTrue(result.contains("Alice"));
             assertTrue(result.contains("Charlie"));
         }
@@ -448,8 +425,8 @@ class BranchCoverageTest {
         @Test
         void parenthesizedConditions() {
             // ParserListener: parenthesized conditions branch
-            String result = SQL4Json.query(
-                    "SELECT name FROM $r WHERE (dept = 'eng' AND age > 27) OR dept = 'hr'", EMPLOYEES);
+            String result =
+                    SQL4Json.query("SELECT name FROM $r WHERE (dept = 'eng' AND age > 27) OR dept = 'hr'", EMPLOYEES);
             assertTrue(result.contains("Alice"));
             assertTrue(result.contains("Charlie"));
         }
@@ -457,16 +434,15 @@ class BranchCoverageTest {
         @Test
         void groupByWithHaving() {
             // ParserListener: HAVING branch
-            String result = SQL4Json.query(
-                    "SELECT dept, COUNT(*) AS cnt FROM $r GROUP BY dept HAVING cnt > 1", EMPLOYEES);
+            String result =
+                    SQL4Json.query("SELECT dept, COUNT(*) AS cnt FROM $r GROUP BY dept HAVING cnt > 1", EMPLOYEES);
             assertNotNull(result);
         }
 
         @Test
         void windowFunction_inSelect() {
             // ParserListener: WindowFunctionExprContext branch
-            String result = SQL4Json.query(
-                    "SELECT name, ROW_NUMBER() OVER (ORDER BY name) AS rn FROM $r", EMPLOYEES);
+            String result = SQL4Json.query("SELECT name, ROW_NUMBER() OVER (ORDER BY name) AS rn FROM $r", EMPLOYEES);
             assertTrue(result.contains("rn"));
         }
 
@@ -474,8 +450,7 @@ class BranchCoverageTest {
         void windowFunction_withPartition() {
             // ParserListener: PARTITION BY branch in WindowSpec
             String result = SQL4Json.query(
-                    "SELECT name, RANK() OVER (PARTITION BY dept ORDER BY salary DESC) AS rnk FROM $r",
-                    EMPLOYEES);
+                    "SELECT name, RANK() OVER (PARTITION BY dept ORDER BY salary DESC) AS rnk FROM $r", EMPLOYEES);
             assertTrue(result.contains("rnk"));
         }
 
@@ -483,40 +458,37 @@ class BranchCoverageTest {
         void windowFunction_aggregate_over() {
             // ParserListener: aggregate function with OVER (window aggregate)
             String result = SQL4Json.query(
-                    "SELECT name, SUM(salary) OVER (PARTITION BY dept) AS dept_total FROM $r",
-                    EMPLOYEES);
+                    "SELECT name, SUM(salary) OVER (PARTITION BY dept) AS dept_total FROM $r", EMPLOYEES);
             assertTrue(result.contains("dept_total"));
         }
 
         @Test
         void scalarFunction_inGroupBy() {
             // ParserListener/Expression: scalar function in GROUP BY
-            String result = SQL4Json.query(
-                    "SELECT UPPER(dept) AS d, COUNT(*) AS cnt FROM $r GROUP BY UPPER(dept)", EMPLOYEES);
+            String result =
+                    SQL4Json.query("SELECT UPPER(dept) AS d, COUNT(*) AS cnt FROM $r GROUP BY UPPER(dept)", EMPLOYEES);
             assertTrue(result.contains("ENG"));
         }
 
         @Test
         void scalarFunction_inOrderBy() {
             // Parser: scalar function in ORDER BY
-            String result = SQL4Json.query(
-                    "SELECT name FROM $r ORDER BY LENGTH(name) DESC", EMPLOYEES);
+            String result = SQL4Json.query("SELECT name FROM $r ORDER BY LENGTH(name) DESC", EMPLOYEES);
             assertNotNull(result);
         }
 
         @Test
         void nestedScalarFunctions() {
             // Expression: nested scalar function calls
-            String result = SQL4Json.query(
-                    "SELECT LPAD(TRIM(name), 10, '*') AS padded FROM $r LIMIT 1", EMPLOYEES);
+            String result = SQL4Json.query("SELECT LPAD(TRIM(name), 10, '*') AS padded FROM $r LIMIT 1", EMPLOYEES);
             assertTrue(result.contains("padded"));
         }
 
         @Test
         void aggregateFunctionArg_inScalar() {
             // ParserListener: AggFunctionExprContext inside function arg
-            String result = SQL4Json.query(
-                    "SELECT dept, ROUND(AVG(salary), 2) AS avg_sal FROM $r GROUP BY dept", EMPLOYEES);
+            String result =
+                    SQL4Json.query("SELECT dept, ROUND(AVG(salary), 2) AS avg_sal FROM $r GROUP BY dept", EMPLOYEES);
             assertTrue(result.contains("avg_sal"));
         }
 
@@ -544,8 +516,7 @@ class BranchCoverageTest {
         void simpleCaseWithoutElse() {
             // ParserListener: simple CASE without ELSE
             String result = SQL4Json.query(
-                    "SELECT CASE dept WHEN 'eng' THEN 'Engineering' END AS dept_name FROM $r",
-                    EMPLOYEES);
+                    "SELECT CASE dept WHEN 'eng' THEN 'Engineering' END AS dept_name FROM $r", EMPLOYEES);
             assertTrue(result.contains("Engineering"));
             assertTrue(result.contains("null"));
         }
@@ -553,9 +524,7 @@ class BranchCoverageTest {
         @Test
         void searchedCaseWithoutElse() {
             // ParserListener: searched CASE without ELSE
-            String result = SQL4Json.query(
-                    "SELECT CASE WHEN age > 100 THEN 'ancient' END AS label FROM $r",
-                    EMPLOYEES);
+            String result = SQL4Json.query("SELECT CASE WHEN age > 100 THEN 'ancient' END AS label FROM $r", EMPLOYEES);
             assertTrue(result.contains("null"));
         }
     }
@@ -568,8 +537,8 @@ class BranchCoverageTest {
         @Test
         void containsAggregate_throughScalarFn() {
             // Expression: containsAggregate through ScalarFnCall
-            String result = SQL4Json.query(
-                    "SELECT dept, ROUND(AVG(salary)) AS rounded_avg FROM $r GROUP BY dept", EMPLOYEES);
+            String result =
+                    SQL4Json.query("SELECT dept, ROUND(AVG(salary)) AS rounded_avg FROM $r GROUP BY dept", EMPLOYEES);
             assertTrue(result.contains("rounded_avg"));
         }
 
@@ -580,8 +549,8 @@ class BranchCoverageTest {
             String json = """
                     [{"dept":"eng","salary":50000},{"dept":"eng","salary":60000},{"dept":"hr","salary":40000}]""";
             String result = SQL4Json.query(
-                    "SELECT dept, CASE dept WHEN 'eng' THEN SUM(salary) ELSE 0 END AS total " +
-                            "FROM $r GROUP BY dept", json);
+                    "SELECT dept, CASE dept WHEN 'eng' THEN SUM(salary) ELSE 0 END AS total " + "FROM $r GROUP BY dept",
+                    json);
             assertTrue(result.contains("total"));
         }
     }
@@ -595,8 +564,7 @@ class BranchCoverageTest {
         void findAggregate_inSimpleCaseSubject() {
             // SelectColumnDef: findAggregate through SimpleCaseWhen subject
             String result = SQL4Json.query(
-                    "SELECT CASE COUNT(*) WHEN 4 THEN 'four' ELSE 'other' END AS cnt " +
-                            "FROM $r GROUP BY dept",
+                    "SELECT CASE COUNT(*) WHEN 4 THEN 'four' ELSE 'other' END AS cnt " + "FROM $r GROUP BY dept",
                     EMPLOYEES);
             assertNotNull(result);
         }
@@ -605,8 +573,7 @@ class BranchCoverageTest {
         void findAggregate_inSimpleCaseValue() {
             // SelectColumnDef: findAggregate through SimpleCaseWhen clause value
             String result = SQL4Json.query(
-                    "SELECT dept, CASE dept WHEN 'eng' THEN SUM(salary) END AS total " +
-                            "FROM $r GROUP BY dept",
+                    "SELECT dept, CASE dept WHEN 'eng' THEN SUM(salary) END AS total " + "FROM $r GROUP BY dept",
                     EMPLOYEES);
             assertNotNull(result);
         }
@@ -615,8 +582,8 @@ class BranchCoverageTest {
         void findAggregate_inSearchedCaseResult() {
             // SelectColumnDef: findAggregate through SearchedCaseWhen result
             String result = SQL4Json.query(
-                    "SELECT dept, CASE WHEN dept = 'eng' THEN SUM(salary) ELSE 0 END AS total " +
-                            "FROM $r GROUP BY dept",
+                    "SELECT dept, CASE WHEN dept = 'eng' THEN SUM(salary) ELSE 0 END AS total "
+                            + "FROM $r GROUP BY dept",
                     EMPLOYEES);
             assertNotNull(result);
         }
@@ -624,9 +591,8 @@ class BranchCoverageTest {
         @Test
         void findAggregate_inScalarFnArg() {
             // SelectColumnDef: findAggregate through ScalarFnCall args
-            String result = SQL4Json.query(
-                    "SELECT dept, ROUND(AVG(salary), 2) AS avg_sal FROM $r GROUP BY dept",
-                    EMPLOYEES);
+            String result =
+                    SQL4Json.query("SELECT dept, ROUND(AVG(salary), 2) AS avg_sal FROM $r GROUP BY dept", EMPLOYEES);
             assertTrue(result.contains("avg_sal"));
         }
 
@@ -657,25 +623,21 @@ class BranchCoverageTest {
         @Test
         void cherryPick_windowResult() {
             // JsonUnflattener: containsWindow branch in cherryPick
-            String result = SQL4Json.query(
-                    "SELECT name, ROW_NUMBER() OVER (ORDER BY name) AS rn FROM $r", EMPLOYEES);
+            String result = SQL4Json.query("SELECT name, ROW_NUMBER() OVER (ORDER BY name) AS rn FROM $r", EMPLOYEES);
             assertTrue(result.contains("rn"));
         }
 
         @Test
         void cherryPick_scalarFunction() {
             // JsonUnflattener: expression with functions (functionRegistry != null)
-            String result = SQL4Json.query(
-                    "SELECT UPPER(name) AS upper_name FROM $r", EMPLOYEES);
+            String result = SQL4Json.query("SELECT UPPER(name) AS upper_name FROM $r", EMPLOYEES);
             assertTrue(result.contains("ALICE"));
         }
 
         @Test
         void cherryPick_dottedAlias() {
             // JsonUnflattener: dotted alias setNestedField
-            String result = SQL4Json.query(
-                    "SELECT name AS info.name, age AS info.age FROM $r LIMIT 1",
-                    EMPLOYEES);
+            String result = SQL4Json.query("SELECT name AS info.name, age AS info.age FROM $r LIMIT 1", EMPLOYEES);
             assertTrue(result.contains("info"));
         }
 
@@ -691,8 +653,7 @@ class BranchCoverageTest {
         @Test
         void reconstructFromFlatMap_sumAggregateColumn() {
             // JsonUnflattener: col.containsAggregate() → aliasOrName() path
-            String result = SQL4Json.query(
-                    "SELECT dept, SUM(salary) AS total FROM $r GROUP BY dept", EMPLOYEES);
+            String result = SQL4Json.query("SELECT dept, SUM(salary) AS total FROM $r GROUP BY dept", EMPLOYEES);
             assertTrue(result.contains("total"));
         }
 
@@ -708,8 +669,7 @@ class BranchCoverageTest {
         @Test
         void nestedObjectReconstruction() {
             // JsonUnflattener: insertAtPath with nested object paths
-            String result = SQL4Json.query(
-                    "SELECT address.city FROM $r LIMIT 1", EMPLOYEES);
+            String result = SQL4Json.query("SELECT address.city FROM $r LIMIT 1", EMPLOYEES);
             assertTrue(result.contains("NYC"));
         }
     }
@@ -724,8 +684,7 @@ class BranchCoverageTest {
             // DistinctKey: sqlValueHash for date types
             String json = """
                     [{"d": "2024-01-01"}, {"d": "2024-01-01"}, {"d": "2024-01-02"}]""";
-            String result = SQL4Json.query(
-                    "SELECT DISTINCT TO_DATE(d) AS date_val FROM $r", json);
+            String result = SQL4Json.query("SELECT DISTINCT TO_DATE(d) AS date_val FROM $r", json);
             assertNotNull(result);
         }
 
@@ -760,8 +719,7 @@ class BranchCoverageTest {
         void nestedSubquery_depth() {
             // QueryExecutor: subquery depth tracking
             String result = SQL4Json.query(
-                    "SELECT name FROM (SELECT name, age FROM (SELECT * FROM $r) WHERE age > 25)",
-                    EMPLOYEES);
+                    "SELECT name FROM (SELECT name, age FROM (SELECT * FROM $r) WHERE age > 25)", EMPLOYEES);
             assertTrue(result.contains("Alice"));
         }
 
@@ -813,8 +771,7 @@ class BranchCoverageTest {
         @Test
         void row_modifiedByProjection() {
             // Row: modified flag set → reconstructFromFlatMap
-            String result = SQL4Json.query(
-                    "SELECT name, UPPER(dept) AS dept FROM $r", EMPLOYEES);
+            String result = SQL4Json.query("SELECT name, UPPER(dept) AS dept FROM $r", EMPLOYEES);
             assertTrue(result.contains("ENG"));
         }
     }
@@ -935,8 +892,7 @@ class BranchCoverageTest {
             // JsonUnflattener: reconstructFromFlatMap with SELECT * and nested paths
             String json = """
                     [{"a": 1, "nested": {"x": 10}}, {"a": 2, "nested": {"x": 20}}]""";
-            String result = SQL4Json.query(
-                    "SELECT * FROM (SELECT a, nested.x FROM $r WHERE a > 0)", json);
+            String result = SQL4Json.query("SELECT * FROM (SELECT a, nested.x FROM $r WHERE a > 0)", json);
             assertNotNull(result);
         }
 
@@ -974,9 +930,8 @@ class BranchCoverageTest {
             // JsonUnflattener: columnName() == null path
             String json = """
                     [{"a": 1}, {"a": 2}]""";
-            String result = SQL4Json.query(
-                    "SELECT a, CASE WHEN a > 1 THEN 'big' ELSE 'small' END AS size FROM $r",
-                    json);
+            String result =
+                    SQL4Json.query("SELECT a, CASE WHEN a > 1 THEN 'big' ELSE 'small' END AS size FROM $r", json);
             assertTrue(result.contains("size"));
         }
 
@@ -985,8 +940,7 @@ class BranchCoverageTest {
             // DistinctKey: sqlValueHash for SqlDateTime
             String json = """
                     [{"ts":"2024-01-01T10:00:00"},{"ts":"2024-01-01T10:00:00"},{"ts":"2024-01-02T15:00:00"}]""";
-            String result = SQL4Json.query(
-                    "SELECT DISTINCT TO_DATE(ts) AS dt FROM $r", json);
+            String result = SQL4Json.query("SELECT DISTINCT TO_DATE(ts) AS dt FROM $r", json);
             assertNotNull(result);
         }
     }
@@ -999,7 +953,8 @@ class BranchCoverageTest {
         @Test
         void limitsBuilder_negativeMaxRows_throws() {
             // LimitsSettings.Builder: maxRowsPerQuery negative → throws
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(
+                    IllegalArgumentException.class,
                     () -> Sql4jsonSettings.builder()
                             .limits(l -> l.maxRowsPerQuery(-1))
                             .build());
@@ -1026,7 +981,8 @@ class BranchCoverageTest {
         @Test
         void securityBuilder_negativeWildcards_throws() {
             // SecuritySettings.Builder: negative maxLikeWildcards → throws
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(
+                    IllegalArgumentException.class,
                     () -> Sql4jsonSettings.builder()
                             .security(s -> s.maxLikeWildcards(-1))
                             .build());
@@ -1035,7 +991,8 @@ class BranchCoverageTest {
         @Test
         void cacheBuilder_zeroPatternCache_throws() {
             // CacheSettings.Builder: zero likePatternCacheSize → throws
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(
+                    IllegalArgumentException.class,
                     () -> Sql4jsonSettings.builder()
                             .cache(c -> c.likePatternCacheSize(0))
                             .build());
@@ -1044,7 +1001,8 @@ class BranchCoverageTest {
         @Test
         void cacheBuilder_zeroCacheSize_throws() {
             // CacheSettings.Builder: zero queryResultCacheSize → throws
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(
+                    IllegalArgumentException.class,
                     () -> Sql4jsonSettings.builder()
                             .cache(c -> c.queryResultCacheSize(0))
                             .build());
@@ -1108,8 +1066,7 @@ class BranchCoverageTest {
         @Test
         void notBetween_nullField() {
             // BetweenConditionHandler: fieldVal.isNull() with negate=true
-            String result = SQL4Json.query(
-                    "SELECT name FROM $r WHERE age NOT BETWEEN 20 AND 30", EMPLOYEES);
+            String result = SQL4Json.query("SELECT name FROM $r WHERE age NOT BETWEEN 20 AND 30", EMPLOYEES);
             // Diana has null age → negate=true → returns true → included
             assertTrue(result.contains("Diana") || result.contains("Charlie"));
         }
@@ -1117,8 +1074,7 @@ class BranchCoverageTest {
         @Test
         void in_nullField_returnsNegate() {
             // InConditionHandler: fieldVal.isNull() → return negate
-            String result = SQL4Json.query(
-                    "SELECT name FROM $r WHERE age IN (30, 25, 35)", EMPLOYEES);
+            String result = SQL4Json.query("SELECT name FROM $r WHERE age IN (30, 25, 35)", EMPLOYEES);
             // Diana has null age → negate=false → returns false → excluded
             assertFalse(result.contains("Diana"));
         }
@@ -1126,8 +1082,7 @@ class BranchCoverageTest {
         @Test
         void notIn_nullField_excluded() {
             // SQL standard: null NOT IN (values) → UNKNOWN → excluded
-            String result = SQL4Json.query(
-                    "SELECT name FROM $r WHERE age NOT IN (30)", EMPLOYEES);
+            String result = SQL4Json.query("SELECT name FROM $r WHERE age NOT IN (30)", EMPLOYEES);
             // Diana has null age → UNKNOWN → excluded
             assertFalse(result.contains("Diana"));
         }
@@ -1135,8 +1090,7 @@ class BranchCoverageTest {
         @Test
         void in_withNullInList() {
             // InConditionHandler: null values in list filtered out
-            String result = SQL4Json.query(
-                    "SELECT name FROM $r WHERE age IN (30, NULL)", EMPLOYEES);
+            String result = SQL4Json.query("SELECT name FROM $r WHERE age IN (30, NULL)", EMPLOYEES);
             assertTrue(result.contains("Alice"));
         }
     }

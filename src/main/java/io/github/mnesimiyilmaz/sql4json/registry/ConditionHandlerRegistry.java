@@ -1,8 +1,8 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.registry;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException;
 import io.github.mnesimiyilmaz.sql4json.settings.Sql4jsonSettings;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -11,8 +11,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /**
- * Registry of {@link ConditionHandler} implementations. Resolves a {@link ConditionContext}
- * to an executable {@link CriteriaNode} by delegating to the first matching handler.
+ * Registry of {@link ConditionHandler} implementations. Resolves a {@link ConditionContext} to an executable
+ * {@link CriteriaNode} by delegating to the first matching handler.
  *
  * <p>Instances are cached per distinct {@code likePatternCacheSize} via {@link #forSettings}.
  */
@@ -43,9 +43,7 @@ public final class ConditionHandlerRegistry {
         handlers.add(handler);
     }
 
-    /**
-     * Makes the handler list unmodifiable. Called after all handlers are registered.
-     */
+    /** Makes the handler list unmodifiable. Called after all handlers are registered. */
     public void freeze() {
         handlers = Collections.unmodifiableList(handlers);
     }
@@ -60,8 +58,7 @@ public final class ConditionHandlerRegistry {
         return handlers.stream()
                 .filter(h -> h.canHandle(ctx))
                 .findFirst()
-                .orElseThrow(() -> new SQL4JsonExecutionException(
-                        "No handler found for condition type: " + ctx.type()))
+                .orElseThrow(() -> new SQL4JsonExecutionException("No handler found for condition type: " + ctx.type()))
                 .handle(ctx, operatorRegistry, functionRegistry);
     }
 
@@ -71,8 +68,7 @@ public final class ConditionHandlerRegistry {
     // every caller uses defaults(). Keying on the full Sql4jsonSettings record
     // would let unrelated field changes (LimitsSettings / SecuritySettings)
     // accumulate unbounded entries, reintroducing a DoS vector.
-    private static final ConcurrentMap<Integer, ConditionHandlerRegistry> CACHE =
-            new ConcurrentHashMap<>();
+    private static final ConcurrentMap<Integer, ConditionHandlerRegistry> CACHE = new ConcurrentHashMap<>();
 
     /**
      * Returns a cached registry for the given settings (keyed by likePatternCacheSize).
@@ -82,9 +78,7 @@ public final class ConditionHandlerRegistry {
      */
     public static ConditionHandlerRegistry forSettings(Sql4jsonSettings settings) {
         Objects.requireNonNull(settings, "settings");
-        return CACHE.computeIfAbsent(
-                settings.cache().likePatternCacheSize(),
-                ConditionHandlerRegistry::build);
+        return CACHE.computeIfAbsent(settings.cache().likePatternCacheSize(), ConditionHandlerRegistry::build);
     }
 
     private static ConditionHandlerRegistry build(int likePatternCacheSize) {

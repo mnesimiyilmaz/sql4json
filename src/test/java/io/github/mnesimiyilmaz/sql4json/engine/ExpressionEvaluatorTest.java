@@ -1,4 +1,8 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.engine;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.github.mnesimiyilmaz.sql4json.engine.Expression.*;
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException;
@@ -7,13 +11,9 @@ import io.github.mnesimiyilmaz.sql4json.types.SqlNull;
 import io.github.mnesimiyilmaz.sql4json.types.SqlNumber;
 import io.github.mnesimiyilmaz.sql4json.types.SqlString;
 import io.github.mnesimiyilmaz.sql4json.types.SqlValue;
-import org.junit.jupiter.api.Test;
-
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.Test;
 
 class ExpressionEvaluatorTest {
 
@@ -55,10 +55,9 @@ class ExpressionEvaluatorTest {
     void nested_trim_nullif() {
         // TRIM(NULLIF(name, ''))
         Row row = rowOf("name", new SqlString("  hello  "));
-        Expression expr = new ScalarFnCall("trim", List.of(
-                new ScalarFnCall("nullif", List.of(
-                        new ColumnRef("name"),
-                        new LiteralVal(new SqlString(""))))));
+        Expression expr = new ScalarFnCall(
+                "trim",
+                List.of(new ScalarFnCall("nullif", List.of(new ColumnRef("name"), new LiteralVal(new SqlString(""))))));
         SqlValue result = ExpressionEvaluator.evaluate(expr, row, FUNCTIONS);
         assertEquals(new SqlString("hello"), result);
     }
@@ -67,9 +66,7 @@ class ExpressionEvaluatorTest {
     void nullif_returns_null_when_equal() {
         // NULLIF(rating, 0) where rating = 0
         Row row = rowOf("rating", SqlNumber.of(0));
-        Expression expr = new ScalarFnCall("nullif", List.of(
-                new ColumnRef("rating"),
-                new LiteralVal(SqlNumber.of(0))));
+        Expression expr = new ScalarFnCall("nullif", List.of(new ColumnRef("rating"), new LiteralVal(SqlNumber.of(0))));
         SqlValue result = ExpressionEvaluator.evaluate(expr, row, FUNCTIONS);
         assertEquals(SqlNull.INSTANCE, result);
     }
@@ -78,13 +75,15 @@ class ExpressionEvaluatorTest {
     void deeply_nested_lpad_trim_nullif() {
         // LPAD(TRIM(NULLIF(name, '')), 10, '*')
         Row row = rowOf("name", new SqlString("  hi  "));
-        Expression expr = new ScalarFnCall("lpad", List.of(
-                new ScalarFnCall("trim", List.of(
-                        new ScalarFnCall("nullif", List.of(
-                                new ColumnRef("name"),
-                                new LiteralVal(new SqlString("")))))),
-                new LiteralVal(SqlNumber.of(10)),
-                new LiteralVal(new SqlString("*"))));
+        Expression expr = new ScalarFnCall(
+                "lpad",
+                List.of(
+                        new ScalarFnCall(
+                                "trim",
+                                List.of(new ScalarFnCall(
+                                        "nullif", List.of(new ColumnRef("name"), new LiteralVal(new SqlString("")))))),
+                        new LiteralVal(SqlNumber.of(10)),
+                        new LiteralVal(new SqlString("*"))));
         SqlValue result = ExpressionEvaluator.evaluate(expr, row, FUNCTIONS);
         assertEquals(new SqlString("********hi"), result);
     }
@@ -98,10 +97,8 @@ class ExpressionEvaluatorTest {
                 rowOf("salary", SqlNumber.of(100)),
                 rowOf("salary", SqlNumber.of(0)),
                 rowOf("salary", SqlNumber.of(200)));
-        Expression expr = new AggregateFnCall("AVG",
-                new ScalarFnCall("nullif", List.of(
-                        new ColumnRef("salary"),
-                        new LiteralVal(SqlNumber.of(0)))));
+        Expression expr = new AggregateFnCall(
+                "AVG", new ScalarFnCall("nullif", List.of(new ColumnRef("salary"), new LiteralVal(SqlNumber.of(0)))));
         SqlValue result = ExpressionEvaluator.evaluateAggregate(expr, group, FUNCTIONS);
         // AVG of [100, NULL, 200] — NULL excluded by AVG → (100 + 200) / 2 = 150
         assertEquals(150.0, ((SqlNumber) result).doubleValue(), 0.01);
@@ -114,9 +111,8 @@ class ExpressionEvaluatorTest {
                 rowOf("salary", SqlNumber.of(100)),
                 rowOf("salary", SqlNumber.of(200)),
                 rowOf("salary", SqlNumber.of(200)));
-        Expression expr = new ScalarFnCall("round", List.of(
-                new AggregateFnCall("AVG", new ColumnRef("salary")),
-                new LiteralVal(SqlNumber.of(0))));
+        Expression expr = new ScalarFnCall(
+                "round", List.of(new AggregateFnCall("AVG", new ColumnRef("salary")), new LiteralVal(SqlNumber.of(0))));
         SqlValue result = ExpressionEvaluator.evaluateAggregate(expr, group, FUNCTIONS);
         // AVG = 166.666..., ROUND(..., 0) = 167
         assertEquals(SqlNumber.of(167), result);
@@ -129,12 +125,14 @@ class ExpressionEvaluatorTest {
                 rowOf("salary", SqlNumber.of(100)),
                 rowOf("salary", SqlNumber.of(0)),
                 rowOf("salary", SqlNumber.of(300)));
-        Expression expr = new ScalarFnCall("round", List.of(
-                new AggregateFnCall("AVG",
-                        new ScalarFnCall("nullif", List.of(
-                                new ColumnRef("salary"),
-                                new LiteralVal(SqlNumber.of(0))))),
-                new LiteralVal(SqlNumber.of(2))));
+        Expression expr = new ScalarFnCall(
+                "round",
+                List.of(
+                        new AggregateFnCall(
+                                "AVG",
+                                new ScalarFnCall(
+                                        "nullif", List.of(new ColumnRef("salary"), new LiteralVal(SqlNumber.of(0))))),
+                        new LiteralVal(SqlNumber.of(2))));
         SqlValue result = ExpressionEvaluator.evaluateAggregate(expr, group, FUNCTIONS);
         // NULLIF: [100, NULL, 300] → AVG: 200.0 → ROUND: 200.0
         assertEquals(200.0, ((SqlNumber) result).doubleValue(), 0.01);
@@ -142,10 +140,8 @@ class ExpressionEvaluatorTest {
 
     @Test
     void count_asterisk() {
-        List<Row> group = List.of(
-                rowOf("x", SqlNumber.of(1)),
-                rowOf("x", SqlNumber.of(2)),
-                rowOf("x", SqlNumber.of(3)));
+        List<Row> group =
+                List.of(rowOf("x", SqlNumber.of(1)), rowOf("x", SqlNumber.of(2)), rowOf("x", SqlNumber.of(3)));
         Expression expr = new AggregateFnCall("COUNT", null); // COUNT(*)
         SqlValue result = ExpressionEvaluator.evaluateAggregate(expr, group, FUNCTIONS);
         assertEquals(SqlNumber.of(3), result);
@@ -155,9 +151,8 @@ class ExpressionEvaluatorTest {
 
     @Test
     void evaluateAggregate_columnRef_usesFirstRow() {
-        List<Row> group = List.of(
-                rowOf("dept", new SqlString("Engineering")),
-                rowOf("dept", new SqlString("Engineering")));
+        List<Row> group =
+                List.of(rowOf("dept", new SqlString("Engineering")), rowOf("dept", new SqlString("Engineering")));
         Expression expr = new ColumnRef("dept");
         SqlValue result = ExpressionEvaluator.evaluateAggregate(expr, group, FUNCTIONS);
         assertEquals(new SqlString("Engineering"), result);
@@ -177,29 +172,26 @@ class ExpressionEvaluatorTest {
     void evaluate_aggregateInRowContext_throws() {
         Row row = rowOf("x", SqlNumber.of(1));
         Expression expr = new AggregateFnCall("COUNT", null);
-        assertThrows(SQL4JsonExecutionException.class,
-                () -> ExpressionEvaluator.evaluate(expr, row, FUNCTIONS));
+        assertThrows(SQL4JsonExecutionException.class, () -> ExpressionEvaluator.evaluate(expr, row, FUNCTIONS));
     }
 
     // ── evaluate/evaluateAggregate: WindowFnCall throws ───────────────────
 
     @Test
     void evaluate_throws_for_window_function() {
-        var winExpr = new WindowFnCall("ROW_NUMBER", List.of(),
-                new WindowSpec(List.of(), List.of()));
+        var winExpr = new WindowFnCall("ROW_NUMBER", List.of(), new WindowSpec(List.of(), List.of()));
         Row row = Row.eager(Map.of());
 
-        assertThrows(SQL4JsonExecutionException.class,
-                () -> ExpressionEvaluator.evaluate(winExpr, row, FUNCTIONS));
+        assertThrows(SQL4JsonExecutionException.class, () -> ExpressionEvaluator.evaluate(winExpr, row, FUNCTIONS));
     }
 
     @Test
     void evaluateAggregate_throws_for_window_function() {
-        var winExpr = new WindowFnCall("ROW_NUMBER", List.of(),
-                new WindowSpec(List.of(), List.of()));
+        var winExpr = new WindowFnCall("ROW_NUMBER", List.of(), new WindowSpec(List.of(), List.of()));
         List<Row> group = List.of(Row.eager(Map.of()));
 
-        assertThrows(SQL4JsonExecutionException.class,
+        assertThrows(
+                SQL4JsonExecutionException.class,
                 () -> ExpressionEvaluator.evaluateAggregate(winExpr, group, FUNCTIONS));
     }
 }

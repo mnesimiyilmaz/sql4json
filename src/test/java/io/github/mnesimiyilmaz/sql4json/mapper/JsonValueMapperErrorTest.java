@@ -1,4 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.mapper;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonMappingException;
 import io.github.mnesimiyilmaz.sql4json.json.JsonLongValue;
@@ -6,12 +9,9 @@ import io.github.mnesimiyilmaz.sql4json.json.JsonObjectValue;
 import io.github.mnesimiyilmaz.sql4json.json.JsonStringValue;
 import io.github.mnesimiyilmaz.sql4json.settings.MappingSettings;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
-import org.junit.jupiter.api.Test;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class JsonValueMapperErrorTest {
 
@@ -43,7 +43,7 @@ class JsonValueMapperErrorTest {
 
         public void setValue(Integer i) {
             this.value = i;
-        }  // more specific
+        } // more specific
 
         public Object getValue() {
             return value;
@@ -71,8 +71,8 @@ class JsonValueMapperErrorTest {
     @Test
     void when_pojo_has_no_public_noarg_ctor_then_exception() {
         JsonValue v = obj(Map.of("name", new JsonStringValue("x")));
-        SQL4JsonMappingException e = assertThrows(SQL4JsonMappingException.class,
-                () -> JsonValueMapper.INSTANCE.map(v, NoDefaultCtor.class, S));
+        SQL4JsonMappingException e = assertThrows(
+                SQL4JsonMappingException.class, () -> JsonValueMapper.INSTANCE.map(v, NoDefaultCtor.class, S));
         assertTrue(e.getMessage().contains("No public no-arg constructor"));
         assertTrue(e.getMessage().contains(NoDefaultCtor.class.getName()));
     }
@@ -80,8 +80,8 @@ class JsonValueMapperErrorTest {
     @Test
     void when_setter_throws_then_wrapped_with_cause() {
         JsonValue v = obj(Map.of("age", new JsonLongValue(-1L)));
-        SQL4JsonMappingException e = assertThrows(SQL4JsonMappingException.class,
-                () -> JsonValueMapper.INSTANCE.map(v, ThrowingSetter.class, S));
+        SQL4JsonMappingException e = assertThrows(
+                SQL4JsonMappingException.class, () -> JsonValueMapper.INSTANCE.map(v, ThrowingSetter.class, S));
         assertInstanceOf(IllegalArgumentException.class, e.getCause());
         assertEquals("negative", e.getCause().getMessage());
     }
@@ -100,7 +100,6 @@ class JsonValueMapperErrorTest {
         var outer = new LinkedHashMap<String, JsonValue>();
         var inner = new JsonObjectValue(outer);
         outer.put("next", inner);
-        assertThrows(SQL4JsonMappingException.class,
-                () -> JsonValueMapper.INSTANCE.map(inner, Node.class, S));
+        assertThrows(SQL4JsonMappingException.class, () -> JsonValueMapper.INSTANCE.map(inner, Node.class, S));
     }
 }

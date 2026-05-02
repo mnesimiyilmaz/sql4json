@@ -1,13 +1,13 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.json;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import org.junit.jupiter.api.Test;
 
 class IsoTemporalsTest {
 
@@ -29,14 +29,12 @@ class IsoTemporalsTest {
 
     @Test
     void when_valid_iso_datetime_then_parse_returns_local_datetime() {
-        assertEquals(LocalDateTime.of(2026, 4, 21, 10, 15, 30),
-                IsoTemporals.tryParseDateTime("2026-04-21T10:15:30"));
+        assertEquals(LocalDateTime.of(2026, 4, 21, 10, 15, 30), IsoTemporals.tryParseDateTime("2026-04-21T10:15:30"));
     }
 
     @Test
     void when_iso_date_only_passed_then_parse_datetime_returns_start_of_day() {
-        assertEquals(LocalDateTime.of(2026, 4, 21, 0, 0),
-                IsoTemporals.tryParseDateTime("2026-04-21"));
+        assertEquals(LocalDateTime.of(2026, 4, 21, 0, 0), IsoTemporals.tryParseDateTime("2026-04-21"));
     }
 
     @Test

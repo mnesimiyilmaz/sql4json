@@ -1,10 +1,11 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class SQLClauseTest {
 
@@ -49,8 +50,12 @@ class SQLClauseTest {
             var result = query("SELECT DISTINCT dept FROM $r ORDER BY dept ASC");
             var rows = result.asArray().orElseThrow();
             assertEquals(2, rows.size());
-            assertEquals("HR", rows.get(0).asObject().orElseThrow().get("dept").asString().orElseThrow());
-            assertEquals("IT", rows.get(1).asObject().orElseThrow().get("dept").asString().orElseThrow());
+            assertEquals(
+                    "HR",
+                    rows.get(0).asObject().orElseThrow().get("dept").asString().orElseThrow());
+            assertEquals(
+                    "IT",
+                    rows.get(1).asObject().orElseThrow().get("dept").asString().orElseThrow());
         }
 
         @Test
@@ -100,8 +105,24 @@ class SQLClauseTest {
             var result = query("SELECT * FROM $r ORDER BY age ASC LIMIT 2");
             var rows = result.asArray().orElseThrow();
             assertEquals(2, rows.size());
-            assertEquals(20, rows.get(0).asObject().orElseThrow().get("age").asNumber().orElseThrow().intValue());
-            assertEquals(25, rows.get(1).asObject().orElseThrow().get("age").asNumber().orElseThrow().intValue());
+            assertEquals(
+                    20,
+                    rows.get(0)
+                            .asObject()
+                            .orElseThrow()
+                            .get("age")
+                            .asNumber()
+                            .orElseThrow()
+                            .intValue());
+            assertEquals(
+                    25,
+                    rows.get(1)
+                            .asObject()
+                            .orElseThrow()
+                            .get("age")
+                            .asNumber()
+                            .orElseThrow()
+                            .intValue());
         }
 
         @Test
@@ -109,8 +130,24 @@ class SQLClauseTest {
             var result = query("SELECT * FROM $r ORDER BY age ASC LIMIT 2 OFFSET 2");
             var rows = result.asArray().orElseThrow();
             assertEquals(2, rows.size());
-            assertEquals(28, rows.get(0).asObject().orElseThrow().get("age").asNumber().orElseThrow().intValue());
-            assertEquals(30, rows.get(1).asObject().orElseThrow().get("age").asNumber().orElseThrow().intValue());
+            assertEquals(
+                    28,
+                    rows.get(0)
+                            .asObject()
+                            .orElseThrow()
+                            .get("age")
+                            .asNumber()
+                            .orElseThrow()
+                            .intValue());
+            assertEquals(
+                    30,
+                    rows.get(1)
+                            .asObject()
+                            .orElseThrow()
+                            .get("age")
+                            .asNumber()
+                            .orElseThrow()
+                            .intValue());
         }
 
         @Test
@@ -136,7 +173,15 @@ class SQLClauseTest {
             var result = query("SELECT * FROM $r WHERE age > 20 ORDER BY age ASC LIMIT 2");
             var rows = result.asArray().orElseThrow();
             assertEquals(2, rows.size());
-            assertEquals(25, rows.get(0).asObject().orElseThrow().get("age").asNumber().orElseThrow().intValue());
+            assertEquals(
+                    25,
+                    rows.get(0)
+                            .asObject()
+                            .orElseThrow()
+                            .get("age")
+                            .asNumber()
+                            .orElseThrow()
+                            .intValue());
         }
 
         @Test

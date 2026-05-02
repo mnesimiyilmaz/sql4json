@@ -1,19 +1,18 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json;
 
 final class TestDataGenerator {
 
     private static final String[] NAMES = {
-            "Alice", "Bob", "Carol", "David", "Eve", "Frank",
-            "Grace", "Henry", "Ivy", "Jack"
+        "Alice", "Bob", "Carol", "David", "Eve", "Frank", "Grace", "Henry", "Ivy", "Jack"
     };
 
     private static final String[] DEPARTMENTS = {
-            "Engineering", "Marketing", "Sales", "HR", "Finance",
-            "Legal", "Support", "Product", "Design", "Operations"
+        "Engineering", "Marketing", "Sales", "HR", "Finance",
+        "Legal", "Support", "Product", "Design", "Operations"
     };
 
-    private TestDataGenerator() {
-    }
+    private TestDataGenerator() {}
 
     static String generateLargeArray(int rowCount, int fieldCount) {
         var sb = new StringBuilder(rowCount * 80);
@@ -24,7 +23,9 @@ final class TestDataGenerator {
             sb.append("\"id\":").append(i);
             sb.append(",\"name\":\"").append(NAMES[i % NAMES.length]).append(i).append('"');
             sb.append(",\"age\":").append(i % 100);
-            sb.append(",\"dept\":\"").append(DEPARTMENTS[i % DEPARTMENTS.length]).append('"');
+            sb.append(",\"dept\":\"")
+                    .append(DEPARTMENTS[i % DEPARTMENTS.length])
+                    .append('"');
             for (int f = 4; f < fieldCount; f++) {
                 sb.append(",\"col_").append(f).append("\":").append(i + f);
             }

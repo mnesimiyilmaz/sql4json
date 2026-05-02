@@ -1,17 +1,17 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.registry;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException;
 import io.github.mnesimiyilmaz.sql4json.types.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class FunctionRegistryTest {
 
@@ -22,11 +22,12 @@ class FunctionRegistryTest {
     @Test
     void sqlFunction_patternMatch_exhaustive() {
         SqlFunction fn = new ScalarFunction("test", (v, args) -> v);
-        String type = switch (fn) {
-            case ScalarFunction s -> "scalar";
-            case ValueFunction v -> "value";
-            case AggregateFunction a -> "aggregate";
-        };
+        String type =
+                switch (fn) {
+                    case ScalarFunction s -> "scalar";
+                    case ValueFunction v -> "value";
+                    case AggregateFunction a -> "aggregate";
+                };
         assertEquals("scalar", type);
     }
 
@@ -92,8 +93,7 @@ class FunctionRegistryTest {
     @Test
     void toDate_customFormat_returnsDate() {
         var fn = registry.getScalar("to_date").orElseThrow();
-        SqlValue result = fn.apply().apply(
-                new SqlString("15/06/2024"), List.of(new SqlString("dd/MM/yyyy")));
+        SqlValue result = fn.apply().apply(new SqlString("15/06/2024"), List.of(new SqlString("dd/MM/yyyy")));
         assertInstanceOf(SqlDate.class, result);
         assertEquals(LocalDate.of(2024, 6, 15), ((SqlDate) result).value());
     }
@@ -122,8 +122,7 @@ class FunctionRegistryTest {
     @Test
     void count_returnsSize() {
         var fn = registry.getAggregate("count").orElseThrow();
-        SqlValue result = fn.apply().apply(
-                List.of(new SqlString("a"), new SqlString("b"), new SqlString("c")));
+        SqlValue result = fn.apply().apply(List.of(new SqlString("a"), new SqlString("b"), new SqlString("c")));
         assertInstanceOf(SqlNumber.class, result);
         assertEquals(3.0, ((SqlNumber) result).doubleValue(), 1e-10);
     }
@@ -140,16 +139,14 @@ class FunctionRegistryTest {
     @Test
     void sum_numbers() {
         var fn = registry.getAggregate("sum").orElseThrow();
-        SqlValue result = fn.apply().apply(
-                List.of(SqlNumber.of(1), SqlNumber.of(2), SqlNumber.of(3)));
+        SqlValue result = fn.apply().apply(List.of(SqlNumber.of(1), SqlNumber.of(2), SqlNumber.of(3)));
         assertEquals(6.0, ((SqlNumber) result).doubleValue(), 1e-10);
     }
 
     @Test
     void sum_nonNumbersIgnored() {
         var fn = registry.getAggregate("sum").orElseThrow();
-        SqlValue result = fn.apply().apply(
-                List.of(SqlNumber.of(5), new SqlString("x"), SqlNumber.of(5)));
+        SqlValue result = fn.apply().apply(List.of(SqlNumber.of(5), new SqlString("x"), SqlNumber.of(5)));
         assertEquals(10.0, ((SqlNumber) result).doubleValue(), 1e-10);
     }
 
@@ -158,8 +155,7 @@ class FunctionRegistryTest {
     @Test
     void avg_numbers() {
         var fn = registry.getAggregate("avg").orElseThrow();
-        SqlValue result = fn.apply().apply(
-                List.of(SqlNumber.of(10), SqlNumber.of(20), SqlNumber.of(30)));
+        SqlValue result = fn.apply().apply(List.of(SqlNumber.of(10), SqlNumber.of(20), SqlNumber.of(30)));
         assertEquals(20.0, ((SqlNumber) result).doubleValue(), 1e-10);
     }
 
@@ -176,16 +172,14 @@ class FunctionRegistryTest {
     @Test
     void min_numbers() {
         var fn = registry.getAggregate("min").orElseThrow();
-        SqlValue result = fn.apply().apply(
-                List.of(SqlNumber.of(3), SqlNumber.of(1), SqlNumber.of(2)));
+        SqlValue result = fn.apply().apply(List.of(SqlNumber.of(3), SqlNumber.of(1), SqlNumber.of(2)));
         assertEquals(1.0, ((SqlNumber) result).doubleValue(), 1e-10);
     }
 
     @Test
     void min_nullsIgnored() {
         var fn = registry.getAggregate("min").orElseThrow();
-        SqlValue result = fn.apply().apply(
-                List.of(SqlNull.INSTANCE, SqlNumber.of(5), SqlNull.INSTANCE));
+        SqlValue result = fn.apply().apply(List.of(SqlNull.INSTANCE, SqlNumber.of(5), SqlNull.INSTANCE));
         assertEquals(5.0, ((SqlNumber) result).doubleValue(), 1e-10);
     }
 
@@ -201,16 +195,15 @@ class FunctionRegistryTest {
     @Test
     void max_numbers() {
         var fn = registry.getAggregate("max").orElseThrow();
-        SqlValue result = fn.apply().apply(
-                List.of(SqlNumber.of(1), SqlNumber.of(3), SqlNumber.of(2)));
+        SqlValue result = fn.apply().apply(List.of(SqlNumber.of(1), SqlNumber.of(3), SqlNumber.of(2)));
         assertEquals(3.0, ((SqlNumber) result).doubleValue(), 1e-10);
     }
 
     @Test
     void max_strings() {
         var fn = registry.getAggregate("max").orElseThrow();
-        SqlValue result = fn.apply().apply(
-                List.of(new SqlString("apple"), new SqlString("zebra"), new SqlString("mango")));
+        SqlValue result =
+                fn.apply().apply(List.of(new SqlString("apple"), new SqlString("zebra"), new SqlString("mango")));
         assertInstanceOf(SqlString.class, result);
         assertEquals("zebra", ((SqlString) result).value());
     }
@@ -254,8 +247,7 @@ class FunctionRegistryTest {
     @CsvSource({"hour,14", "minute,30", "second,45"})
     void timeComponent_onDateTime_returnsExpected(String fnName, int expected) {
         var fn = registry.getScalar(fnName).orElseThrow();
-        SqlValue result = fn.apply().apply(
-                new SqlDateTime(LocalDateTime.of(2024, 6, 15, 14, 30, 45)), List.of());
+        SqlValue result = fn.apply().apply(new SqlDateTime(LocalDateTime.of(2024, 6, 15, 14, 30, 45)), List.of());
         assertEquals(SqlNumber.of(expected), result);
     }
 
@@ -271,9 +263,8 @@ class FunctionRegistryTest {
     @Test
     void dateAdd_hoursOnDate_promotesToDateTime() {
         var fn = registry.getScalar("date_add").orElseThrow();
-        SqlValue result = fn.apply().apply(
-                new SqlDate(LocalDate.of(2024, 1, 1)),
-                List.of(SqlNumber.of(5), new SqlString("HOUR")));
+        SqlValue result = fn.apply()
+                .apply(new SqlDate(LocalDate.of(2024, 1, 1)), List.of(SqlNumber.of(5), new SqlString("HOUR")));
         assertInstanceOf(SqlDateTime.class, result);
         assertEquals(LocalDateTime.of(2024, 1, 1, 5, 0), ((SqlDateTime) result).value());
     }
@@ -281,9 +272,8 @@ class FunctionRegistryTest {
     @Test
     void dateAdd_daysOnDate_staysDate() {
         var fn = registry.getScalar("date_add").orElseThrow();
-        SqlValue result = fn.apply().apply(
-                new SqlDate(LocalDate.of(2024, 1, 1)),
-                List.of(SqlNumber.of(10), new SqlString("DAY")));
+        SqlValue result = fn.apply()
+                .apply(new SqlDate(LocalDate.of(2024, 1, 1)), List.of(SqlNumber.of(10), new SqlString("DAY")));
         assertInstanceOf(SqlDate.class, result);
         assertEquals(LocalDate.of(2024, 1, 11), ((SqlDate) result).value());
     }
@@ -291,27 +281,23 @@ class FunctionRegistryTest {
     @Test
     void dateAdd_onNull_returnsNull() {
         var fn = registry.getScalar("date_add").orElseThrow();
-        SqlValue result = fn.apply().apply(
-                SqlNull.INSTANCE,
-                List.of(SqlNumber.of(1), new SqlString("DAY")));
+        SqlValue result = fn.apply().apply(SqlNull.INSTANCE, List.of(SqlNumber.of(1), new SqlString("DAY")));
         assertSame(SqlNull.INSTANCE, result);
     }
 
     @Test
     void dateAdd_minutesOnDate_promotesToDateTime() {
         var fn = registry.getScalar("date_add").orElseThrow();
-        SqlValue result = fn.apply().apply(
-                new SqlDate(LocalDate.of(2024, 6, 1)),
-                List.of(SqlNumber.of(90), new SqlString("MINUTE")));
+        SqlValue result = fn.apply()
+                .apply(new SqlDate(LocalDate.of(2024, 6, 1)), List.of(SqlNumber.of(90), new SqlString("MINUTE")));
         assertInstanceOf(SqlDateTime.class, result);
     }
 
     @Test
     void dateAdd_secondsOnDate_promotesToDateTime() {
         var fn = registry.getScalar("date_add").orElseThrow();
-        SqlValue result = fn.apply().apply(
-                new SqlDate(LocalDate.of(2024, 6, 1)),
-                List.of(SqlNumber.of(3600), new SqlString("SECOND")));
+        SqlValue result = fn.apply()
+                .apply(new SqlDate(LocalDate.of(2024, 6, 1)), List.of(SqlNumber.of(3600), new SqlString("SECOND")));
         assertInstanceOf(SqlDateTime.class, result);
     }
 
@@ -320,36 +306,36 @@ class FunctionRegistryTest {
     @Test
     void dateDiff_betweenDates_inDays() {
         var fn = registry.getScalar("date_diff").orElseThrow();
-        SqlValue result = fn.apply().apply(
-                new SqlDate(LocalDate.of(2024, 1, 11)),
-                List.of(new SqlDate(LocalDate.of(2024, 1, 1)), new SqlString("DAY")));
+        SqlValue result = fn.apply()
+                .apply(
+                        new SqlDate(LocalDate.of(2024, 1, 11)),
+                        List.of(new SqlDate(LocalDate.of(2024, 1, 1)), new SqlString("DAY")));
         assertEquals(SqlNumber.of(10), result);
     }
 
     @Test
     void dateDiff_dateAndDateTime_mixed() {
         var fn = registry.getScalar("date_diff").orElseThrow();
-        SqlValue result = fn.apply().apply(
-                new SqlDateTime(LocalDateTime.of(2024, 1, 2, 12, 0)),
-                List.of(new SqlDate(LocalDate.of(2024, 1, 1)), new SqlString("HOUR")));
+        SqlValue result = fn.apply()
+                .apply(
+                        new SqlDateTime(LocalDateTime.of(2024, 1, 2, 12, 0)),
+                        List.of(new SqlDate(LocalDate.of(2024, 1, 1)), new SqlString("HOUR")));
         assertEquals(SqlNumber.of(36), result);
     }
 
     @Test
     void dateDiff_onNull_returnsNull() {
         var fn = registry.getScalar("date_diff").orElseThrow();
-        SqlValue result = fn.apply().apply(
-                SqlNull.INSTANCE,
-                List.of(new SqlDate(LocalDate.of(2024, 1, 1)), new SqlString("DAY")));
+        SqlValue result = fn.apply()
+                .apply(SqlNull.INSTANCE, List.of(new SqlDate(LocalDate.of(2024, 1, 1)), new SqlString("DAY")));
         assertSame(SqlNull.INSTANCE, result);
     }
 
     @Test
     void dateDiff_nullSecondArg_returnsNull() {
         var fn = registry.getScalar("date_diff").orElseThrow();
-        SqlValue result = fn.apply().apply(
-                new SqlDate(LocalDate.of(2024, 1, 1)),
-                List.of(SqlNull.INSTANCE, new SqlString("DAY")));
+        SqlValue result = fn.apply()
+                .apply(new SqlDate(LocalDate.of(2024, 1, 1)), List.of(SqlNull.INSTANCE, new SqlString("DAY")));
         assertSame(SqlNull.INSTANCE, result);
     }
 
@@ -359,9 +345,10 @@ class FunctionRegistryTest {
     void dateAdd_badUnit_throwsExecutionException() {
         var fn = registry.getScalar("date_add").orElseThrow().apply();
         SqlDate date = new SqlDate(LocalDate.of(2024, 1, 1));
-        var ex = assertThrows(SQL4JsonExecutionException.class,
-                () -> fn.apply(date, List.of(SqlNumber.of(1), new SqlString("FOO"))));
-        assertTrue(ex.getMessage().contains("Unsupported date unit"),
+        var ex = assertThrows(
+                SQL4JsonExecutionException.class, () -> fn.apply(date, List.of(SqlNumber.of(1), new SqlString("FOO"))));
+        assertTrue(
+                ex.getMessage().contains("Unsupported date unit"),
                 "Expected message to contain 'Unsupported date unit' but was: " + ex.getMessage());
         assertInstanceOf(IllegalArgumentException.class, ex.getCause());
     }
@@ -371,9 +358,10 @@ class FunctionRegistryTest {
         var fn = registry.getScalar("date_diff").orElseThrow().apply();
         SqlDate date = new SqlDate(LocalDate.of(2024, 1, 11));
         SqlDate date2 = new SqlDate(LocalDate.of(2024, 1, 1));
-        var ex = assertThrows(SQL4JsonExecutionException.class,
-                () -> fn.apply(date, List.of(date2, new SqlString("FOO"))));
-        assertTrue(ex.getMessage().contains("Unsupported date unit"),
+        var ex = assertThrows(
+                SQL4JsonExecutionException.class, () -> fn.apply(date, List.of(date2, new SqlString("FOO"))));
+        assertTrue(
+                ex.getMessage().contains("Unsupported date unit"),
                 "Expected message to contain 'Unsupported date unit' but was: " + ex.getMessage());
         assertInstanceOf(IllegalArgumentException.class, ex.getCause());
     }
@@ -383,9 +371,11 @@ class FunctionRegistryTest {
         // 'p' is a reserved pad-letter that must be followed by a valid pad pattern —
         // DateTimeFormatter.ofPattern("p") always throws IllegalArgumentException.
         var fn = registry.getScalar("to_date").orElseThrow().apply();
-        var ex = assertThrows(SQL4JsonExecutionException.class,
+        var ex = assertThrows(
+                SQL4JsonExecutionException.class,
                 () -> fn.apply(new SqlString("2024-01-01"), List.of(new SqlString("p"))));
-        assertTrue(ex.getMessage().contains("Invalid date format pattern"),
+        assertTrue(
+                ex.getMessage().contains("Invalid date format pattern"),
                 "Expected message to contain 'Invalid date format pattern' but was: " + ex.getMessage());
         assertInstanceOf(IllegalArgumentException.class, ex.getCause());
     }
@@ -414,8 +404,7 @@ class FunctionRegistryTest {
         SqlDate d = new SqlDate(LocalDate.of(2024, 1, 1));
         SqlValue result = fn.apply().apply(d, List.of(new SqlString("NUMBER")));
         assertInstanceOf(SqlNumber.class, result);
-        assertEquals((double) LocalDate.of(2024, 1, 1).toEpochDay(),
-                ((SqlNumber) result).doubleValue(), 1e-10);
+        assertEquals((double) LocalDate.of(2024, 1, 1).toEpochDay(), ((SqlNumber) result).doubleValue(), 1e-10);
     }
 
     @Test
@@ -471,29 +460,29 @@ class FunctionRegistryTest {
     void cast_dateToInteger_throws() {
         var function = registry.getScalar("cast").orElseThrow().apply();
         SqlDate d = new SqlDate(LocalDate.of(2024, 1, 1));
-        assertThrows(SQL4JsonExecutionException.class,
-                () -> function.apply(d, List.of(new SqlString("INTEGER"))));
+        assertThrows(SQL4JsonExecutionException.class, () -> function.apply(d, List.of(new SqlString("INTEGER"))));
     }
 
     @Test
     void cast_dateToBoolean_throws() {
         var function = registry.getScalar("cast").orElseThrow().apply();
         SqlDate d = new SqlDate(LocalDate.of(2024, 1, 1));
-        assertThrows(SQL4JsonExecutionException.class,
-                () -> function.apply(d, List.of(new SqlString("BOOLEAN"))));
+        assertThrows(SQL4JsonExecutionException.class, () -> function.apply(d, List.of(new SqlString("BOOLEAN"))));
     }
 
     @Test
     void cast_numberToDate_throws() {
         var function = registry.getScalar("cast").orElseThrow().apply();
-        assertThrows(SQL4JsonExecutionException.class,
+        assertThrows(
+                SQL4JsonExecutionException.class,
                 () -> function.apply(SqlNumber.of(42), List.of(new SqlString("DATE"))));
     }
 
     @Test
     void cast_numberToDateTime_throws() {
         var function = registry.getScalar("cast").orElseThrow().apply();
-        assertThrows(SQL4JsonExecutionException.class,
+        assertThrows(
+                SQL4JsonExecutionException.class,
                 () -> function.apply(SqlNumber.of(42), List.of(new SqlString("DATETIME"))));
     }
 
@@ -507,7 +496,8 @@ class FunctionRegistryTest {
     @Test
     void cast_unknownType_throws() {
         var function = registry.getScalar("cast").orElseThrow().apply();
-        assertThrows(SQL4JsonExecutionException.class,
+        assertThrows(
+                SQL4JsonExecutionException.class,
                 () -> function.apply(new SqlString("hello"), List.of(new SqlString("BLOB"))));
     }
 

@@ -1,4 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.engine;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.json.JsonLongValue;
 import io.github.mnesimiyilmaz.sql4json.json.JsonObjectValue;
@@ -7,22 +10,17 @@ import io.github.mnesimiyilmaz.sql4json.types.SqlNull;
 import io.github.mnesimiyilmaz.sql4json.types.SqlNumber;
 import io.github.mnesimiyilmaz.sql4json.types.SqlString;
 import io.github.mnesimiyilmaz.sql4json.types.SqlValue;
-import org.junit.jupiter.api.Test;
-
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class RowTest {
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
-    /**
-     * Two-field JSON object: {name: "Alice", age: 30}
-     */
+    /** Two-field JSON object: {name: "Alice", age: 30} */
     private static JsonObjectValue twoFieldObj() {
         var fields = new LinkedHashMap<String, io.github.mnesimiyilmaz.sql4json.types.JsonValue>();
         fields.put("name", new JsonStringValue("Alice"));
@@ -30,9 +28,7 @@ class RowTest {
         return new JsonObjectValue(fields);
     }
 
-    /**
-     * Three-field JSON object: {name: "Bob", city: "NYC", score: 95}
-     */
+    /** Three-field JSON object: {name: "Bob", city: "NYC", score: 95} */
     private static JsonObjectValue threeFieldObj() {
         var fields = new LinkedHashMap<String, io.github.mnesimiyilmaz.sql4json.types.JsonValue>();
         fields.put("name", new JsonStringValue("Bob"));
@@ -71,8 +67,8 @@ class RowTest {
         // those elements may be primitives (string/number/etc.) when the array
         // holds non-object values. The lazy Row falls back to the default
         // initial cache capacity in this case.
-        Row stringRow = Row.lazy(new io.github.mnesimiyilmaz.sql4json.json.JsonStringValue("hi"),
-                new FieldKey.Interner());
+        Row stringRow =
+                Row.lazy(new io.github.mnesimiyilmaz.sql4json.json.JsonStringValue("hi"), new FieldKey.Interner());
         assertTrue(stringRow.originalValue().isPresent());
         assertEquals(0, stringRow.cachedFieldCount());
     }
@@ -227,8 +223,7 @@ class RowTest {
         // obj has no "address" field, so "address.city" path should return SqlNull
         Row row = Row.lazy(twoFieldObj(), interner);
         SqlValue result = row.get(FieldKey.of("address.city", interner));
-        assertSame(SqlNull.INSTANCE, result,
-                "Missing intermediate path segment should return SqlNull");
+        assertSame(SqlNull.INSTANCE, result, "Missing intermediate path segment should return SqlNull");
     }
 
     @Test
@@ -237,8 +232,7 @@ class RowTest {
         // obj has "name" (string), not an array — accessing [0] should return SqlNull
         Row row = Row.lazy(twoFieldObj(), interner);
         SqlValue result = row.get(FieldKey.of("name[0]", interner));
-        assertSame(SqlNull.INSTANCE, result,
-                "Array index on non-array field should return SqlNull");
+        assertSame(SqlNull.INSTANCE, result, "Array index on non-array field should return SqlNull");
     }
 
     @Test
@@ -246,11 +240,11 @@ class RowTest {
         // Build: {tags: ["a", "b"]} and access tags[99]
         FieldKey.Interner interner = new FieldKey.Interner();
         var fields = new LinkedHashMap<String, io.github.mnesimiyilmaz.sql4json.types.JsonValue>();
-        fields.put("tags", new io.github.mnesimiyilmaz.sql4json.json.JsonArrayValue(
-                List.of(
+        fields.put(
+                "tags",
+                new io.github.mnesimiyilmaz.sql4json.json.JsonArrayValue(List.of(
                         new io.github.mnesimiyilmaz.sql4json.json.JsonStringValue("a"),
-                        new io.github.mnesimiyilmaz.sql4json.json.JsonStringValue("b")
-                )));
+                        new io.github.mnesimiyilmaz.sql4json.json.JsonStringValue("b"))));
         Row row = Row.lazy(new io.github.mnesimiyilmaz.sql4json.json.JsonObjectValue(fields), interner);
         SqlValue result = row.get(FieldKey.of("tags[99]", interner));
         assertSame(SqlNull.INSTANCE, result, "True out-of-bounds array index should return SqlNull");
@@ -266,8 +260,8 @@ class RowTest {
         Row row = Row.lazy(twoFieldObj(), new FieldKey.Interner());
         assertNull(row.schema());
         assertFalse(row.hasWindowResults());
-        assertNull(row.getWindowResult(new Expression.WindowFnCall(
-                "ROW_NUMBER", List.of(), new WindowSpec(List.of(), List.of()))));
+        assertNull(row.getWindowResult(
+                new Expression.WindowFnCall("ROW_NUMBER", List.of(), new WindowSpec(List.of(), List.of()))));
         assertTrue(row.sourceGroup().isEmpty());
         assertFalse(row.isAggregated());
     }

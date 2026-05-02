@@ -1,22 +1,20 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.json;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException;
 import io.github.mnesimiyilmaz.sql4json.settings.DefaultJsonCodecSettings;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
-
 import java.util.*;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 /**
- * Streams top-level array elements from a JSON string one at a time.
- * Each element is parsed via {@link JsonParser#parseRegion} — only one
- * element lives in memory at a time.
+ * Streams top-level array elements from a JSON string one at a time. Each element is parsed via
+ * {@link JsonParser#parseRegion} — only one element lives in memory at a time.
  */
 public final class StreamingJsonParser {
 
-    private StreamingJsonParser() {
-    }
+    private StreamingJsonParser() {}
 
     /**
      * Stream elements of a JSON array one at a time.
@@ -31,7 +29,7 @@ public final class StreamingJsonParser {
     /**
      * Navigate to a path then stream the array at that location.
      *
-     * @param json     the raw JSON string
+     * @param json the raw JSON string
      * @param rootPath path like "$r.data.items", "$r", or null (root)
      * @return lazy stream of JsonValue elements
      */
@@ -42,7 +40,7 @@ public final class StreamingJsonParser {
     /**
      * Stream elements of a JSON array one at a time using the given settings.
      *
-     * @param json     the raw JSON string
+     * @param json the raw JSON string
      * @param settings codec/parser settings (security limits, etc.)
      * @return lazy stream of JsonValue elements
      */
@@ -53,7 +51,7 @@ public final class StreamingJsonParser {
     /**
      * Navigate to a path then stream the array at that location using the given settings.
      *
-     * @param json     the raw JSON string
+     * @param json the raw JSON string
      * @param rootPath path like "$r.data.items", "$r", or null (root)
      * @param settings codec/parser settings (security limits, etc.)
      * @return lazy stream of JsonValue elements
@@ -64,9 +62,8 @@ public final class StreamingJsonParser {
             throw new SQL4JsonExecutionException("Failed to parse JSON: input is null or blank");
         }
         if (json.length() > settings.maxInputLength()) {
-            throw new SQL4JsonExecutionException(
-                    "Failed to parse JSON: input length exceeds configured maximum ("
-                            + settings.maxInputLength() + ")");
+            throw new SQL4JsonExecutionException("Failed to parse JSON: input length exceeds configured maximum ("
+                    + settings.maxInputLength() + ")");
         }
 
         // If a non-root path is specified, parse the full structure to locate
@@ -107,23 +104,24 @@ public final class StreamingJsonParser {
         };
     }
 
-    private static Stream<JsonValue> streamArrayElements(String json, int arrayStart, DefaultJsonCodecSettings settings) {
+    private static Stream<JsonValue> streamArrayElements(
+            String json, int arrayStart, DefaultJsonCodecSettings settings) {
         Iterator<JsonValue> iterator = new ArrayElementIterator(json, arrayStart, settings);
-        Spliterator<JsonValue> spliterator = Spliterators.spliteratorUnknownSize(
-                iterator, Spliterator.ORDERED | Spliterator.NONNULL);
+        Spliterator<JsonValue> spliterator =
+                Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED | Spliterator.NONNULL);
         return StreamSupport.stream(spliterator, false);
     }
 
     /**
-     * Iterator that yields one parsed JsonValue per array element.
-     * Uses position-skipping to find element boundaries without parsing.
+     * Iterator that yields one parsed JsonValue per array element. Uses position-skipping to find element boundaries
+     * without parsing.
      */
     private static final class ArrayElementIterator implements Iterator<JsonValue> {
 
-        private final String                   json;
+        private final String json;
         private final DefaultJsonCodecSettings settings;
-        private       int                      pos;
-        private       boolean                  done;
+        private int pos;
+        private boolean done;
 
         ArrayElementIterator(String json, int arrayStart, DefaultJsonCodecSettings settings) {
             this.json = json;
@@ -155,8 +153,7 @@ public final class StreamingJsonParser {
             advancePastWhitespace();
             if (pos >= json.length()) {
                 throw new SQL4JsonExecutionException(
-                        "Failed to parse JSON at position " + pos
-                                + ": Unexpected end of input in array");
+                        "Failed to parse JSON at position " + pos + ": Unexpected end of input in array");
             }
             char c = json.charAt(pos);
             if (c == ']') {
@@ -166,27 +163,22 @@ public final class StreamingJsonParser {
                 advancePastWhitespace();
                 if (pos < json.length() && json.charAt(pos) == ']') {
                     throw new SQL4JsonExecutionException(
-                            "Failed to parse JSON at position " + pos
-                                    + ": Trailing comma in array");
+                            "Failed to parse JSON at position " + pos + ": Trailing comma in array");
                 }
             } else {
                 throw new SQL4JsonExecutionException(
-                        "Failed to parse JSON at position " + pos
-                                + ": Expected ',' or ']' after array element");
+                        "Failed to parse JSON at position " + pos + ": Expected ',' or ']' after array element");
             }
 
             return element;
         }
 
-        /**
-         * Find the end position of the current element starting at {@code pos}.
-         */
+        /** Find the end position of the current element starting at {@code pos}. */
         private int findElementEnd() {
             int p = pos;
             if (p >= json.length()) {
                 throw new SQL4JsonExecutionException(
-                        "Failed to parse JSON at position " + p
-                                + ": Unexpected end of input in array");
+                        "Failed to parse JSON at position " + p + ": Unexpected end of input in array");
             }
 
             char c = json.charAt(p);
@@ -200,9 +192,7 @@ public final class StreamingJsonParser {
             return skipBareValue(p);
         }
 
-        /**
-         * Skip a composite value (object or array) by tracking nesting depth.
-         */
+        /** Skip a composite value (object or array) by tracking nesting depth. */
         private int skipComposite(int start) {
             int p = start;
             int depth = 0;
@@ -223,21 +213,15 @@ public final class StreamingJsonParser {
                 p++;
             }
             throw new SQL4JsonExecutionException(
-                    "Failed to parse JSON at position " + p
-                            + ": Unterminated object or array");
+                    "Failed to parse JSON at position " + p + ": Unterminated object or array");
         }
 
-        /**
-         * Skip a string value including its quotes.
-         */
+        /** Skip a string value including its quotes. */
         private int skipString(int start) {
             return skipStringContents(start);
         }
 
-        /**
-         * Skip string contents: advance past opening quote, handle escapes,
-         * return position after closing quote.
-         */
+        /** Skip string contents: advance past opening quote, handle escapes, return position after closing quote. */
         private int skipStringContents(int start) {
             int p = start + 1; // skip opening '"'
             while (p < json.length()) {
@@ -254,26 +238,21 @@ public final class StreamingJsonParser {
                 }
                 p++;
             }
-            throw new SQL4JsonExecutionException(
-                    "Failed to parse JSON at position " + p + ": Unterminated string");
+            throw new SQL4JsonExecutionException("Failed to parse JSON at position " + p + ": Unterminated string");
         }
 
-        /**
-         * Skip a bare value (number, boolean, null).
-         */
+        /** Skip a bare value (number, boolean, null). */
         private int skipBareValue(int start) {
             int p = start;
             while (p < json.length()) {
                 char c = json.charAt(p);
-                if (c == ',' || c == ']' || c == '}' || c == ' '
-                        || c == '\t' || c == '\n' || c == '\r') {
+                if (c == ',' || c == ']' || c == '}' || c == ' ' || c == '\t' || c == '\n' || c == '\r') {
                     return p;
                 }
                 p++;
             }
             throw new SQL4JsonExecutionException(
-                    "Failed to parse JSON at position " + p
-                            + ": Unexpected end of input in array");
+                    "Failed to parse JSON at position " + p + ": Unexpected end of input in array");
         }
 
         private void advancePastWhitespace() {

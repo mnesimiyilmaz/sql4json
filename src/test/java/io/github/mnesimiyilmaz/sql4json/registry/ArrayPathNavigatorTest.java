@@ -1,4 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.registry;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.engine.FieldKey;
 import io.github.mnesimiyilmaz.sql4json.engine.Row;
@@ -7,14 +10,11 @@ import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
 import io.github.mnesimiyilmaz.sql4json.types.SqlNumber;
 import io.github.mnesimiyilmaz.sql4json.types.SqlString;
 import io.github.mnesimiyilmaz.sql4json.types.SqlValue;
-import org.junit.jupiter.api.Test;
-
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class ArrayPathNavigatorTest {
 
@@ -23,9 +23,7 @@ class ArrayPathNavigatorTest {
     @Test
     void original_navigation_returns_JsonArrayValue_for_top_level_array_field() {
         JsonValue obj = new JsonObjectValue(Map.of(
-                "tags", new JsonArrayValue(List.of(
-                        new JsonStringValue("admin"),
-                        new JsonStringValue("editor")))));
+                "tags", new JsonArrayValue(List.of(new JsonStringValue("admin"), new JsonStringValue("editor")))));
         Row row = Row.lazy(obj, interner);
 
         JsonArrayValue arr = ArrayPathNavigator.navigateToArray(row, "tags");
@@ -61,8 +59,7 @@ class ArrayPathNavigatorTest {
     @Test
     void original_navigation_walks_nested_path() {
         JsonValue obj = new JsonObjectValue(Map.of(
-                "user", new JsonObjectValue(Map.of(
-                        "tags", new JsonArrayValue(List.of(new JsonStringValue("x")))))));
+                "user", new JsonObjectValue(Map.of("tags", new JsonArrayValue(List.of(new JsonStringValue("x")))))));
         Row row = Row.lazy(obj, interner);
 
         JsonArrayValue arr = ArrayPathNavigator.navigateToArray(row, "user.tags");
@@ -81,10 +78,8 @@ class ArrayPathNavigatorTest {
 
     @Test
     void numeric_array_navigation_preserves_types() {
-        JsonValue obj = new JsonObjectValue(Map.of(
-                "scores", new JsonArrayValue(List.of(
-                        new JsonLongValue(1L),
-                        new JsonLongValue(2L)))));
+        JsonValue obj = new JsonObjectValue(
+                Map.of("scores", new JsonArrayValue(List.of(new JsonLongValue(1L), new JsonLongValue(2L)))));
         Row row = Row.lazy(obj, interner);
 
         JsonArrayValue arr = ArrayPathNavigator.navigateToArray(row, "scores");
@@ -95,8 +90,7 @@ class ArrayPathNavigatorTest {
 
     @Test
     void indexed_path_returns_null() {
-        JsonValue obj = new JsonObjectValue(Map.of(
-                "tags", new JsonArrayValue(List.of(new JsonStringValue("admin")))));
+        JsonValue obj = new JsonObjectValue(Map.of("tags", new JsonArrayValue(List.of(new JsonStringValue("admin")))));
         Row row = Row.lazy(obj, interner);
 
         assertNull(ArrayPathNavigator.navigateToArray(row, "tags[0]"));

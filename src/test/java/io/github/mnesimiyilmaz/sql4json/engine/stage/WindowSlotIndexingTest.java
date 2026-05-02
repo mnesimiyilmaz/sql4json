@@ -1,9 +1,10 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.engine.stage;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.SQL4Json;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class WindowSlotIndexingTest {
 
@@ -17,8 +18,7 @@ class WindowSlotIndexingTest {
     @Test
     void plainAliasedWindow_resolvesByAlias() {
         String r = SQL4Json.query(
-                "SELECT name, ROW_NUMBER() OVER (PARTITION BY dept ORDER BY salary DESC) AS rk FROM $r",
-                EMPLOYEES);
+                "SELECT name, ROW_NUMBER() OVER (PARTITION BY dept ORDER BY salary DESC) AS rk FROM $r", EMPLOYEES);
         assertTrue(r.contains("\"rk\":1"));
         assertTrue(r.contains("\"rk\":2"));
     }
@@ -26,8 +26,7 @@ class WindowSlotIndexingTest {
     @Test
     void wrappedWindow_inRound_evaluatesViaExpressionTree() {
         String r = SQL4Json.query(
-                "SELECT name, ROUND(AVG(salary) OVER (PARTITION BY dept), 2) AS avg_pay FROM $r",
-                EMPLOYEES);
+                "SELECT name, ROUND(AVG(salary) OVER (PARTITION BY dept), 2) AS avg_pay FROM $r", EMPLOYEES);
         assertTrue(r.contains("\"avg_pay\":95"));
         assertTrue(r.contains("\"avg_pay\":80"));
     }
@@ -36,9 +35,9 @@ class WindowSlotIndexingTest {
     void caseBuriedWindow_inWhenCondition() {
         String r = SQL4Json.query(
                 "SELECT name, "
-                + "CASE WHEN ROW_NUMBER() OVER (PARTITION BY dept ORDER BY salary DESC) = 1 "
-                + "     THEN 'top' ELSE 'other' END AS rank_label "
-                + "FROM $r",
+                        + "CASE WHEN ROW_NUMBER() OVER (PARTITION BY dept ORDER BY salary DESC) = 1 "
+                        + "     THEN 'top' ELSE 'other' END AS rank_label "
+                        + "FROM $r",
                 EMPLOYEES);
         assertTrue(r.contains("\"rank_label\":\"top\""));
         assertTrue(r.contains("\"rank_label\":\"other\""));
@@ -48,10 +47,10 @@ class WindowSlotIndexingTest {
     void caseBuriedWindow_inThenBranch() {
         String r = SQL4Json.query(
                 "SELECT name, "
-                + "CASE WHEN salary > 85 "
-                + "     THEN ROW_NUMBER() OVER (PARTITION BY dept ORDER BY salary DESC) "
-                + "     ELSE 0 END AS rk "
-                + "FROM $r",
+                        + "CASE WHEN salary > 85 "
+                        + "     THEN ROW_NUMBER() OVER (PARTITION BY dept ORDER BY salary DESC) "
+                        + "     ELSE 0 END AS rk "
+                        + "FROM $r",
                 EMPLOYEES);
         assertTrue(r.contains("\"rk\":1"));
         assertTrue(r.contains("\"rk\":0"));
@@ -60,8 +59,7 @@ class WindowSlotIndexingTest {
     @Test
     void orderByAlias_resolvesWindowedColumn() {
         String r = SQL4Json.query(
-                "SELECT name, ROW_NUMBER() OVER (ORDER BY salary DESC) AS rk FROM $r ORDER BY rk",
-                EMPLOYEES);
+                "SELECT name, ROW_NUMBER() OVER (ORDER BY salary DESC) AS rk FROM $r ORDER BY rk", EMPLOYEES);
         int aliceIdx = r.indexOf("Alice");
         int carolIdx = r.indexOf("Carol");
         assertTrue(aliceIdx > 0 && carolIdx > 0);

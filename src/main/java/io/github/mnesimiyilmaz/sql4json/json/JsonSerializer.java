@@ -1,13 +1,11 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.json;
 
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
-
 import java.util.List;
 import java.util.Map;
 
-/**
- * Serializes a {@link JsonValue} tree into a compact or pretty-printed JSON string.
- */
+/** Serializes a {@link JsonValue} tree into a compact or pretty-printed JSON string. */
 public final class JsonSerializer {
 
     private JsonSerializer() {
@@ -27,9 +25,8 @@ public final class JsonSerializer {
     }
 
     /**
-     * Serializes the given {@link JsonValue} into a pretty-printed JSON string.
-     * Uses two-space indentation and one element per line. Empty objects/arrays
-     * remain compact ({@code {}} / {@code []}). Output has no trailing newline.
+     * Serializes the given {@link JsonValue} into a pretty-printed JSON string. Uses two-space indentation and one
+     * element per line. Empty objects/arrays remain compact ({@code {}} / {@code []}). Output has no trailing newline.
      *
      * @param value the JSON value to serialize
      * @return the pretty-printed JSON string representation
@@ -154,5 +151,4 @@ public final class JsonSerializer {
     private static void indent(StringBuilder sb, int depth) {
         sb.repeat("  ", Math.max(0, depth));
     }
-
 }

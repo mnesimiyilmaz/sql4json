@@ -1,4 +1,8 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.registry;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.mnesimiyilmaz.sql4json.engine.Expression;
 import io.github.mnesimiyilmaz.sql4json.engine.Expression.ColumnRef;
@@ -11,15 +15,11 @@ import io.github.mnesimiyilmaz.sql4json.types.SqlNull;
 import io.github.mnesimiyilmaz.sql4json.types.SqlNumber;
 import io.github.mnesimiyilmaz.sql4json.types.SqlString;
 import io.github.mnesimiyilmaz.sql4json.types.SqlValue;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 
 class ConditionHandlerTest {
 
@@ -43,15 +43,33 @@ class ConditionHandlerTest {
         }
 
         private static ConditionContext isNullCtx(String col) {
-            return new ConditionContext(ConditionContext.ConditionType.IS_NULL,
-                    new ColumnRef(col), null, null, null, null, null, null,
-                    null, null, null);
+            return new ConditionContext(
+                    ConditionContext.ConditionType.IS_NULL,
+                    new ColumnRef(col),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null);
         }
 
         private static ConditionContext isNotNullCtx(String col) {
-            return new ConditionContext(ConditionContext.ConditionType.IS_NOT_NULL,
-                    new ColumnRef(col), null, null, null, null, null, null,
-                    null, null, null);
+            return new ConditionContext(
+                    ConditionContext.ConditionType.IS_NOT_NULL,
+                    new ColumnRef(col),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null);
         }
 
         // ── canHandle ───────────────────────────────────────────────────
@@ -68,19 +86,35 @@ class ConditionHandlerTest {
 
         @Test
         void canHandle_comparison_false() {
-            ConditionContext ctx = new ConditionContext(ConditionContext.ConditionType.COMPARISON,
-                    new ColumnRef("age"), ">", SqlNumber.of(1),
-                    new Expression.LiteralVal(SqlNumber.of(1)), null, null, null,
-                    null, null, null);
+            ConditionContext ctx = new ConditionContext(
+                    ConditionContext.ConditionType.COMPARISON,
+                    new ColumnRef("age"),
+                    ">",
+                    SqlNumber.of(1),
+                    new Expression.LiteralVal(SqlNumber.of(1)),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null);
             assertFalse(handler.canHandle(ctx));
         }
 
         @Test
         void canHandle_like_false() {
-            ConditionContext ctx = new ConditionContext(ConditionContext.ConditionType.LIKE,
-                    new ColumnRef("name"), "LIKE", new SqlString("A%"),
-                    new Expression.LiteralVal(new SqlString("A%")), null, null, null,
-                    null, null, null);
+            ConditionContext ctx = new ConditionContext(
+                    ConditionContext.ConditionType.LIKE,
+                    new ColumnRef("name"),
+                    "LIKE",
+                    new SqlString("A%"),
+                    new Expression.LiteralVal(new SqlString("A%")),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null);
             assertFalse(handler.canHandle(ctx));
         }
 
@@ -148,8 +182,8 @@ class ConditionHandlerTest {
     @Nested
     class ComparisonTests {
 
-        private final FunctionRegistry           fns     = FunctionRegistry.createDefault();
-        private final OperatorRegistry           ops     = OperatorRegistry.createDefault();
+        private final FunctionRegistry fns = FunctionRegistry.createDefault();
+        private final OperatorRegistry ops = OperatorRegistry.createDefault();
         private final ComparisonConditionHandler handler = new ComparisonConditionHandler();
 
         private static Row rowWithNumber(String field, int value) {
@@ -165,17 +199,34 @@ class ConditionHandlerTest {
         }
 
         private static ConditionContext comparisonCtx(String col, String op, SqlValue val) {
-            return new ConditionContext(ConditionContext.ConditionType.COMPARISON,
-                    new ColumnRef(col), op, val, new Expression.LiteralVal(val), null, null, null,
-                    null, null, null);
+            return new ConditionContext(
+                    ConditionContext.ConditionType.COMPARISON,
+                    new ColumnRef(col),
+                    op,
+                    val,
+                    new Expression.LiteralVal(val),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null);
         }
 
-        private static ConditionContext comparisonCtxWithFn(String col, String op, SqlValue val,
-                                                            String fnName) {
+        private static ConditionContext comparisonCtxWithFn(String col, String op, SqlValue val, String fnName) {
             Expression lhs = new Expression.ScalarFnCall(fnName, List.of(new ColumnRef(col)));
-            return new ConditionContext(ConditionContext.ConditionType.COMPARISON,
-                    lhs, op, val, new Expression.LiteralVal(val), null, null, null,
-                    null, null, null);
+            return new ConditionContext(
+                    ConditionContext.ConditionType.COMPARISON,
+                    lhs,
+                    op,
+                    val,
+                    new Expression.LiteralVal(val),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null);
         }
 
         // ── canHandle ───────────────────────────────────────────────────
@@ -188,18 +239,35 @@ class ConditionHandlerTest {
 
         @Test
         void canHandle_like_false() {
-            ConditionContext ctx = new ConditionContext(ConditionContext.ConditionType.LIKE,
-                    new ColumnRef("name"), "LIKE", new SqlString("A%"),
-                    new Expression.LiteralVal(new SqlString("A%")), null, null, null,
-                    null, null, null);
+            ConditionContext ctx = new ConditionContext(
+                    ConditionContext.ConditionType.LIKE,
+                    new ColumnRef("name"),
+                    "LIKE",
+                    new SqlString("A%"),
+                    new Expression.LiteralVal(new SqlString("A%")),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null);
             assertFalse(handler.canHandle(ctx));
         }
 
         @Test
         void canHandle_isNull_false() {
-            ConditionContext ctx = new ConditionContext(ConditionContext.ConditionType.IS_NULL,
-                    new ColumnRef("name"), null, null, null, null, null, null,
-                    null, null, null);
+            ConditionContext ctx = new ConditionContext(
+                    ConditionContext.ConditionType.IS_NULL,
+                    new ColumnRef("name"),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null);
             assertFalse(handler.canHandle(ctx));
         }
 

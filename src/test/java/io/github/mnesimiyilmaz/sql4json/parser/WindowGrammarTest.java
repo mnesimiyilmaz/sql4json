@@ -1,16 +1,17 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.parser;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.engine.Expression;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class WindowGrammarTest {
 
     @Test
     void parse_row_number_with_order_by() {
-        QueryDefinition query = QueryParser.parse(
-                "SELECT name, ROW_NUMBER() OVER (ORDER BY salary DESC) AS row_num FROM $r");
+        QueryDefinition query =
+                QueryParser.parse("SELECT name, ROW_NUMBER() OVER (ORDER BY salary DESC) AS row_num FROM $r");
 
         assertEquals(2, query.selectedColumns().size());
         SelectColumnDef winCol = query.selectedColumns().get(1);
@@ -27,8 +28,8 @@ class WindowGrammarTest {
 
     @Test
     void parse_rank_with_partition_and_order() {
-        QueryDefinition query = QueryParser.parse(
-                "SELECT name, RANK() OVER (PARTITION BY dept ORDER BY salary DESC) AS rnk FROM $r");
+        QueryDefinition query =
+                QueryParser.parse("SELECT name, RANK() OVER (PARTITION BY dept ORDER BY salary DESC) AS rnk FROM $r");
 
         SelectColumnDef winCol = query.selectedColumns().get(1);
         var winExpr = (Expression.WindowFnCall) winCol.expression();
@@ -39,8 +40,8 @@ class WindowGrammarTest {
 
     @Test
     void parse_sum_over_partition() {
-        QueryDefinition query = QueryParser.parse(
-                "SELECT name, SUM(salary) OVER (PARTITION BY dept) AS dept_total FROM $r");
+        QueryDefinition query =
+                QueryParser.parse("SELECT name, SUM(salary) OVER (PARTITION BY dept) AS dept_total FROM $r");
 
         SelectColumnDef winCol = query.selectedColumns().get(1);
         var winExpr = (Expression.WindowFnCall) winCol.expression();
@@ -53,8 +54,8 @@ class WindowGrammarTest {
 
     @Test
     void parse_lag_with_offset() {
-        QueryDefinition query = QueryParser.parse(
-                "SELECT name, LAG(salary, 2) OVER (ORDER BY hire_date) AS prev_salary FROM $r");
+        QueryDefinition query =
+                QueryParser.parse("SELECT name, LAG(salary, 2) OVER (ORDER BY hire_date) AS prev_salary FROM $r");
 
         SelectColumnDef winCol = query.selectedColumns().get(1);
         var winExpr = (Expression.WindowFnCall) winCol.expression();
@@ -64,8 +65,8 @@ class WindowGrammarTest {
 
     @Test
     void parse_count_star_over_partition() {
-        QueryDefinition query = QueryParser.parse(
-                "SELECT name, COUNT(*) OVER (PARTITION BY dept) AS dept_count FROM $r");
+        QueryDefinition query =
+                QueryParser.parse("SELECT name, COUNT(*) OVER (PARTITION BY dept) AS dept_count FROM $r");
 
         SelectColumnDef winCol = query.selectedColumns().get(1);
         var winExpr = (Expression.WindowFnCall) winCol.expression();
@@ -75,8 +76,7 @@ class WindowGrammarTest {
 
     @Test
     void parse_empty_over_clause() {
-        QueryDefinition query = QueryParser.parse(
-                "SELECT name, COUNT(*) OVER () AS total FROM $r");
+        QueryDefinition query = QueryParser.parse("SELECT name, COUNT(*) OVER () AS total FROM $r");
 
         SelectColumnDef winCol = query.selectedColumns().get(1);
         var winExpr = (Expression.WindowFnCall) winCol.expression();
@@ -86,9 +86,8 @@ class WindowGrammarTest {
 
     @Test
     void parse_multiple_window_functions() {
-        QueryDefinition query = QueryParser.parse(
-                "SELECT name, RANK() OVER (ORDER BY salary DESC) AS rnk, " +
-                        "AVG(salary) OVER (PARTITION BY dept) AS dept_avg FROM $r");
+        QueryDefinition query = QueryParser.parse("SELECT name, RANK() OVER (ORDER BY salary DESC) AS rnk, "
+                + "AVG(salary) OVER (PARTITION BY dept) AS dept_avg FROM $r");
 
         assertEquals(3, query.selectedColumns().size());
         assertTrue(query.selectedColumns().get(1).containsWindow());
@@ -98,8 +97,7 @@ class WindowGrammarTest {
 
     @Test
     void plain_aggregate_still_parses_without_over() {
-        QueryDefinition query = QueryParser.parse(
-                "SELECT dept, SUM(salary) AS total FROM $r GROUP BY dept");
+        QueryDefinition query = QueryParser.parse("SELECT dept, SUM(salary) AS total FROM $r GROUP BY dept");
 
         assertFalse(query.containsWindowFunctions());
         assertTrue(query.selectedColumns().get(1).containsAggregate());
@@ -128,8 +126,8 @@ class WindowGrammarTest {
 
     @Test
     void parse_ntile() {
-        QueryDefinition query = QueryParser.parse(
-                "SELECT name, NTILE(4) OVER (ORDER BY salary DESC) AS quartile FROM $r");
+        QueryDefinition query =
+                QueryParser.parse("SELECT name, NTILE(4) OVER (ORDER BY salary DESC) AS quartile FROM $r");
 
         SelectColumnDef winCol = query.selectedColumns().get(1);
         var winExpr = (Expression.WindowFnCall) winCol.expression();
@@ -148,39 +146,33 @@ class WindowGrammarTest {
     }
 
     /**
-     * Regression: the grammar rule {@code orderByColumn} is shared between the top-level
-     * {@code orderByColumns} and {@code windowSpec}. Without an explicit guard, ANTLR's
-     * tree walker fires {@code enterOrderByColumn} for both contexts, polluting the
-     * query-level orderBy with the window's OVER (ORDER BY ...) keys and silently
-     * overriding the user's outer ORDER BY at execution time.
+     * Regression: the grammar rule {@code orderByColumn} is shared between the top-level {@code orderByColumns} and
+     * {@code windowSpec}. Without an explicit guard, ANTLR's tree walker fires {@code enterOrderByColumn} for both
+     * contexts, polluting the query-level orderBy with the window's OVER (ORDER BY ...) keys and silently overriding
+     * the user's outer ORDER BY at execution time.
      */
     @Test
     void window_OVER_order_by_does_not_leak_into_query_orderBy() {
         // No outer ORDER BY → orderBy must be null even though the window has its own.
-        QueryDefinition q1 = QueryParser.parse(
-                "SELECT name, ROW_NUMBER() OVER (ORDER BY salary DESC) AS rn FROM $r");
+        QueryDefinition q1 = QueryParser.parse("SELECT name, ROW_NUMBER() OVER (ORDER BY salary DESC) AS rn FROM $r");
         assertNull(q1.orderBy(), "window OVER (ORDER BY ...) must not appear in query.orderBy()");
 
         // Outer ORDER BY name ASC → orderBy must contain only [name ASC], NOT [salary DESC, name ASC].
         QueryDefinition q2 = QueryParser.parse(
-                "SELECT name, ROW_NUMBER() OVER (ORDER BY salary DESC) AS rn "
-                        + "FROM $r ORDER BY name ASC");
+                "SELECT name, ROW_NUMBER() OVER (ORDER BY salary DESC) AS rn " + "FROM $r ORDER BY name ASC");
         assertNotNull(q2.orderBy());
-        assertEquals(1, q2.orderBy().size(),
-                "outer orderBy must not absorb the window's OVER (ORDER BY ...)");
+        assertEquals(1, q2.orderBy().size(), "outer orderBy must not absorb the window's OVER (ORDER BY ...)");
         assertEquals("ASC", q2.orderBy().getFirst().direction());
         var col = (Expression.ColumnRef) q2.orderBy().getFirst().expression();
         assertEquals("name", col.path());
 
         // Two window specs each with their own OVER (ORDER BY ...) plus an outer ORDER BY.
         // orderBy must contain ONLY the outer's [country ASC].
-        QueryDefinition q3 = QueryParser.parse(
-                "SELECT name, "
-                        + "ROW_NUMBER() OVER (ORDER BY salary DESC) AS rn1, "
-                        + "RANK() OVER (ORDER BY hire_date) AS rn2 "
-                        + "FROM $r ORDER BY country ASC");
+        QueryDefinition q3 = QueryParser.parse("SELECT name, "
+                + "ROW_NUMBER() OVER (ORDER BY salary DESC) AS rn1, "
+                + "RANK() OVER (ORDER BY hire_date) AS rn2 "
+                + "FROM $r ORDER BY country ASC");
         assertNotNull(q3.orderBy());
-        assertEquals(1, q3.orderBy().size(),
-                "outer orderBy must not absorb either window's OVER (ORDER BY ...)");
+        assertEquals(1, q3.orderBy().size(), "outer orderBy must not absorb either window's OVER (ORDER BY ...)");
     }
 }

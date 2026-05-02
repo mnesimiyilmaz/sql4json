@@ -1,36 +1,32 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json;
 
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 /**
- * End-to-end regression suite that pins every query result down to the byte against
- * the committed fixtures {@code regression_users.json} and {@code regression_orders.json}.
+ * End-to-end regression suite that pins every query result down to the byte against the committed fixtures
+ * {@code regression_users.json} and {@code regression_orders.json}.
  *
- * <p>The fixtures are produced by {@code generate_regression_data.py} (sibling to the JSON
- * files) using only integer arithmetic on the row index — output is reproducible across
- * Python versions and OSes. Re-running the script must produce byte-identical output;
- * if it doesn't, the generator has drifted and tests will fail.
+ * <p>The fixtures are produced by {@code generate_regression_data.py} (sibling to the JSON files) using only integer
+ * arithmetic on the row index — output is reproducible across Python versions and OSes. Re-running the script must
+ * produce byte-identical output; if it doesn't, the generator has drifted and tests will fail.
  *
- * <p>Each test calls {@link #assertExact(String, String, String)} with the literal JSON
- * we expect SQL4Json to return. Any drift — formatting, ordering, value computation,
- * field-name change — fails the assertion. To re-capture an output after intentional data
- * or query change, temporarily replace {@code assertExact} with {@code captureAndPrint} and
+ * <p>Each test calls {@link #assertExact(String, String, String)} with the literal JSON we expect SQL4Json to return.
+ * Any drift — formatting, ordering, value computation, field-name change — fails the assertion. To re-capture an output
+ * after intentional data or query change, temporarily replace {@code assertExact} with {@code captureAndPrint} and
  * paste the printed JSON back into the {@code EXPECTED_*} constant.
  */
 class RegressionQueryTest {
 
-    private static final Path USERS_FILE  =
-            Path.of("src/test/resources/data-files/regression_users.json");
-    private static final Path ORDERS_FILE =
-            Path.of("src/test/resources/data-files/regression_orders.json");
+    private static final Path USERS_FILE = Path.of("src/test/resources/data-files/regression_users.json");
+    private static final Path ORDERS_FILE = Path.of("src/test/resources/data-files/regression_orders.json");
 
     private static String USERS;
     private static String ORDERS;
@@ -239,8 +235,7 @@ class RegressionQueryTest {
 
     @Test
     void q6_inner_join_group_aggregate() {
-        String actual = SQL4Json.query(Q6_SQL,
-                Map.of("users", USERS, "orders", ORDERS));
+        String actual = SQL4Json.query(Q6_SQL, Map.of("users", USERS, "orders", ORDERS));
         assertExpected(Q6_EXPECTED, actual, "Q6");
     }
 
@@ -276,8 +271,7 @@ class RegressionQueryTest {
 
     @Test
     void q7_left_join_with_unmatched() {
-        String actual = SQL4Json.query(Q7_SQL,
-                Map.of("users", USERS, "orders", ORDERS));
+        String actual = SQL4Json.query(Q7_SQL, Map.of("users", USERS, "orders", ORDERS));
         assertExpected(Q7_EXPECTED, actual, "Q7");
     }
 
@@ -354,8 +348,8 @@ class RegressionQueryTest {
 
     @Test
     void q9a_parameterized_named() {
-        String actual = SQL4Json.prepare(Q9_NAMED_SQL).execute(USERS,
-                BoundParameters.named().bind("t", "platinum").bind("max_age", 30));
+        String actual = SQL4Json.prepare(Q9_NAMED_SQL)
+                .execute(USERS, BoundParameters.named().bind("t", "platinum").bind("max_age", 30));
         assertExpected(Q9_NAMED_EXPECTED, actual, "Q9-named");
     }
 
@@ -377,8 +371,7 @@ class RegressionQueryTest {
 
     @Test
     void q9b_parameterized_positional() {
-        String actual = SQL4Json.prepare(Q9_POS_SQL).execute(USERS,
-                BoundParameters.of("US", 80));
+        String actual = SQL4Json.prepare(Q9_POS_SQL).execute(USERS, BoundParameters.of("US", 80));
         assertExpected(Q9_POS_EXPECTED, actual, "Q9-pos");
     }
 
@@ -665,9 +658,9 @@ class RegressionQueryTest {
     // ──────────────────────────────────────────────────────────────────────
 
     /**
-     * Run a single-source query against {@link #USERS} and assert the result is byte-identical
-     * to {@code expected}. When {@code expected} is empty, the test prints the actual JSON and
-     * fails — useful while bootstrapping a new query (capture mode).
+     * Run a single-source query against {@link #USERS} and assert the result is byte-identical to {@code expected}.
+     * When {@code expected} is empty, the test prints the actual JSON and fails — useful while bootstrapping a new
+     * query (capture mode).
      */
     private static void assertExact(String sql, String expected, String label) {
         String actual = SQL4Json.query(sql, USERS);
@@ -680,9 +673,8 @@ class RegressionQueryTest {
             System.out.println("───── " + label + " (capture mode) ─────");
             System.out.println(actual);
             System.out.println("──────────────────────────────────────");
-            org.junit.jupiter.api.Assertions.fail(
-                    label + ": expected JSON is empty (capture mode). "
-                            + "Copy the actual output above into the EXPECTED_* constant.");
+            org.junit.jupiter.api.Assertions.fail(label + ": expected JSON is empty (capture mode). "
+                    + "Copy the actual output above into the EXPECTED_* constant.");
         }
         assertEquals(expected, actual, label);
     }

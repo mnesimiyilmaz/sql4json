@@ -1,92 +1,83 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.engine;
 
 import io.github.mnesimiyilmaz.sql4json.parser.ParameterPositionKind;
 import io.github.mnesimiyilmaz.sql4json.registry.CriteriaNode;
 import io.github.mnesimiyilmaz.sql4json.types.SqlValue;
-
 import java.util.List;
 import java.util.Set;
 
 /**
- * AST node for SQL column expressions. Used everywhere: SELECT, WHERE, HAVING,
- * GROUP BY, ORDER BY. Evaluated recursively by {@link ExpressionEvaluator}.
+ * AST node for SQL column expressions. Used everywhere: SELECT, WHERE, HAVING, GROUP BY, ORDER BY. Evaluated
+ * recursively by {@link ExpressionEvaluator}.
  *
- * <p>Follows the standard SQL engine pattern: everything that produces a value
- * is an Expression. Function arguments are Expressions, enabling arbitrary nesting
- * like {@code ROUND(AVG(NULLIF(salary, 0)), 2)}.
+ * <p>Follows the standard SQL engine pattern: everything that produces a value is an Expression. Function arguments are
+ * Expressions, enabling arbitrary nesting like {@code ROUND(AVG(NULLIF(salary, 0)), 2)}.
  */
 public sealed interface Expression
-        permits Expression.ColumnRef, Expression.ScalarFnCall, Expression.AggregateFnCall,
-        Expression.LiteralVal, Expression.WindowFnCall,
-        Expression.SimpleCaseWhen, Expression.SearchedCaseWhen, Expression.NowRef,
-        Expression.ParameterRef {
+        permits Expression.ColumnRef,
+                Expression.ScalarFnCall,
+                Expression.AggregateFnCall,
+                Expression.LiteralVal,
+                Expression.WindowFnCall,
+                Expression.SimpleCaseWhen,
+                Expression.SearchedCaseWhen,
+                Expression.NowRef,
+                Expression.ParameterRef {
 
     /**
      * Column/field reference: {@code name}, {@code address.city}
      *
      * @param path dot-separated path to the JSON field
      */
-    record ColumnRef(String path) implements Expression {
-    }
+    record ColumnRef(String path) implements Expression {}
 
     /**
-     * Scalar function call: {@code UPPER(name)}, {@code NULLIF(col, 0)}.
-     * Arguments are Expressions — enabling nesting: {@code TRIM(NULLIF(col, ''))}.
+     * Scalar function call: {@code UPPER(name)}, {@code NULLIF(col, 0)}. Arguments are Expressions — enabling nesting:
+     * {@code TRIM(NULLIF(col, ''))}.
      *
      * @param name function name (case-insensitive)
      * @param args function arguments as expression trees
      */
     record ScalarFnCall(String name, List<Expression> args) implements Expression {
-        /**
-         * Creates a defensive copy of the argument list.
-         */
+        /** Creates a defensive copy of the argument list. */
         public ScalarFnCall {
             args = List.copyOf(args);
         }
     }
 
     /**
-     * Aggregate function call: {@code COUNT(*)}, {@code AVG(NULLIF(col, 0))}.
-     * Inner expression is null for {@code COUNT(*)}.
+     * Aggregate function call: {@code COUNT(*)}, {@code AVG(NULLIF(col, 0))}. Inner expression is null for
+     * {@code COUNT(*)}.
      *
-     * @param name  aggregate function name (COUNT, SUM, AVG, MIN, MAX)
+     * @param name aggregate function name (COUNT, SUM, AVG, MIN, MAX)
      * @param inner inner expression, or {@code null} for {@code COUNT(*)}
      */
-    record AggregateFnCall(String name, Expression inner) implements Expression {
-    }
+    record AggregateFnCall(String name, Expression inner) implements Expression {}
 
     /**
      * Literal value: {@code 42}, {@code 'hello'}, {@code true}, {@code NULL}.
      *
      * @param value the literal SQL value
      */
-    record LiteralVal(SqlValue value) implements Expression {
-    }
+    record LiteralVal(SqlValue value) implements Expression {}
 
     /**
-     * Window function call: function + arguments + OVER specification.
-     * Evaluated by WindowStage, not by ExpressionEvaluator.
+     * Window function call: function + arguments + OVER specification. Evaluated by WindowStage, not by
+     * ExpressionEvaluator.
      *
      * @param name window function name (ROW_NUMBER, RANK, DENSE_RANK, etc.)
      * @param args function arguments as expression trees
      * @param spec OVER clause specification (PARTITION BY / ORDER BY)
      */
-    record WindowFnCall(
-            String name,
-            List<Expression> args,
-            WindowSpec spec
-    ) implements Expression {
-        /**
-         * Creates a defensive copy of the argument list.
-         */
+    record WindowFnCall(String name, List<Expression> args, WindowSpec spec) implements Expression {
+        /** Creates a defensive copy of the argument list. */
         public WindowFnCall {
             args = List.copyOf(args);
         }
     }
 
-    /**
-     * A single WHEN clause inside a CASE expression.
-     */
+    /** A single WHEN clause inside a CASE expression. */
     sealed interface WhenClause {
         /**
          * Returns the result expression for this WHEN branch.
@@ -98,39 +89,32 @@ public sealed interface Expression
         /**
          * Simple CASE WHEN: matches by value equality.
          *
-         * @param value  the value to compare against the CASE subject
+         * @param value the value to compare against the CASE subject
          * @param result the expression to evaluate when matched
          */
-        record ValueWhen(Expression value, Expression result) implements WhenClause {
-        }
+        record ValueWhen(Expression value, Expression result) implements WhenClause {}
 
         /**
          * Searched CASE WHEN: matches by boolean condition.
          *
-         * @param condition       the condition to evaluate
+         * @param condition the condition to evaluate
          * @param conditionFields column paths referenced by the condition
-         * @param result          the expression to evaluate when the condition is true
+         * @param result the expression to evaluate when the condition is true
          */
-        record SearchWhen(CriteriaNode condition, Set<String> conditionFields,
-                          Expression result) implements WhenClause {
-        }
+        record SearchWhen(CriteriaNode condition, Set<String> conditionFields, Expression result)
+                implements WhenClause {}
     }
 
     /**
      * Simple CASE expression: {@code CASE subject WHEN val THEN result ... END}.
      *
-     * @param subject     the expression being compared
+     * @param subject the expression being compared
      * @param whenClauses ordered list of WHEN value/result pairs
-     * @param elseExpr    ELSE expression, or {@code null} if omitted
+     * @param elseExpr ELSE expression, or {@code null} if omitted
      */
-    record SimpleCaseWhen(
-            Expression subject,
-            List<WhenClause.ValueWhen> whenClauses,
-            Expression elseExpr
-    ) implements Expression {
-        /**
-         * Creates a defensive copy of the WHEN clause list.
-         */
+    record SimpleCaseWhen(Expression subject, List<WhenClause.ValueWhen> whenClauses, Expression elseExpr)
+            implements Expression {
+        /** Creates a defensive copy of the WHEN clause list. */
         public SimpleCaseWhen {
             whenClauses = List.copyOf(whenClauses);
         }
@@ -140,43 +124,34 @@ public sealed interface Expression
      * Searched CASE expression: {@code CASE WHEN condition THEN result ... END}.
      *
      * @param whenClauses ordered list of WHEN condition/result pairs
-     * @param elseExpr    ELSE expression, or {@code null} if omitted
+     * @param elseExpr ELSE expression, or {@code null} if omitted
      */
-    record SearchedCaseWhen(
-            List<WhenClause.SearchWhen> whenClauses,
-            Expression elseExpr
-    ) implements Expression {
-        /**
-         * Creates a defensive copy of the WHEN clause list.
-         */
+    record SearchedCaseWhen(List<WhenClause.SearchWhen> whenClauses, Expression elseExpr) implements Expression {
+        /** Creates a defensive copy of the WHEN clause list. */
         public SearchedCaseWhen {
             whenClauses = List.copyOf(whenClauses);
         }
     }
 
-    /**
-     * Reference to the current timestamp ({@code NOW()}).
-     */
-    record NowRef() implements Expression {
-    }
+    /** Reference to the current timestamp ({@code NOW()}). */
+    record NowRef() implements Expression {}
 
     /**
-     * Unresolved parameter placeholder. Substituted with a {@link LiteralVal} at execute
-     * time by {@code ParameterSubstitutor}. Never seen by {@code ExpressionEvaluator}.
+     * Unresolved parameter placeholder. Substituted with a {@link LiteralVal} at execute time by
+     * {@code ParameterSubstitutor}. Never seen by {@code ExpressionEvaluator}.
      *
-     * @param name         named-parameter name, or {@code null} for positional
-     * @param index        positional index (0-based), or {@code -1} for named
-     * @param positionKind syntactic position of this placeholder — drives bind-time
-     *                     validation (e.g. ARRAY[?] requires a scalar, bare-array RHS
-     *                     requires a Collection). Never {@code null}.
+     * @param name named-parameter name, or {@code null} for positional
+     * @param index positional index (0-based), or {@code -1} for named
+     * @param positionKind syntactic position of this placeholder — drives bind-time validation (e.g. ARRAY[?] requires
+     *     a scalar, bare-array RHS requires a Collection). Never {@code null}.
      * @since 1.2.0
      */
     record ParameterRef(String name, int index, ParameterPositionKind positionKind) implements Expression {
         /**
-         * Convenience constructor — defaults to {@link ParameterPositionKind#REGULAR_SCALAR}
-         * for callers that don't carry position context (e.g. test helpers).
+         * Convenience constructor — defaults to {@link ParameterPositionKind#REGULAR_SCALAR} for callers that don't
+         * carry position context (e.g. test helpers).
          *
-         * @param name  named-parameter name, or {@code null} for positional
+         * @param name named-parameter name, or {@code null} for positional
          * @param index positional index (0-based), or {@code -1} for named
          */
         public ParameterRef(String name, int index) {
@@ -196,8 +171,12 @@ public sealed interface Expression
             case ColumnRef(var path) -> fields.add(path);
             case ScalarFnCall(var name, var args) -> args.forEach(a -> a.collectReferencedFields(fields));
             case AggregateFnCall(var name, var inner) when inner != null -> inner.collectReferencedFields(fields);
-            case AggregateFnCall ignored -> { /* COUNT(*) — no inner expression */ }
-            case LiteralVal ignored -> { /* no fields to collect */ }
+            case AggregateFnCall ignored -> {
+                /* COUNT(*) — no inner expression */
+            }
+            case LiteralVal ignored -> {
+                /* no fields to collect */
+            }
             case WindowFnCall(var name, var args, var spec) -> {
                 args.forEach(a -> a.collectReferencedFields(fields));
                 spec.partitionBy().forEach(e -> e.collectReferencedFields(fields));
@@ -218,21 +197,26 @@ public sealed interface Expression
                 }
                 if (elseExpr != null) elseExpr.collectReferencedFields(fields);
             }
-            case NowRef() -> { /* no fields */ }
-            case ParameterRef ignored -> { /* no fields — unresolved placeholder */ }
+            case NowRef() -> {
+                /* no fields */
+            }
+            case ParameterRef ignored -> {
+                /* no fields — unresolved placeholder */
+            }
         }
     }
 
     /**
-     * Returns the innermost column path, or null if none exists.
-     * Used for backward compatibility (e.g., SelectStage field projection).
+     * Returns the innermost column path, or null if none exists. Used for backward compatibility (e.g., SelectStage
+     * field projection).
      *
      * @return the innermost column path, or {@code null}
      */
     default String innermostColumnPath() {
         return switch (this) {
             case ColumnRef(var path) -> path;
-            case ScalarFnCall(var name, var args) -> args.isEmpty() ? null : args.getFirst().innermostColumnPath();
+            case ScalarFnCall(var name, var args) ->
+                args.isEmpty() ? null : args.getFirst().innermostColumnPath();
             case AggregateFnCall(var name, var inner) -> inner != null ? inner.innermostColumnPath() : null;
             case LiteralVal ignored -> null;
             case WindowFnCall ignored -> null;
@@ -255,21 +239,23 @@ public sealed interface Expression
             case ColumnRef ignored -> false;
             case LiteralVal ignored -> false;
             case WindowFnCall ignored -> false;
-            case SimpleCaseWhen(var subject, var clauses, var elseExpr) -> subject.containsAggregate()
-                    || clauses.stream().anyMatch(wc -> wc.value().containsAggregate() || wc.result().containsAggregate())
-                    || (elseExpr != null && elseExpr.containsAggregate());
+            case SimpleCaseWhen(var subject, var clauses, var elseExpr) ->
+                subject.containsAggregate()
+                        || clauses.stream()
+                                .anyMatch(wc -> wc.value().containsAggregate()
+                                        || wc.result().containsAggregate())
+                        || (elseExpr != null && elseExpr.containsAggregate());
             case SearchedCaseWhen(var clauses, var elseExpr) ->
-                    clauses.stream().anyMatch(wc -> wc.result().containsAggregate())
-                            || (elseExpr != null && elseExpr.containsAggregate());
+                clauses.stream().anyMatch(wc -> wc.result().containsAggregate())
+                        || (elseExpr != null && elseExpr.containsAggregate());
             case NowRef() -> false;
             case ParameterRef ignored -> false;
         };
     }
 
     /**
-     * Returns true if this expression tree contains a WindowFnCall.
-     * Note: window functions nested inside aggregates is not legal SQL, so
-     * AggregateFnCall returns false unconditionally.
+     * Returns true if this expression tree contains a WindowFnCall. Note: window functions nested inside aggregates is
+     * not legal SQL, so AggregateFnCall returns false unconditionally.
      *
      * @return {@code true} if any descendant is a {@link WindowFnCall}
      */
@@ -280,12 +266,15 @@ public sealed interface Expression
             case AggregateFnCall ignored -> false;
             case ColumnRef ignored -> false;
             case LiteralVal ignored -> false;
-            case SimpleCaseWhen(var subject, var clauses, var elseExpr) -> subject.containsWindow()
-                    || clauses.stream().anyMatch(wc -> wc.value().containsWindow() || wc.result().containsWindow())
-                    || (elseExpr != null && elseExpr.containsWindow());
+            case SimpleCaseWhen(var subject, var clauses, var elseExpr) ->
+                subject.containsWindow()
+                        || clauses.stream()
+                                .anyMatch(wc -> wc.value().containsWindow()
+                                        || wc.result().containsWindow())
+                        || (elseExpr != null && elseExpr.containsWindow());
             case SearchedCaseWhen(var clauses, var elseExpr) ->
-                    clauses.stream().anyMatch(wc -> wc.result().containsWindow())
-                            || (elseExpr != null && elseExpr.containsWindow());
+                clauses.stream().anyMatch(wc -> wc.result().containsWindow())
+                        || (elseExpr != null && elseExpr.containsWindow());
             case NowRef() -> false;
             case ParameterRef ignored -> false;
         };

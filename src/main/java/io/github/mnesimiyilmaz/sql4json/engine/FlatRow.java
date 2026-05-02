@@ -1,9 +1,9 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.engine;
 
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
 import io.github.mnesimiyilmaz.sql4json.types.SqlNull;
 import io.github.mnesimiyilmaz.sql4json.types.SqlValue;
-
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -15,26 +15,24 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
- * Materialized row backed by an {@code Object[]} keyed by ordinal. Replaces
- * the {@code HashMap<FieldKey, SqlValue>} backing of legacy {@link Row} at
- * every materialization boundary in the query pipeline.
+ * Materialized row backed by an {@code Object[]} keyed by ordinal. Replaces the {@code HashMap<FieldKey, SqlValue>}
+ * backing of legacy {@link Row} at every materialization boundary in the query pipeline.
  *
- * <p>Encoding: a {@code null} slot represents {@link SqlNull#INSTANCE}; the
- * accessor materialises the singleton on read. This saves one reference write
- * per null slot during materialization.</p>
+ * <p>Encoding: a {@code null} slot represents {@link SqlNull#INSTANCE}; the accessor materialises the singleton on
+ * read. This saves one reference write per null slot during materialization.
  *
  * @since 1.2.0
  */
 public final class FlatRow implements RowAccessor {
 
-    private final RowSchema         schema;
-    private final Object[]          values;
-    private final boolean           aggregated;
+    private final RowSchema schema;
+    private final Object[] values;
+    private final boolean aggregated;
     private final List<RowAccessor> sourceGroup;
-    private final JsonValue         original;
+    private final JsonValue original;
 
-    private FlatRow(RowSchema schema, Object[] values, boolean aggregated,
-                    List<RowAccessor> sourceGroup, JsonValue original) {
+    private FlatRow(
+            RowSchema schema, Object[] values, boolean aggregated, List<RowAccessor> sourceGroup, JsonValue original) {
         this.schema = schema;
         this.values = values;
         this.aggregated = aggregated;
@@ -43,8 +41,8 @@ public final class FlatRow implements RowAccessor {
     }
 
     /**
-     * Wraps the given {@code Object[]} in a {@code FlatRow} using {@code schema}.
-     * The array is captured by reference — callers must not mutate after wrapping.
+     * Wraps the given {@code Object[]} in a {@code FlatRow} using {@code schema}. The array is captured by reference —
+     * callers must not mutate after wrapping.
      *
      * @param schema the schema (must match {@code values.length})
      * @param values the value array (slot {@code i} corresponds to {@code schema.columnAt(i)})
@@ -55,11 +53,10 @@ public final class FlatRow implements RowAccessor {
     }
 
     /**
-     * Wraps a value array as an aggregated row, retaining the source group for
-     * post-HAVING aggregate re-evaluation.
+     * Wraps a value array as an aggregated row, retaining the source group for post-HAVING aggregate re-evaluation.
      *
-     * @param schema      the schema
-     * @param values      the value array
+     * @param schema the schema
+     * @param values the value array
      * @param sourceGroup the source rows that aggregated to this row
      * @return a new aggregated {@code FlatRow}
      */
@@ -68,8 +65,7 @@ public final class FlatRow implements RowAccessor {
     }
 
     /**
-     * Wraps a value array as a pre-flattened engine row. The {@link JsonValue}
-     * tree has been GC'd by this point.
+     * Wraps a value array as a pre-flattened engine row. The {@link JsonValue} tree has been GC'd by this point.
      *
      * @param schema the schema
      * @param values the value array
@@ -80,9 +76,8 @@ public final class FlatRow implements RowAccessor {
     }
 
     /**
-     * Materialises a lazy {@link Row} into a {@code FlatRow} using the given
-     * schema. The original {@link JsonValue} is retained for cherry-pick
-     * fallback in the unflattener.
+     * Materialises a lazy {@link Row} into a {@code FlatRow} using the given schema. The original {@link JsonValue} is
+     * retained for cherry-pick fallback in the unflattener.
      *
      * @param source the source lazy row
      * @param schema the target schema
@@ -107,8 +102,7 @@ public final class FlatRow implements RowAccessor {
     }
 
     /**
-     * Returns the value at the given ordinal, or {@link SqlNull#INSTANCE} when
-     * the slot is empty.
+     * Returns the value at the given ordinal, or {@link SqlNull#INSTANCE} when the slot is empty.
      *
      * @param ordinal the column ordinal
      * @return the value, never {@code null}
@@ -167,7 +161,6 @@ public final class FlatRow implements RowAccessor {
 
     @Override
     public Stream<Map.Entry<FieldKey, SqlValue>> entries() {
-        return IntStream.range(0, schema.size())
-                .mapToObj(i -> Map.entry(schema.columnAt(i), get(i)));
+        return IntStream.range(0, schema.size()).mapToObj(i -> Map.entry(schema.columnAt(i), get(i)));
     }
 }

@@ -1,12 +1,12 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json;
 
-import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonBindException;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
+import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonBindException;
 import java.util.LinkedHashMap;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class BoundParametersTest {
 
@@ -72,26 +72,26 @@ class BoundParametersTest {
 
     @Test
     void when_get_missing_name_then_exception() {
-        assertThrows(SQL4JsonBindException.class,
+        assertThrows(
+                SQL4JsonBindException.class,
                 () -> BoundParameters.named().bind("a", 1).getByName("missing"));
     }
 
     @Test
     void when_get_out_of_range_index_then_exception() {
-        assertThrows(SQL4JsonBindException.class,
+        assertThrows(
+                SQL4JsonBindException.class,
                 () -> BoundParameters.positional().bind(0, 1).getByIndex(5));
     }
 
     @Test
     void when_EMPTY_used_and_queried_as_named_then_exception() {
-        assertThrows(SQL4JsonBindException.class,
-                () -> BoundParameters.EMPTY.getByName("a"));
+        assertThrows(SQL4JsonBindException.class, () -> BoundParameters.EMPTY.getByName("a"));
     }
 
     @Test
     void when_EMPTY_used_and_queried_as_positional_then_exception() {
-        assertThrows(SQL4JsonBindException.class,
-                () -> BoundParameters.EMPTY.getByIndex(0));
+        assertThrows(SQL4JsonBindException.class, () -> BoundParameters.EMPTY.getByIndex(0));
     }
 
     @Test

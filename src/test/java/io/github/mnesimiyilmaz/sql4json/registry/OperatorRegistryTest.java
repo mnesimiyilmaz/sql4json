@@ -1,12 +1,12 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.registry;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException;
 import io.github.mnesimiyilmaz.sql4json.types.*;
-import org.junit.jupiter.api.Test;
-
 import java.util.function.BiPredicate;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class OperatorRegistryTest {
 
@@ -142,8 +142,7 @@ class OperatorRegistryTest {
 
     @Test
     void unknownOperator_throwsException() {
-        assertThrows(SQL4JsonExecutionException.class,
-                () -> registry.getPredicate("BETWEEN"));
+        assertThrows(SQL4JsonExecutionException.class, () -> registry.getPredicate("BETWEEN"));
     }
 
     // ── Registration + lookup ────────────────────────────────────────────────
@@ -151,9 +150,7 @@ class OperatorRegistryTest {
     @Test
     void register_customOperator_retrievable() {
         var customRegistry = new OperatorRegistry();
-        customRegistry.register(new ComparisonOperatorDef(
-                "~~", OperatorType.BINARY,
-                (a, b) -> true));
+        customRegistry.register(new ComparisonOperatorDef("~~", OperatorType.BINARY, (a, b) -> true));
         assertNotNull(customRegistry.getPredicate("~~"));
     }
 
@@ -184,24 +181,20 @@ class OperatorRegistryTest {
     void equals_dates_same() {
         BiPredicate<SqlValue, SqlValue> pred = registry.getPredicate("=");
         assertTrue(pred.test(
-                new SqlDate(java.time.LocalDate.of(2024, 1, 1)),
-                new SqlDate(java.time.LocalDate.of(2024, 1, 1))));
+                new SqlDate(java.time.LocalDate.of(2024, 1, 1)), new SqlDate(java.time.LocalDate.of(2024, 1, 1))));
     }
 
     @Test
     void equals_dates_different() {
         BiPredicate<SqlValue, SqlValue> pred = registry.getPredicate("=");
         assertFalse(pred.test(
-                new SqlDate(java.time.LocalDate.of(2024, 1, 1)),
-                new SqlDate(java.time.LocalDate.of(2024, 1, 2))));
+                new SqlDate(java.time.LocalDate.of(2024, 1, 1)), new SqlDate(java.time.LocalDate.of(2024, 1, 2))));
     }
 
     @Test
     void equals_date_crossType() {
         BiPredicate<SqlValue, SqlValue> pred = registry.getPredicate("=");
-        assertFalse(pred.test(
-                new SqlDate(java.time.LocalDate.of(2024, 1, 1)),
-                new SqlString("2024-01-01")));
+        assertFalse(pred.test(new SqlDate(java.time.LocalDate.of(2024, 1, 1)), new SqlString("2024-01-01")));
     }
 
     // ── SqlDateTime equality ────────────────────────────────────────────────
@@ -243,8 +236,7 @@ class OperatorRegistryTest {
     void notEquals_dates() {
         BiPredicate<SqlValue, SqlValue> pred = registry.getPredicate("!=");
         assertTrue(pred.test(
-                new SqlDate(java.time.LocalDate.of(2024, 1, 1)),
-                new SqlDate(java.time.LocalDate.of(2024, 1, 2))));
+                new SqlDate(java.time.LocalDate.of(2024, 1, 1)), new SqlDate(java.time.LocalDate.of(2024, 1, 2))));
     }
 
     @Test

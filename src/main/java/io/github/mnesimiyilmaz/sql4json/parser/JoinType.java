@@ -1,19 +1,12 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.parser;
 
-/**
- * Supported SQL JOIN types.
- */
+/** Supported SQL JOIN types. */
 public enum JoinType {
-    /**
-     * Inner join.
-     */
+    /** Inner join. */
     INNER,
-    /**
-     * Left outer join.
-     */
+    /** Left outer join. */
     LEFT,
-    /**
-     * Right outer join.
-     */
+    /** Right outer join. */
     RIGHT
 }

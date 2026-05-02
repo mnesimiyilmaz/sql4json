@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.settings;
 
 import java.util.Objects;
@@ -6,10 +7,11 @@ import java.util.Objects;
  * Security and resource limits for the built-in {@link io.github.mnesimiyilmaz.sql4json.json.DefaultJsonCodec}.
  * Enforced by {@code JsonParser} and {@code StreamingJsonParser} during JSON parsing.
  *
- * <p>All limits are inclusive: a value <i>equal</i> to the configured limit is accepted;
- * exceeding it throws {@code SQL4JsonExecutionException}.
+ * <p>All limits are inclusive: a value <i>equal</i> to the configured limit is accepted; exceeding it throws
+ * {@code SQL4JsonExecutionException}.
  *
  * <p>Usage example:
+ *
  * <pre>{@code
  * DefaultJsonCodecSettings codecSettings = DefaultJsonCodecSettings.builder()
  *     .maxInputLength(50 * 1024 * 1024)
@@ -23,13 +25,13 @@ import java.util.Objects;
  *
  * <p>Thread-safe: immutable record; a single instance may be shared across threads.
  *
- * @param maxInputLength        maximum JSON input length in chars (default 10 MiB)
- * @param maxNestingDepth       maximum object/array nesting depth (default {@code 64})
- * @param maxStringLength       maximum length of a single JSON string value in chars (default 1 MiB)
- * @param maxNumberLength       maximum length of a numeric literal in chars (default {@code 64})
+ * @param maxInputLength maximum JSON input length in chars (default 10 MiB)
+ * @param maxNestingDepth maximum object/array nesting depth (default {@code 64})
+ * @param maxStringLength maximum length of a single JSON string value in chars (default 1 MiB)
+ * @param maxNumberLength maximum length of a numeric literal in chars (default {@code 64})
  * @param maxPropertyNameLength maximum length of a JSON object key in chars (default {@code 1_024})
- * @param maxArrayElements      maximum number of elements in a single JSON array (default {@code 1_000_000})
- * @param duplicateKeyPolicy    policy for duplicate keys in a JSON object (default {@link DuplicateKeyPolicy#REJECT})
+ * @param maxArrayElements maximum number of elements in a single JSON array (default {@code 1_000_000})
+ * @param duplicateKeyPolicy policy for duplicate keys in a JSON object (default {@link DuplicateKeyPolicy#REJECT})
  * @see io.github.mnesimiyilmaz.sql4json.json.DefaultJsonCodec
  * @see DuplicateKeyPolicy
  * @see Sql4jsonSettings
@@ -46,13 +48,13 @@ public record DefaultJsonCodecSettings(
     /**
      * Canonical constructor — validates that all limits are positive and the policy is non-null.
      *
-     * @param maxInputLength        maximum JSON input length in chars
-     * @param maxNestingDepth       maximum object/array nesting depth
-     * @param maxStringLength       maximum length of a single JSON string value in chars
-     * @param maxNumberLength       maximum length of a numeric literal in chars
+     * @param maxInputLength maximum JSON input length in chars
+     * @param maxNestingDepth maximum object/array nesting depth
+     * @param maxStringLength maximum length of a single JSON string value in chars
+     * @param maxNumberLength maximum length of a numeric literal in chars
      * @param maxPropertyNameLength maximum length of a JSON object key in chars
-     * @param maxArrayElements      maximum number of elements in a single JSON array
-     * @param duplicateKeyPolicy    policy for duplicate keys in a JSON object
+     * @param maxArrayElements maximum number of elements in a single JSON array
+     * @param duplicateKeyPolicy policy for duplicate keys in a JSON object
      */
     public DefaultJsonCodecSettings {
         positive(maxInputLength, "maxInputLength");
@@ -66,12 +68,12 @@ public record DefaultJsonCodecSettings(
 
     @SuppressWarnings("PointlessArithmeticExpression")
     private static final DefaultJsonCodecSettings DEFAULTS = new DefaultJsonCodecSettings(
-            10 * 1024 * 1024,           // maxInputLength          — 10 MiB total JSON input
-            64,                         // maxNestingDepth         — object/array nesting
-            1 * 1024 * 1024,            // maxStringLength         — 1 MiB per string value
-            64,                         // maxNumberLength         — chars in a numeric literal
-            1_024,                      // maxPropertyNameLength   — chars in an object key
-            1_000_000,                  // maxArrayElements        — elements per array (breadth)
+            10 * 1024 * 1024, // maxInputLength          — 10 MiB total JSON input
+            64, // maxNestingDepth         — object/array nesting
+            1 * 1024 * 1024, // maxStringLength         — 1 MiB per string value
+            64, // maxNumberLength         — chars in a numeric literal
+            1_024, // maxPropertyNameLength   — chars in an object key
+            1_000_000, // maxArrayElements        — elements per array (breadth)
             DuplicateKeyPolicy.REJECT); // duplicateKeyPolicy      — fail-safe
 
     /**
@@ -106,16 +108,14 @@ public record DefaultJsonCodecSettings(
         return v;
     }
 
-    /**
-     * Mutable builder for {@link DefaultJsonCodecSettings}.
-     */
+    /** Mutable builder for {@link DefaultJsonCodecSettings}. */
     public static final class Builder {
-        private int                maxInputLength;
-        private int                maxNestingDepth;
-        private int                maxStringLength;
-        private int                maxNumberLength;
-        private int                maxPropertyNameLength;
-        private int                maxArrayElements;
+        private int maxInputLength;
+        private int maxNestingDepth;
+        private int maxStringLength;
+        private int maxNumberLength;
+        private int maxPropertyNameLength;
+        private int maxArrayElements;
         private DuplicateKeyPolicy duplicateKeyPolicy;
 
         Builder(DefaultJsonCodecSettings src) {
@@ -133,8 +133,8 @@ public record DefaultJsonCodecSettings(
          *
          * <p><b>Default:</b> {@code 10 * 1024 * 1024} (10 MiB).
          *
-         * <p><b>Security rationale:</b> Total-input cap prevents the parser from
-         * allocating resources proportional to arbitrarily large input strings.
+         * <p><b>Security rationale:</b> Total-input cap prevents the parser from allocating resources proportional to
+         * arbitrarily large input strings.
          *
          * <p><b>Acceptable range:</b> Must be positive ({@code > 0}). Non-positive values throw
          * {@link IllegalArgumentException}.
@@ -153,9 +153,8 @@ public record DefaultJsonCodecSettings(
          *
          * <p><b>Default:</b> {@code 64}.
          *
-         * <p><b>Security rationale:</b> Tightened from the legacy value of 256. Realistic JSON
-         * rarely exceeds a nesting depth of 10; deeply nested structures can cause
-         * stack-overflow or quadratic recursion in tree-walking code.
+         * <p><b>Security rationale:</b> Tightened from the legacy value of 256. Realistic JSON rarely exceeds a nesting
+         * depth of 10; deeply nested structures can cause stack-overflow or quadratic recursion in tree-walking code.
          *
          * <p><b>Acceptable range:</b> Must be positive ({@code > 0}). Non-positive values throw
          * {@link IllegalArgumentException}.
@@ -174,8 +173,8 @@ public record DefaultJsonCodecSettings(
          *
          * <p><b>Default:</b> {@code 1 * 1024 * 1024} (1 MiB).
          *
-         * <p><b>Security rationale:</b> Per-string-value cap. Tightened from the legacy 5 MiB
-         * limit; a single JSON string value exceeding 1 MiB is unusual in practice.
+         * <p><b>Security rationale:</b> Per-string-value cap. Tightened from the legacy 5 MiB limit; a single JSON
+         * string value exceeding 1 MiB is unusual in practice.
          *
          * <p><b>Acceptable range:</b> Must be positive ({@code > 0}). Non-positive values throw
          * {@link IllegalArgumentException}.
@@ -194,9 +193,9 @@ public record DefaultJsonCodecSettings(
          *
          * <p><b>Default:</b> {@code 64}.
          *
-         * <p><b>Security rationale:</b> Tightened from the legacy 1,000-character limit.
-         * No real number (including scientific notation) exceeds approximately 30 characters;
-         * very long numeric literals are a sign of adversarial input.
+         * <p><b>Security rationale:</b> Tightened from the legacy 1,000-character limit. No real number (including
+         * scientific notation) exceeds approximately 30 characters; very long numeric literals are a sign of
+         * adversarial input.
          *
          * <p><b>Acceptable range:</b> Must be positive ({@code > 0}). Non-positive values throw
          * {@link IllegalArgumentException}.
@@ -215,9 +214,8 @@ public record DefaultJsonCodecSettings(
          *
          * <p><b>Default:</b> {@code 1_024}.
          *
-         * <p><b>Security rationale:</b> Tightened from the legacy 50,000-character limit.
-         * Object keys longer than 1,024 characters are virtually never legitimate and
-         * can inflate internal map structures disproportionately.
+         * <p><b>Security rationale:</b> Tightened from the legacy 50,000-character limit. Object keys longer than 1,024
+         * characters are virtually never legitimate and can inflate internal map structures disproportionately.
          *
          * <p><b>Acceptable range:</b> Must be positive ({@code > 0}). Non-positive values throw
          * {@link IllegalArgumentException}.
@@ -236,9 +234,8 @@ public record DefaultJsonCodecSettings(
          *
          * <p><b>Default:</b> {@code 1_000_000}.
          *
-         * <p><b>Security rationale:</b> Per-array breadth cap. One million elements per array
-         * is already extreme; larger arrays can cause disproportionate heap allocation
-         * when converted to internal list structures.
+         * <p><b>Security rationale:</b> Per-array breadth cap. One million elements per array is already extreme;
+         * larger arrays can cause disproportionate heap allocation when converted to internal list structures.
          *
          * <p><b>Acceptable range:</b> Must be positive ({@code > 0}). Non-positive values throw
          * {@link IllegalArgumentException}.
@@ -257,10 +254,9 @@ public record DefaultJsonCodecSettings(
          *
          * <p><b>Default:</b> {@link DuplicateKeyPolicy#REJECT}.
          *
-         * <p><b>Security rationale:</b> Fail-safe on {@code {"a":1,"a":2}}. RFC 8259 permits
-         * multiple strategies; disagreement between systems on which duplicate wins enables
-         * HTTP Parameter Pollution-style desync attacks. {@code REJECT} is the safest choice
-         * for any environment where input is not fully trusted.
+         * <p><b>Security rationale:</b> Fail-safe on {@code {"a":1,"a":2}}. RFC 8259 permits multiple strategies;
+         * disagreement between systems on which duplicate wins enables HTTP Parameter Pollution-style desync attacks.
+         * {@code REJECT} is the safest choice for any environment where input is not fully trusted.
          *
          * @param p duplicate key policy, must not be {@code null}
          * @return this builder
@@ -279,8 +275,13 @@ public record DefaultJsonCodecSettings(
          */
         public DefaultJsonCodecSettings build() {
             return new DefaultJsonCodecSettings(
-                    maxInputLength, maxNestingDepth, maxStringLength, maxNumberLength,
-                    maxPropertyNameLength, maxArrayElements, duplicateKeyPolicy);
+                    maxInputLength,
+                    maxNestingDepth,
+                    maxStringLength,
+                    maxNumberLength,
+                    maxPropertyNameLength,
+                    maxArrayElements,
+                    duplicateKeyPolicy);
         }
     }
 }

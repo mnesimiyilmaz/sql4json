@@ -1,25 +1,24 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonException;
 import io.github.mnesimiyilmaz.sql4json.json.DefaultJsonCodec;
 import io.github.mnesimiyilmaz.sql4json.settings.Sql4jsonSettings;
 import io.github.mnesimiyilmaz.sql4json.types.JsonCodec;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
-import org.junit.jupiter.api.Test;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class SQL4JsonEngineTest {
 
-    private static final String JSON =
-            "[{\"name\":\"Alice\",\"age\":30},{\"name\":\"Bob\",\"age\":20}]";
+    private static final String JSON = "[{\"name\":\"Alice\",\"age\":30},{\"name\":\"Bob\",\"age\":20}]";
 
     @Test
     void query_returnsJsonString() {
@@ -83,7 +82,9 @@ class SQL4JsonEngineTest {
 
     @Test
     void withDefaultCache_cachesResults() {
-        var settings = Sql4jsonSettings.builder().cache(c -> c.queryResultCacheEnabled(true)).build();
+        var settings = Sql4jsonSettings.builder()
+                .cache(c -> c.queryResultCacheEnabled(true))
+                .build();
         SQL4JsonEngine engine = SQL4Json.engine().settings(settings).data(JSON).build();
         assertEquals(0, engine.cacheSize());
         engine.query("SELECT * FROM $r");
@@ -97,7 +98,8 @@ class SQL4JsonEngineTest {
     @Test
     void withSizedCache_lruEviction() {
         var settings = Sql4jsonSettings.builder()
-                .cache(c -> c.queryResultCacheEnabled(true).queryResultCacheSize(2)).build();
+                .cache(c -> c.queryResultCacheEnabled(true).queryResultCacheSize(2))
+                .build();
         SQL4JsonEngine engine = SQL4Json.engine().settings(settings).data(JSON).build();
         engine.query("SELECT * FROM $r");
         engine.query("SELECT name FROM $r");
@@ -108,7 +110,9 @@ class SQL4JsonEngineTest {
 
     @Test
     void clearCache_resetsSize() {
-        var settings = Sql4jsonSettings.builder().cache(c -> c.queryResultCacheEnabled(true)).build();
+        var settings = Sql4jsonSettings.builder()
+                .cache(c -> c.queryResultCacheEnabled(true))
+                .build();
         SQL4JsonEngine engine = SQL4Json.engine().settings(settings).data(JSON).build();
         engine.query("SELECT * FROM $r");
         engine.query("SELECT name FROM $r");
@@ -119,7 +123,9 @@ class SQL4JsonEngineTest {
 
     @Test
     void cachedResult_matchesUncachedResult() {
-        var settings = Sql4jsonSettings.builder().cache(c -> c.queryResultCacheEnabled(true)).build();
+        var settings = Sql4jsonSettings.builder()
+                .cache(c -> c.queryResultCacheEnabled(true))
+                .build();
         SQL4JsonEngine cached = SQL4Json.engine().settings(settings).data(JSON).build();
         SQL4JsonEngine uncached = SQL4Json.engine().data(JSON).build();
         String sql = "SELECT name FROM $r WHERE age > 25";
@@ -146,16 +152,19 @@ class SQL4JsonEngineTest {
             }
 
             @Override
-            public void clear() { /* no-op for test stub */ }
+            public void clear() {
+                /* no-op for test stub */
+            }
 
             @Override
             public int size() {
                 return putCount;
             }
         };
-        var settings = Sql4jsonSettings.builder().cache(c -> c.customCache(customCache)).build();
-        SQL4JsonEngine engine = SQL4Json.engine()
-                .settings(settings).data(JSON).build();
+        var settings = Sql4jsonSettings.builder()
+                .cache(c -> c.customCache(customCache))
+                .build();
+        SQL4JsonEngine engine = SQL4Json.engine().settings(settings).data(JSON).build();
         engine.query("SELECT * FROM $r");
         assertEquals(1, customCache.putCount);
     }
@@ -163,9 +172,11 @@ class SQL4JsonEngineTest {
     @Test
     void queryWithNow_bypassesCache() {
         String jsonWithDate = "[{\"created_at\":\"2099-12-31T23:59:59\"}]";
-        var settings = Sql4jsonSettings.builder().cache(c -> c.queryResultCacheEnabled(true)).build();
-        SQL4JsonEngine engine = SQL4Json.engine()
-                .settings(settings).data(jsonWithDate).build();
+        var settings = Sql4jsonSettings.builder()
+                .cache(c -> c.queryResultCacheEnabled(true))
+                .build();
+        SQL4JsonEngine engine =
+                SQL4Json.engine().settings(settings).data(jsonWithDate).build();
         engine.query("SELECT * FROM $r");
         assertEquals(1, engine.cacheSize());
         engine.query("SELECT * FROM $r WHERE TO_DATE(created_at) > NOW()");
@@ -175,28 +186,26 @@ class SQL4JsonEngineTest {
     @Test
     void data_nullString_throws() {
         var builder = SQL4Json.engine();
-        assertThrows(SQL4JsonException.class,
-                () -> builder.data((String) null));
+        assertThrows(SQL4JsonException.class, () -> builder.data((String) null));
     }
 
     @Test
     void data_nullJsonValue_throws() {
         var builder = SQL4Json.engine();
-        assertThrows(SQL4JsonException.class,
-                () -> builder.data((JsonValue) null));
+        assertThrows(SQL4JsonException.class, () -> builder.data((JsonValue) null));
     }
 
     @Test
     void queryAsJsonValue_nullJsonValue_throws() {
-        assertThrows(SQL4JsonException.class,
-                () -> SQL4Json.queryAsJsonValue("SELECT * FROM $r", (JsonValue) null));
+        assertThrows(SQL4JsonException.class, () -> SQL4Json.queryAsJsonValue("SELECT * FROM $r", (JsonValue) null));
     }
 
     @Test
     void concurrentQueries_noExceptions() throws Exception {
-        var settings = Sql4jsonSettings.builder().cache(c -> c.queryResultCacheEnabled(true)).build();
-        SQL4JsonEngine engine = SQL4Json.engine()
-                .settings(settings).data(JSON).build();
+        var settings = Sql4jsonSettings.builder()
+                .cache(c -> c.queryResultCacheEnabled(true))
+                .build();
+        SQL4JsonEngine engine = SQL4Json.engine().settings(settings).data(JSON).build();
         int threadCount = 8;
         int queriesPerThread = 50;
         ExecutorService pool = Executors.newFixedThreadPool(threadCount);
@@ -207,9 +216,7 @@ class SQL4JsonEngineTest {
             futures.add(pool.submit(() -> {
                 try {
                     for (int i = 0; i < queriesPerThread; i++) {
-                        String sql = (threadId % 2 == 0)
-                                ? "SELECT * FROM $r"
-                                : "SELECT name FROM $r WHERE age > 25";
+                        String sql = (threadId % 2 == 0) ? "SELECT * FROM $r" : "SELECT name FROM $r WHERE age > 25";
                         String result = engine.query(sql);
                         assertNotNull(result);
                     }
@@ -270,45 +277,40 @@ class SQL4JsonEngineTest {
                 .data("users", "[{\"id\":1,\"name\":\"Alice\"}]")
                 .data("orders", "[{\"user_id\":1,\"product\":\"Widget\"}]")
                 .build();
-        String result = engine.query(
-                "SELECT u.name FROM users u JOIN orders o ON u.id = o.user_id");
+        String result = engine.query("SELECT u.name FROM users u JOIN orders o ON u.id = o.user_id");
         assertTrue(result.contains("Alice"));
     }
 
     @Test
     void builder_namedSource_jsonValue() {
         // SQL4JsonEngineBuilder: data(String, JsonValue) branch
-        JsonValue usersData = SQL4Json.queryAsJsonValue("SELECT * FROM $r",
-                "[{\"id\":1,\"name\":\"Alice\"}]");
-        JsonValue ordersData = SQL4Json.queryAsJsonValue("SELECT * FROM $r",
-                "[{\"user_id\":1,\"product\":\"Widget\"}]");
+        JsonValue usersData = SQL4Json.queryAsJsonValue("SELECT * FROM $r", "[{\"id\":1,\"name\":\"Alice\"}]");
+        JsonValue ordersData =
+                SQL4Json.queryAsJsonValue("SELECT * FROM $r", "[{\"user_id\":1,\"product\":\"Widget\"}]");
         SQL4JsonEngine engine = SQL4Json.engine()
                 .data("users", usersData)
                 .data("orders", ordersData)
                 .build();
-        String result = engine.query(
-                "SELECT u.name FROM users u JOIN orders o ON u.id = o.user_id");
+        String result = engine.query("SELECT u.name FROM users u JOIN orders o ON u.id = o.user_id");
         assertTrue(result.contains("Alice"));
     }
 
     @Test
     void builder_namedSource_nullName_throws() {
-        assertThrows(SQL4JsonException.class,
-                () -> SQL4Json.engine().data(null, "[{\"id\":1}]"));
+        assertThrows(SQL4JsonException.class, () -> SQL4Json.engine().data(null, "[{\"id\":1}]"));
     }
 
     @Test
     void builder_namedSource_blankName_throws() {
-        assertThrows(SQL4JsonException.class,
-                () -> SQL4Json.engine().data("  ", "[{\"id\":1}]"));
+        assertThrows(SQL4JsonException.class, () -> SQL4Json.engine().data("  ", "[{\"id\":1}]"));
     }
 
     @Test
     void joinQuery_onSingleSourceEngine_throws() {
         SQL4JsonEngine engine = SQL4Json.engine().data(JSON).build();
-        var ex = assertThrows(io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException.class,
-                () -> engine.query(
-                        "SELECT u.name FROM users u JOIN orders o ON u.id = o.user_id"));
+        var ex = assertThrows(
+                io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException.class,
+                () -> engine.query("SELECT u.name FROM users u JOIN orders o ON u.id = o.user_id"));
         assertTrue(ex.getMessage().contains("JOIN queries require named data sources"));
     }
 
@@ -316,8 +318,7 @@ class SQL4JsonEngineTest {
     void parameterized_queryAsJsonValue_namedParam() {
         SQL4JsonEngine engine = SQL4Json.engine().data(JSON).build();
         JsonValue result = engine.queryAsJsonValue(
-                "SELECT name FROM $r WHERE age > :min",
-                BoundParameters.named().bind("min", 25));
+                "SELECT name FROM $r WHERE age > :min", BoundParameters.named().bind("min", 25));
         assertNotNull(result);
         assertEquals(1, result.asArray().orElseThrow().size());
     }
@@ -325,9 +326,7 @@ class SQL4JsonEngineTest {
     @Test
     void parameterized_queryAsJsonValue_noPlaceholders_fallsThroughToCachedPath() {
         SQL4JsonEngine engine = SQL4Json.engine().data(JSON).build();
-        JsonValue result = engine.queryAsJsonValue(
-                "SELECT name FROM $r WHERE age > 25",
-                BoundParameters.named());
+        JsonValue result = engine.queryAsJsonValue("SELECT name FROM $r WHERE age > 25", BoundParameters.named());
         assertNotNull(result);
         assertEquals(1, result.asArray().orElseThrow().size());
     }
@@ -335,37 +334,32 @@ class SQL4JsonEngineTest {
     @Test
     void parameterized_queryAsJsonValue_positionalParam() {
         SQL4JsonEngine engine = SQL4Json.engine().data(JSON).build();
-        JsonValue result = engine.queryAsJsonValue(
-                "SELECT name FROM $r WHERE age > ?", BoundParameters.of(25));
+        JsonValue result = engine.queryAsJsonValue("SELECT name FROM $r WHERE age > ?", BoundParameters.of(25));
         assertEquals(1, result.asArray().orElseThrow().size());
     }
 
     @Test
     void parameterized_queryAsJsonValue_limitParam() {
         SQL4JsonEngine engine = SQL4Json.engine().data(JSON).build();
-        JsonValue result = engine.queryAsJsonValue(
-                "SELECT name FROM $r LIMIT ?", BoundParameters.of(1));
+        JsonValue result = engine.queryAsJsonValue("SELECT name FROM $r LIMIT ?", BoundParameters.of(1));
         assertEquals(1, result.asArray().orElseThrow().size());
     }
 
     @Test
     void parameterized_queryAsJsonValue_offsetParam() {
         SQL4JsonEngine engine = SQL4Json.engine().data(JSON).build();
-        JsonValue result = engine.queryAsJsonValue(
-                "SELECT name FROM $r LIMIT 10 OFFSET ?", BoundParameters.of(1));
+        JsonValue result = engine.queryAsJsonValue("SELECT name FROM $r LIMIT 10 OFFSET ?", BoundParameters.of(1));
         assertEquals(1, result.asArray().orElseThrow().size());
     }
 
     @Test
     void builder_namedSource_nullData_throws() {
-        assertThrows(SQL4JsonException.class,
-                () -> SQL4Json.engine().data("users", (String) null));
+        assertThrows(SQL4JsonException.class, () -> SQL4Json.engine().data("users", (String) null));
     }
 
     @Test
     void builder_namedSource_nullJsonValueData_throws() {
-        assertThrows(SQL4JsonException.class,
-                () -> SQL4Json.engine().data("users", (JsonValue) null));
+        assertThrows(SQL4JsonException.class, () -> SQL4Json.engine().data("users", (JsonValue) null));
     }
 
     @Test
@@ -383,12 +377,9 @@ class SQL4JsonEngineTest {
     @Test
     void builder_directDataOverridesRawJson() {
         // SQL4JsonEngineBuilder: data(JsonValue) sets directData, clears rawJson
-        JsonValue data = SQL4Json.queryAsJsonValue("SELECT * FROM $r",
-                "[{\"name\":\"Direct\"}]");
-        SQL4JsonEngine engine = SQL4Json.engine()
-                .data("[{\"name\":\"Raw\"}]")
-                .data(data)
-                .build();
+        JsonValue data = SQL4Json.queryAsJsonValue("SELECT * FROM $r", "[{\"name\":\"Direct\"}]");
+        SQL4JsonEngine engine =
+                SQL4Json.engine().data("[{\"name\":\"Raw\"}]").data(data).build();
         String result = engine.query("SELECT name FROM $r");
         assertTrue(result.contains("Direct"));
     }
@@ -396,12 +387,9 @@ class SQL4JsonEngineTest {
     @Test
     void builder_rawJsonOverridesDirectData() {
         // SQL4JsonEngineBuilder: data(String) sets rawJson, clears directData
-        JsonValue data = SQL4Json.queryAsJsonValue("SELECT * FROM $r",
-                "[{\"name\":\"Direct\"}]");
-        SQL4JsonEngine engine = SQL4Json.engine()
-                .data(data)
-                .data("[{\"name\":\"Raw\"}]")
-                .build();
+        JsonValue data = SQL4Json.queryAsJsonValue("SELECT * FROM $r", "[{\"name\":\"Direct\"}]");
+        SQL4JsonEngine engine =
+                SQL4Json.engine().data(data).data("[{\"name\":\"Raw\"}]").build();
         String result = engine.query("SELECT name FROM $r");
         assertTrue(result.contains("Raw"));
     }
@@ -409,14 +397,13 @@ class SQL4JsonEngineTest {
     @Test
     void builder_mixedNamedSources_rawAndDirect() {
         // SQL4JsonEngineBuilder: resolveNamedSources with both raw + direct
-        JsonValue ordersData = SQL4Json.queryAsJsonValue("SELECT * FROM $r",
-                "[{\"user_id\":1,\"product\":\"Widget\"}]");
+        JsonValue ordersData =
+                SQL4Json.queryAsJsonValue("SELECT * FROM $r", "[{\"user_id\":1,\"product\":\"Widget\"}]");
         SQL4JsonEngine engine = SQL4Json.engine()
                 .data("users", "[{\"id\":1,\"name\":\"Alice\"}]")
                 .data("orders", ordersData)
                 .build();
-        String result = engine.query(
-                "SELECT u.name, o.product FROM users u JOIN orders o ON u.id = o.user_id");
+        String result = engine.query("SELECT u.name, o.product FROM users u JOIN orders o ON u.id = o.user_id");
         assertTrue(result.contains("Alice"));
         assertTrue(result.contains("Widget"));
     }
@@ -446,8 +433,7 @@ class SQL4JsonEngineTest {
 
     @Test
     void engine_nullSettings_throws() {
-        assertThrows(NullPointerException.class,
-                () -> SQL4Json.engine().settings(null));
+        assertThrows(NullPointerException.class, () -> SQL4Json.engine().settings(null));
     }
 
     @Test
@@ -474,7 +460,8 @@ class SQL4JsonEngineTest {
     void engine_joinWithoutNamedSources_throws() {
         // SQL4JsonEngine: executeQuery with JOIN but no namedSources
         SQL4JsonEngine engine = SQL4Json.engine().data("[{\"id\":1}]").build();
-        assertThrows(io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException.class,
+        assertThrows(
+                io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException.class,
                 () -> engine.query("SELECT u.id FROM users u JOIN orders o ON u.id = o.user_id"));
     }
 }

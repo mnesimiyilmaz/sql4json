@@ -1,10 +1,12 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.settings;
 
 /**
- * Security policy subsection of {@link Sql4jsonSettings}: controls soft ReDoS protection
- * for LIKE patterns and error-message redaction for multi-tenant safety.
+ * Security policy subsection of {@link Sql4jsonSettings}: controls soft ReDoS protection for LIKE patterns and
+ * error-message redaction for multi-tenant safety.
  *
  * <p>Usage example:
+ *
  * <pre>{@code
  * Sql4jsonSettings settings = Sql4jsonSettings.builder()
  *     .security(s -> s.maxLikeWildcards(8).redactErrorDetails(true))
@@ -13,19 +15,16 @@ package io.github.mnesimiyilmaz.sql4json.settings;
  *
  * <p>Thread-safe: immutable record; a single instance may be shared across threads.
  *
- * @param maxLikeWildcards   maximum {@code %} wildcard count allowed in a single LIKE pattern
- *                           (soft ReDoS guard); default {@code 16}; {@code 0} disables wildcards entirely
- * @param redactErrorDetails when {@code true}, exception messages omit data-source names and
- *                           user-controlled format strings to prevent information disclosure;
- *                           default {@code true}
+ * @param maxLikeWildcards maximum {@code %} wildcard count allowed in a single LIKE pattern (soft ReDoS guard); default
+ *     {@code 16}; {@code 0} disables wildcards entirely
+ * @param redactErrorDetails when {@code true}, exception messages omit data-source names and user-controlled format
+ *     strings to prevent information disclosure; default {@code false} — opt-in for multi-tenant deployments
  * @see Sql4jsonSettings
  * @see LimitsSettings
  */
-public record SecuritySettings(
-        int maxLikeWildcards,
-        boolean redactErrorDetails) {
+public record SecuritySettings(int maxLikeWildcards, boolean redactErrorDetails) {
 
-    private static final SecuritySettings DEFAULTS = new SecuritySettings(16, true);
+    private static final SecuritySettings DEFAULTS = new SecuritySettings(16, false);
 
     /**
      * Returns the shared default security settings singleton.
@@ -54,11 +53,9 @@ public record SecuritySettings(
         return new Builder(this);
     }
 
-    /**
-     * Mutable builder for {@link SecuritySettings}.
-     */
+    /** Mutable builder for {@link SecuritySettings}. */
     public static final class Builder {
-        private int     maxLikeWildcards;
+        private int maxLikeWildcards;
         private boolean redactErrorDetails;
 
         Builder(SecuritySettings src) {
@@ -71,13 +68,11 @@ public record SecuritySettings(
          *
          * <p><b>Default:</b> {@code 16}.
          *
-         * <p><b>Security rationale:</b> Soft ReDoS guard. Real LIKE patterns rarely exceed
-         * 3–4 wildcards; 16 is a generous cap that blocks pathological inputs without
-         * affecting legitimate queries.
+         * <p><b>Security rationale:</b> Soft ReDoS guard. Real LIKE patterns rarely exceed 3–4 wildcards; 16 is a
+         * generous cap that blocks pathological inputs without affecting legitimate queries.
          *
-         * <p><b>Acceptable range:</b> {@code >= 0}. Setting {@code 0} disables wildcards entirely
-         * (any {@code %} in a LIKE operand will be rejected). Negative values throw
-         * {@link IllegalArgumentException}.
+         * <p><b>Acceptable range:</b> {@code >= 0}. Setting {@code 0} disables wildcards entirely (any {@code %} in a
+         * LIKE operand will be rejected). Negative values throw {@link IllegalArgumentException}.
          *
          * @param v maximum wildcard count, must be {@code >= 0}
          * @return this builder
@@ -90,17 +85,17 @@ public record SecuritySettings(
         }
 
         /**
-         * Controls whether exception messages redact data-source names and user-controlled
-         * format strings.
+         * Controls whether exception messages redact data-source names and user-controlled format strings.
          *
-         * <p><b>Default:</b> {@code true}.
+         * <p><b>Default:</b> {@code false} — full detail is included so failures are easy to diagnose in single-tenant
+         * deployments. Multi-tenant deployments should opt in by setting this to {@code true}.
          *
-         * <p><b>Security rationale:</b> Multi-tenant safety. When {@code true}, exception messages
-         * omit data-source names, format strings, and user-controlled error content, preventing
-         * them from leaking into client-visible responses.
+         * <p><b>Security rationale:</b> Multi-tenant safety. When {@code true}, exception messages omit data-source
+         * names, format strings, and user-controlled error content, preventing them from leaking into client-visible
+         * responses.
          *
-         * @param v {@code true} to redact sensitive detail from error messages; {@code false} to
-         *          include full detail (useful in development or single-tenant environments)
+         * @param v {@code true} to redact sensitive detail from error messages; {@code false} to include full detail
+         *     (useful in development or single-tenant environments)
          * @return this builder
          */
         public Builder redactErrorDetails(boolean v) {

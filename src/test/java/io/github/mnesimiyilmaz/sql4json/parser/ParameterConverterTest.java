@@ -1,14 +1,14 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.parser;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonBindException;
 import io.github.mnesimiyilmaz.sql4json.types.*;
-import org.junit.jupiter.api.Test;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.*;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class ParameterConverterTest {
 
@@ -102,8 +102,7 @@ class ParameterConverterTest {
 
     @Test
     void when_unsupported_type_then_exception() {
-        assertThrows(SQL4JsonBindException.class,
-                () -> ParameterConverter.toSqlValue(new java.io.File("x")));
+        assertThrows(SQL4JsonBindException.class, () -> ParameterConverter.toSqlValue(new java.io.File("x")));
     }
 
     @Test

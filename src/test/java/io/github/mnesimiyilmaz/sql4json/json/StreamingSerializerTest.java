@@ -1,4 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.json;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.github.mnesimiyilmaz.sql4json.engine.FieldKey;
 import io.github.mnesimiyilmaz.sql4json.engine.Row;
@@ -6,12 +9,9 @@ import io.github.mnesimiyilmaz.sql4json.engine.RowAccessor;
 import io.github.mnesimiyilmaz.sql4json.parser.SelectColumnDef;
 import io.github.mnesimiyilmaz.sql4json.registry.FunctionRegistry;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
-import org.junit.jupiter.api.Test;
-
 import java.util.List;
 import java.util.stream.Stream;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.Test;
 
 class StreamingSerializerTest {
 
@@ -20,11 +20,7 @@ class StreamingSerializerTest {
     @Test
     void serialize_empty_stream() {
         String result = StreamingSerializer.serialize(
-                Stream.empty(),
-                List.of(SelectColumnDef.asterisk()),
-                REGISTRY,
-                Integer.MAX_VALUE
-        );
+                Stream.empty(), List.of(SelectColumnDef.asterisk()), REGISTRY, Integer.MAX_VALUE);
         assertEquals("[]", result);
     }
 
@@ -35,11 +31,7 @@ class StreamingSerializerTest {
         Row row = Row.lazy(element, interner);
 
         String result = StreamingSerializer.serialize(
-                Stream.of(row),
-                List.of(SelectColumnDef.asterisk()),
-                REGISTRY,
-                Integer.MAX_VALUE
-        );
+                Stream.of(row), List.of(SelectColumnDef.asterisk()), REGISTRY, Integer.MAX_VALUE);
         assertEquals("[{\"name\":\"Alice\",\"age\":30}]", result);
     }
 
@@ -52,11 +44,7 @@ class StreamingSerializerTest {
         Row r2 = Row.lazy(e2, interner);
 
         String result = StreamingSerializer.serialize(
-                Stream.of(r1, r2),
-                List.of(SelectColumnDef.asterisk()),
-                REGISTRY,
-                Integer.MAX_VALUE
-        );
+                Stream.of(r1, r2), List.of(SelectColumnDef.asterisk()), REGISTRY, Integer.MAX_VALUE);
         assertEquals("[{\"id\":1},{\"id\":2}]", result);
     }
 
@@ -68,16 +56,13 @@ class StreamingSerializerTest {
 
         // Tree path
         List<JsonValue> elements = JsonParser.parse(json).asArray().orElseThrow();
-        List<RowAccessor> rows = elements.stream()
-                .map(e -> (RowAccessor) Row.lazy(e, interner))
-                .toList();
-        String treeResult = JsonSerializer.serialize(
-                JsonUnflattener.unflatten(rows, columns, REGISTRY));
+        List<RowAccessor> rows =
+                elements.stream().map(e -> (RowAccessor) Row.lazy(e, interner)).toList();
+        String treeResult = JsonSerializer.serialize(JsonUnflattener.unflatten(rows, columns, REGISTRY));
 
         // Streaming path
         FieldKey.Interner interner2 = new FieldKey.Interner();
-        Stream<RowAccessor> rowStream = elements.stream()
-                .map(e -> (RowAccessor) Row.lazy(e, interner2));
+        Stream<RowAccessor> rowStream = elements.stream().map(e -> (RowAccessor) Row.lazy(e, interner2));
         String streamResult = StreamingSerializer.serialize(rowStream, columns, REGISTRY, Integer.MAX_VALUE);
 
         assertEquals(treeResult, streamResult);
@@ -90,8 +75,7 @@ class StreamingSerializerTest {
         Row row = Row.lazy(element, interner);
 
         List<SelectColumnDef> columns = List.of(SelectColumnDef.column("name"));
-        String result = StreamingSerializer.serialize(
-                Stream.of(row), columns, REGISTRY, Integer.MAX_VALUE);
+        String result = StreamingSerializer.serialize(Stream.of(row), columns, REGISTRY, Integer.MAX_VALUE);
         assertEquals("[{\"name\":\"Alice\"}]", result);
     }
 }

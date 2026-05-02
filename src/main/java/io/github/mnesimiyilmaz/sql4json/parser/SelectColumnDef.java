@@ -1,27 +1,22 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.parser;
 
 import io.github.mnesimiyilmaz.sql4json.engine.Expression;
 import io.github.mnesimiyilmaz.sql4json.engine.Expression.*;
 import io.github.mnesimiyilmaz.sql4json.types.SqlValue;
-
 import java.util.List;
 
 /**
- * Represents a single column in a SELECT clause.
- * Wraps an {@link Expression} tree with an optional alias.
+ * Represents a single column in a SELECT clause. Wraps an {@link Expression} tree with an optional alias.
  *
  * @param expression the expression tree for this column (null for asterisk)
- * @param alias      optional column alias from AS clause
+ * @param alias optional column alias from AS clause
  * @param isAsterisk true if this is a {@code SELECT *} column
  */
-public record SelectColumnDef(
-        Expression expression,
-        String alias,
-        boolean isAsterisk
-) {
+public record SelectColumnDef(Expression expression, String alias, boolean isAsterisk) {
     /**
-     * Returns alias if set, otherwise the innermost column path from the expression,
-     * or the expression toString as fallback.
+     * Returns alias if set, otherwise the innermost column path from the expression, or the expression toString as
+     * fallback.
      *
      * @return the effective output name for this column
      */
@@ -32,8 +27,8 @@ public record SelectColumnDef(
     }
 
     /**
-     * Returns the innermost column path referenced by this expression.
-     * Used by SelectStage for field projection and by JsonUnflattener for field navigation.
+     * Returns the innermost column path referenced by this expression. Used by SelectStage for field projection and by
+     * JsonUnflattener for field navigation.
      *
      * @return the column path, or {@code null} for asterisk or non-column expressions
      */
@@ -42,9 +37,8 @@ public record SelectColumnDef(
     }
 
     /**
-     * Returns true if this expression contains an aggregate function.
-     * Used by SelectStage, JsonUnflattener, GroupAggregator to distinguish
-     * aggregate columns from plain/scalar columns.
+     * Returns true if this expression contains an aggregate function. Used by SelectStage, JsonUnflattener,
+     * GroupAggregator to distinguish aggregate columns from plain/scalar columns.
      *
      * @return {@code true} if an aggregate function is present in the expression tree
      */
@@ -53,8 +47,8 @@ public record SelectColumnDef(
     }
 
     /**
-     * Returns true if this expression contains a window function.
-     * Window functions are NOT aggregates — they don't collapse rows.
+     * Returns true if this expression contains a window function. Window functions are NOT aggregates — they don't
+     * collapse rows.
      *
      * @return {@code true} if a window function is present in the expression tree
      */
@@ -63,8 +57,8 @@ public record SelectColumnDef(
     }
 
     /**
-     * Returns the aggregate function name if the top-level or any nested expression
-     * contains one, or null. Searches the full tree depth.
+     * Returns the aggregate function name if the top-level or any nested expression contains one, or null. Searches the
+     * full tree depth.
      *
      * @return the aggregate function name (e.g. {@code "SUM"}), or {@code null} if none
      */
@@ -123,7 +117,7 @@ public record SelectColumnDef(
      * Creates a SelectColumnDef from an expression with an optional alias.
      *
      * @param expression the expression tree for this column
-     * @param alias      the alias, or {@code null}
+     * @param alias the alias, or {@code null}
      * @return a new SelectColumnDef
      */
     public static SelectColumnDef of(Expression expression, String alias) {
@@ -143,7 +137,7 @@ public record SelectColumnDef(
     /**
      * Backward compat: plain column with alias.
      *
-     * @param name  the column name
+     * @param name the column name
      * @param alias the column alias
      * @return a new SelectColumnDef for a plain column reference with alias
      */
@@ -154,9 +148,9 @@ public record SelectColumnDef(
     /**
      * Backward compat: aggregate.
      *
-     * @param aggFn   the aggregate function name (e.g. {@code "SUM"})
+     * @param aggFn the aggregate function name (e.g. {@code "SUM"})
      * @param colName the column name, or {@code "*"} for COUNT(*)
-     * @param alias   the column alias
+     * @param alias the column alias
      * @return a new SelectColumnDef wrapping an aggregate function call
      */
     public static SelectColumnDef aggregate(String aggFn, String colName, String alias) {
@@ -167,20 +161,18 @@ public record SelectColumnDef(
     /**
      * Backward compat: scalar function.
      *
-     * @param fnName  the scalar function name
+     * @param fnName the scalar function name
      * @param colName the column name passed as the first argument
-     * @param alias   the column alias
-     * @param fnArgs  additional literal arguments, or {@code null}
+     * @param alias the column alias
+     * @param fnArgs additional literal arguments, or {@code null}
      * @return a new SelectColumnDef wrapping a scalar function call
      */
-    public static SelectColumnDef scalar(String fnName, String colName, String alias,
-                                         List<SqlValue> fnArgs) {
+    public static SelectColumnDef scalar(String fnName, String colName, String alias, List<SqlValue> fnArgs) {
         var args = new java.util.ArrayList<Expression>();
         args.add(new ColumnRef(colName));
         if (fnArgs != null) {
             fnArgs.forEach(v -> args.add(new LiteralVal(v)));
         }
-        return new SelectColumnDef(
-                new ScalarFnCall(fnName.toLowerCase(), args), alias, false);
+        return new SelectColumnDef(new ScalarFnCall(fnName.toLowerCase(), args), alias, false);
     }
 }

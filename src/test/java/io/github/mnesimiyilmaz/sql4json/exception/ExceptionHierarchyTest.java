@@ -1,30 +1,30 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.exception;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.lang.reflect.Modifier;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class ExceptionHierarchyTest {
 
     @Test
     void sql4JsonException_isSealed() {
-        assertTrue(SQL4JsonException.class.isSealed(),
-                "SQL4JsonException must be sealed");
+        assertTrue(SQL4JsonException.class.isSealed(), "SQL4JsonException must be sealed");
         var permitted = SQL4JsonException.class.getPermittedSubclasses();
         assertEquals(4, permitted.length);
     }
 
     @Test
     void parseException_isFinal() {
-        assertTrue(Modifier.isFinal(SQL4JsonParseException.class.getModifiers()),
-                "SQL4JsonParseException must be final");
+        assertTrue(
+                Modifier.isFinal(SQL4JsonParseException.class.getModifiers()), "SQL4JsonParseException must be final");
     }
 
     @Test
     void executionException_isFinal() {
-        assertTrue(Modifier.isFinal(SQL4JsonExecutionException.class.getModifiers()),
+        assertTrue(
+                Modifier.isFinal(SQL4JsonExecutionException.class.getModifiers()),
                 "SQL4JsonExecutionException must be final");
     }
 

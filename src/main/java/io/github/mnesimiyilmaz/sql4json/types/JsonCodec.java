@@ -1,10 +1,11 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.types;
 
 /**
  * Strategy interface for JSON parsing and serialization.
  *
- * <p>The library ships with a built-in implementation; users may provide their own
- * to integrate a different JSON library (Jackson, Gson, etc.).</p>
+ * <p>The library ships with a built-in implementation; users may provide their own to integrate a different JSON
+ * library (Jackson, Gson, etc.).
  *
  * <pre>{@code
  * JsonCodec myCodec = new MyGsonCodec();

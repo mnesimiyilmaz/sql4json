@@ -1,13 +1,14 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.engine;
 
 import java.util.stream.Stream;
 
 /**
- * A stage in the query execution pipeline.
- * Lazy stages do not buffer rows; materializing stages must collect the full stream.
- * <p>
- * Sealed: only LazyPipelineStage and MaterializingPipelineStage are permitted.
- * Concrete stage classes (WhereStage, etc.) implement the non-sealed sub-interfaces.
+ * A stage in the query execution pipeline. Lazy stages do not buffer rows; materializing stages must collect the full
+ * stream.
+ *
+ * <p>Sealed: only LazyPipelineStage and MaterializingPipelineStage are permitted. Concrete stage classes (WhereStage,
+ * etc.) implement the non-sealed sub-interfaces.
  */
 public sealed interface PipelineStage permits LazyPipelineStage, MaterializingPipelineStage {
     /**

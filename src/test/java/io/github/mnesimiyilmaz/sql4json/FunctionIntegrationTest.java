@@ -1,18 +1,18 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonParseException;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
  * SQL-level smoke + edge-case integration test for every registered function.
  *
- * <p>Each function is exercised through real SQL ({@link SQL4Json#query(String, String)})
- * against a single shared JSON fixture, with assertions on the JSON output. Distinct from
- * {@code FunctionUnitTest} which calls the registry directly at the Java level — this class
- * verifies the parser→executor→serializer pipeline as a whole.
+ * <p>Each function is exercised through real SQL ({@link SQL4Json#query(String, String)}) against a single shared JSON
+ * fixture, with assertions on the JSON output. Distinct from {@code FunctionUnitTest} which calls the registry directly
+ * at the Java level — this class verifies the parser→executor→serializer pipeline as a whole.
  */
 class FunctionIntegrationTest {
 
@@ -109,8 +109,7 @@ class FunctionIntegrationTest {
         @Test
         void length_happy() {
             assertEquals(
-                    "[{\"s\":5},{\"s\":3},{\"s\":7},{\"s\":9},{\"s\":null}]",
-                    run("SELECT LENGTH(name) AS s FROM $r"));
+                    "[{\"s\":5},{\"s\":3},{\"s\":7},{\"s\":9},{\"s\":null}]", run("SELECT LENGTH(name) AS s FROM $r"));
         }
 
         @Test
@@ -195,15 +194,12 @@ class FunctionIntegrationTest {
         @Test
         void abs_happy() {
             assertEquals(
-                    "[{\"s\":30},{\"s\":25},{\"s\":35},{\"s\":40},{\"s\":null}]",
-                    run("SELECT ABS(age) AS s FROM $r"));
+                    "[{\"s\":30},{\"s\":25},{\"s\":35},{\"s\":40},{\"s\":null}]", run("SELECT ABS(age) AS s FROM $r"));
         }
 
         @Test
         void round_no_decimals_returns_int() {
-            assertEquals(
-                    "[{\"s\":3},{\"s\":3},{\"s\":3},{\"s\":3},{\"s\":3}]",
-                    run("SELECT ROUND(3.14) AS s FROM $r"));
+            assertEquals("[{\"s\":3},{\"s\":3},{\"s\":3},{\"s\":3},{\"s\":3}]", run("SELECT ROUND(3.14) AS s FROM $r"));
         }
 
         @Test
@@ -215,24 +211,19 @@ class FunctionIntegrationTest {
 
         @Test
         void ceil_happy() {
-            assertEquals(
-                    "[{\"s\":4},{\"s\":4},{\"s\":4},{\"s\":4},{\"s\":4}]",
-                    run("SELECT CEIL(3.14) AS s FROM $r"));
+            assertEquals("[{\"s\":4},{\"s\":4},{\"s\":4},{\"s\":4},{\"s\":4}]", run("SELECT CEIL(3.14) AS s FROM $r"));
         }
 
         @Test
         void floor_happy() {
-            assertEquals(
-                    "[{\"s\":3},{\"s\":3},{\"s\":3},{\"s\":3},{\"s\":3}]",
-                    run("SELECT FLOOR(3.99) AS s FROM $r"));
+            assertEquals("[{\"s\":3},{\"s\":3},{\"s\":3},{\"s\":3},{\"s\":3}]", run("SELECT FLOOR(3.99) AS s FROM $r"));
         }
 
         @Test
         void mod_happy() {
             // age % 5 = 0 for 30, 25, 35, 40; null for null row
             assertEquals(
-                    "[{\"s\":0},{\"s\":0},{\"s\":0},{\"s\":0},{\"s\":null}]",
-                    run("SELECT MOD(age, 5) AS s FROM $r"));
+                    "[{\"s\":0},{\"s\":0},{\"s\":0},{\"s\":0},{\"s\":null}]", run("SELECT MOD(age, 5) AS s FROM $r"));
         }
 
         @Test
@@ -268,8 +259,7 @@ class FunctionIntegrationTest {
         void sign_happy() {
             // All positive ages → 1; null → null
             assertEquals(
-                    "[{\"s\":1},{\"s\":1},{\"s\":1},{\"s\":1},{\"s\":null}]",
-                    run("SELECT SIGN(age) AS s FROM $r"));
+                    "[{\"s\":1},{\"s\":1},{\"s\":1},{\"s\":1},{\"s\":null}]", run("SELECT SIGN(age) AS s FROM $r"));
         }
     }
 
@@ -384,7 +374,8 @@ class FunctionIntegrationTest {
 
         @Test
         void cast_invalid_string_to_number_throws() {
-            assertThrows(io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException.class,
+            assertThrows(
+                    io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException.class,
                     () -> run("SELECT CAST('not a number' AS NUMBER) AS s FROM $r"));
         }
 
@@ -416,19 +407,22 @@ class FunctionIntegrationTest {
         @Test
         void cast_invalid_type_to_boolean_throws() {
             // Date cannot be cast to boolean
-            assertThrows(io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException.class,
+            assertThrows(
+                    io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException.class,
                     () -> run("SELECT CAST(TO_DATE(hired) AS BOOLEAN) AS s FROM $r WHERE name = 'Alice'"));
         }
 
         @Test
         void cast_string_to_date_invalid_throws() {
-            assertThrows(io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException.class,
+            assertThrows(
+                    io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException.class,
                     () -> run("SELECT CAST('not a date' AS DATE) AS s FROM $r"));
         }
 
         @Test
         void cast_dateTime_to_date() {
-            String result = run("SELECT CAST(CAST('2020-01-15T10:30:00' AS DATETIME) AS DATE) AS s FROM $r WHERE name = 'Alice'");
+            String result = run(
+                    "SELECT CAST(CAST('2020-01-15T10:30:00' AS DATETIME) AS DATE) AS s FROM $r WHERE name = 'Alice'");
             assertTrue(result.contains("\"s\":\"2020-01-15\""), result);
         }
 
@@ -440,7 +434,8 @@ class FunctionIntegrationTest {
 
         @Test
         void cast_string_to_dateTime_invalid_throws() {
-            assertThrows(io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException.class,
+            assertThrows(
+                    io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException.class,
                     () -> run("SELECT CAST('bad' AS DATETIME) AS s FROM $r"));
         }
     }
@@ -488,16 +483,14 @@ class FunctionIntegrationTest {
 
         @Test
         void min_max_per_dept() {
-            String result = run(
-                    "SELECT dept, MIN(salary) AS lo, MAX(salary) AS hi FROM $r GROUP BY dept");
-            assertTrue(result.contains("\"lo\":85000,\"hi\":90000"), result);   // Engineering
-            assertTrue(result.contains("\"lo\":70000,\"hi\":120000"), result);  // Marketing
+            String result = run("SELECT dept, MIN(salary) AS lo, MAX(salary) AS hi FROM $r GROUP BY dept");
+            assertTrue(result.contains("\"lo\":85000,\"hi\":90000"), result); // Engineering
+            assertTrue(result.contains("\"lo\":70000,\"hi\":120000"), result); // Marketing
         }
 
         @Test
         void having_filters_groups() {
-            String result = run(
-                    "SELECT dept, COUNT(*) AS c FROM $r GROUP BY dept HAVING c > 1");
+            String result = run("SELECT dept, COUNT(*) AS c FROM $r GROUP BY dept HAVING c > 1");
             assertTrue(result.contains("\"dept\":\"Engineering\""), result);
             assertTrue(result.contains("\"dept\":\"Marketing\""), result);
             // null-dept group has c=1 — must be filtered out
@@ -551,9 +544,7 @@ class FunctionIntegrationTest {
         @Test
         void whole_number_literal_serializes_as_int() {
             // 42 stays as int, not 42.0
-            assertEquals(
-                    "[{\"x\":42},{\"x\":42},{\"x\":42},{\"x\":42},{\"x\":42}]",
-                    run("SELECT 42 AS x FROM $r"));
+            assertEquals("[{\"x\":42},{\"x\":42},{\"x\":42},{\"x\":42},{\"x\":42}]", run("SELECT 42 AS x FROM $r"));
         }
 
         @Test
@@ -606,50 +597,38 @@ class FunctionIntegrationTest {
 
         @Test
         void row_number_without_over_throws_parse_error() {
-            var ex = assertThrows(SQL4JsonParseException.class,
-                    () -> run("SELECT ROW_NUMBER() AS rn FROM $r"));
-            assertTrue(ex.getMessage().contains("ROW_NUMBER must be used with OVER"),
-                    "actual: " + ex.getMessage());
+            var ex = assertThrows(SQL4JsonParseException.class, () -> run("SELECT ROW_NUMBER() AS rn FROM $r"));
+            assertTrue(ex.getMessage().contains("ROW_NUMBER must be used with OVER"), "actual: " + ex.getMessage());
         }
 
         @Test
         void rank_without_over_throws_parse_error() {
-            var ex = assertThrows(SQL4JsonParseException.class,
-                    () -> run("SELECT RANK() AS r FROM $r"));
-            assertTrue(ex.getMessage().contains("RANK must be used with OVER"),
-                    "actual: " + ex.getMessage());
+            var ex = assertThrows(SQL4JsonParseException.class, () -> run("SELECT RANK() AS r FROM $r"));
+            assertTrue(ex.getMessage().contains("RANK must be used with OVER"), "actual: " + ex.getMessage());
         }
 
         @Test
         void dense_rank_without_over_throws_parse_error() {
-            var ex = assertThrows(SQL4JsonParseException.class,
-                    () -> run("SELECT DENSE_RANK() AS r FROM $r"));
-            assertTrue(ex.getMessage().contains("DENSE_RANK must be used with OVER"),
-                    "actual: " + ex.getMessage());
+            var ex = assertThrows(SQL4JsonParseException.class, () -> run("SELECT DENSE_RANK() AS r FROM $r"));
+            assertTrue(ex.getMessage().contains("DENSE_RANK must be used with OVER"), "actual: " + ex.getMessage());
         }
 
         @Test
         void ntile_without_over_throws_parse_error() {
-            var ex = assertThrows(SQL4JsonParseException.class,
-                    () -> run("SELECT NTILE(4) AS r FROM $r"));
-            assertTrue(ex.getMessage().contains("NTILE must be used with OVER"),
-                    "actual: " + ex.getMessage());
+            var ex = assertThrows(SQL4JsonParseException.class, () -> run("SELECT NTILE(4) AS r FROM $r"));
+            assertTrue(ex.getMessage().contains("NTILE must be used with OVER"), "actual: " + ex.getMessage());
         }
 
         @Test
         void lag_without_over_throws_parse_error() {
-            var ex = assertThrows(SQL4JsonParseException.class,
-                    () -> run("SELECT LAG(name) AS r FROM $r"));
-            assertTrue(ex.getMessage().contains("LAG must be used with OVER"),
-                    "actual: " + ex.getMessage());
+            var ex = assertThrows(SQL4JsonParseException.class, () -> run("SELECT LAG(name) AS r FROM $r"));
+            assertTrue(ex.getMessage().contains("LAG must be used with OVER"), "actual: " + ex.getMessage());
         }
 
         @Test
         void lead_without_over_throws_parse_error() {
-            var ex = assertThrows(SQL4JsonParseException.class,
-                    () -> run("SELECT LEAD(name) AS r FROM $r"));
-            assertTrue(ex.getMessage().contains("LEAD must be used with OVER"),
-                    "actual: " + ex.getMessage());
+            var ex = assertThrows(SQL4JsonParseException.class, () -> run("SELECT LEAD(name) AS r FROM $r"));
+            assertTrue(ex.getMessage().contains("LEAD must be used with OVER"), "actual: " + ex.getMessage());
         }
     }
 }

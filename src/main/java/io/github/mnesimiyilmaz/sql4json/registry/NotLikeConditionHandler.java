@@ -1,5 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.registry;
-
 
 final class NotLikeConditionHandler implements ConditionHandler {
 
@@ -15,10 +15,8 @@ final class NotLikeConditionHandler implements ConditionHandler {
     }
 
     @Override
-    public CriteriaNode handle(ConditionContext ctx,
-                               OperatorRegistry operators,
-                               FunctionRegistry functions) {
-        return LikeConditionHandler.buildPatternNode(ctx.lhsExpression(), ctx.rhsExpression(),
-                patternCache, functions, true);
+    public CriteriaNode handle(ConditionContext ctx, OperatorRegistry operators, FunctionRegistry functions) {
+        return LikeConditionHandler.buildPatternNode(
+                ctx.lhsExpression(), ctx.rhsExpression(), patternCache, functions, true);
     }
 }

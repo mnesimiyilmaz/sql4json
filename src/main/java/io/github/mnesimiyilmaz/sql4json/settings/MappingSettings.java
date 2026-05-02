@@ -1,13 +1,14 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.settings;
 
 import java.util.Objects;
 
 /**
- * Object-mapping configuration subsection of {@link Sql4jsonSettings}. Controls
- * behavior of {@code queryAs} / {@code queryAsList} / {@code JsonValue.as} and their
- * {@code execute*} / engine counterparts.
+ * Object-mapping configuration subsection of {@link Sql4jsonSettings}. Controls behavior of {@code queryAs} /
+ * {@code queryAsList} / {@code JsonValue.as} and their {@code execute*} / engine counterparts.
  *
  * <p>Usage example:
+ *
  * <pre>{@code
  * Sql4jsonSettings strict = Sql4jsonSettings.builder()
  *     .mapping(m -> m.missingFieldPolicy(MissingFieldPolicy.FAIL))
@@ -61,9 +62,7 @@ public record MappingSettings(MissingFieldPolicy missingFieldPolicy) {
         return new Builder(this);
     }
 
-    /**
-     * Mutable builder for {@link MappingSettings}.
-     */
+    /** Mutable builder for {@link MappingSettings}. */
     public static final class Builder {
         private MissingFieldPolicy missingFieldPolicy;
 

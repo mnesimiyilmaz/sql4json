@@ -1,18 +1,18 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.settings;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.mnesimiyilmaz.sql4json.QueryResultCache;
 import io.github.mnesimiyilmaz.sql4json.SQL4Json;
 import io.github.mnesimiyilmaz.sql4json.json.DefaultJsonCodec;
 import io.github.mnesimiyilmaz.sql4json.types.JsonCodec;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
-import org.junit.jupiter.api.Test;
-
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
 
 class Sql4jsonSettingsCacheTests {
 
@@ -45,9 +45,7 @@ class Sql4jsonSettingsCacheTests {
                 return m.size();
             }
         };
-        var settings = Sql4jsonSettings.builder()
-                .cache(c -> c.customCache(spy))
-                .build();
+        var settings = Sql4jsonSettings.builder().cache(c -> c.customCache(spy)).build();
         var engine = SQL4Json.engine().settings(settings).data("[{\"a\":1}]").build();
         engine.query("SELECT a FROM $r");
         engine.query("SELECT a FROM $r");
@@ -58,9 +56,8 @@ class Sql4jsonSettingsCacheTests {
     @Test
     void likePatternCacheSize_evicts_old_patterns_through_full_stack() {
         // Capacity of 1 guarantees eviction when a second distinct LIKE pattern runs.
-        var settings = Sql4jsonSettings.builder()
-                .cache(c -> c.likePatternCacheSize(1))
-                .build();
+        var settings =
+                Sql4jsonSettings.builder().cache(c -> c.likePatternCacheSize(1)).build();
         String json = "[{\"name\":\"alice\"},{\"name\":\"bob\"},{\"name\":\"charlie\"}]";
         // Two distinct LIKE patterns against the same data → second compile evicts first.
         String r1 = SQL4Json.query("SELECT name FROM $r WHERE name LIKE '%a%'", json, settings);
@@ -88,7 +85,10 @@ class Sql4jsonSettingsCacheTests {
         var settings = Sql4jsonSettings.builder()
                 .cache(c -> c.queryResultCacheEnabled(true).queryResultCacheSize(2))
                 .build();
-        var engine = SQL4Json.engine().settings(settings).data("[{\"a\":1},{\"a\":2}]").build();
+        var engine = SQL4Json.engine()
+                .settings(settings)
+                .data("[{\"a\":1},{\"a\":2}]")
+                .build();
         engine.query("SELECT a FROM $r WHERE a = 1");
         engine.query("SELECT a FROM $r WHERE a = 2");
         assertEquals(2, engine.cacheSize());
@@ -120,8 +120,7 @@ class Sql4jsonSettingsCacheTests {
         // Deliberate ordering: data first, then settings. The spy codec MUST
         // be the one that parses the input.
         var engine = SQL4Json.engine().data("[{\"a\":1}]").settings(settings).build();
-        assertEquals(1, parseCalls.get(),
-                "custom codec must parse the input, proving deferred-parse fix works");
+        assertEquals(1, parseCalls.get(), "custom codec must parse the input, proving deferred-parse fix works");
         // Sanity: engine actually works.
         String result = engine.query("SELECT a FROM $r");
         assertTrue(result.contains("1"));

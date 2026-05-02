@@ -1,8 +1,9 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.settings;
 
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.*;
+
+import org.junit.jupiter.api.Test;
 
 class MappingSettingsTest {
 
@@ -21,8 +22,7 @@ class MappingSettingsTest {
 
     @Test
     void when_builder_rejects_null_policy() {
-        assertThrows(NullPointerException.class,
-                () -> MappingSettings.builder().missingFieldPolicy(null));
+        assertThrows(NullPointerException.class, () -> MappingSettings.builder().missingFieldPolicy(null));
     }
 
     @Test

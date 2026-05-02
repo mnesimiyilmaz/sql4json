@@ -1,15 +1,15 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.parser;
 
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.*;
+
+import org.junit.jupiter.api.Test;
 
 class JoinGrammarTest {
 
     @Test
     void parse_inner_join() {
-        var qd = QueryParser.parse(
-                "SELECT u.name, o.amount FROM users u JOIN orders o ON u.id = o.user_id");
+        var qd = QueryParser.parse("SELECT u.name, o.amount FROM users u JOIN orders o ON u.id = o.user_id");
         assertEquals("users", qd.rootPath());
         assertEquals("u", qd.rootAlias());
         assertNotNull(qd.joins());
@@ -26,22 +26,19 @@ class JoinGrammarTest {
 
     @Test
     void parse_explicit_inner_join() {
-        var qd = QueryParser.parse(
-                "SELECT * FROM users u INNER JOIN orders o ON u.id = o.user_id");
+        var qd = QueryParser.parse("SELECT * FROM users u INNER JOIN orders o ON u.id = o.user_id");
         assertEquals(JoinType.INNER, qd.joins().getFirst().joinType());
     }
 
     @Test
     void parse_left_join() {
-        var qd = QueryParser.parse(
-                "SELECT u.name FROM users u LEFT JOIN orders o ON u.id = o.user_id");
+        var qd = QueryParser.parse("SELECT u.name FROM users u LEFT JOIN orders o ON u.id = o.user_id");
         assertEquals(JoinType.LEFT, qd.joins().getFirst().joinType());
     }
 
     @Test
     void parse_right_join() {
-        var qd = QueryParser.parse(
-                "SELECT o.amount FROM users u RIGHT JOIN orders o ON u.id = o.user_id");
+        var qd = QueryParser.parse("SELECT o.amount FROM users u RIGHT JOIN orders o ON u.id = o.user_id");
         assertEquals(JoinType.RIGHT, qd.joins().getFirst().joinType());
     }
 
@@ -61,8 +58,7 @@ class JoinGrammarTest {
 
     @Test
     void parse_multi_column_on() {
-        var qd = QueryParser.parse(
-                "SELECT * FROM a a1 JOIN b b1 ON a1.x = b1.x AND a1.y = b1.y");
+        var qd = QueryParser.parse("SELECT * FROM a a1 JOIN b b1 ON a1.x = b1.x AND a1.y = b1.y");
         var conditions = qd.joins().getFirst().onConditions();
         assertEquals(2, conditions.size());
         assertEquals("a1.x", conditions.get(0).leftPath());
@@ -73,8 +69,7 @@ class JoinGrammarTest {
 
     @Test
     void parse_table_name_without_alias() {
-        var qd = QueryParser.parse(
-                "SELECT * FROM users JOIN orders ON users.id = orders.user_id");
+        var qd = QueryParser.parse("SELECT * FROM users JOIN orders ON users.id = orders.user_id");
         assertEquals("users", qd.rootPath());
         assertEquals("users", qd.rootAlias()); // defaults to table name
         assertEquals("orders", qd.joins().getFirst().alias()); // defaults to table name
@@ -102,8 +97,7 @@ class JoinGrammarTest {
 
     @Test
     void parse_non_equality_on_operator_throws() {
-        assertThrows(Exception.class, () -> QueryParser.parse(
-                "SELECT * FROM a a1 JOIN b b1 ON a1.id > b1.id"));
+        assertThrows(Exception.class, () -> QueryParser.parse("SELECT * FROM a a1 JOIN b b1 ON a1.id > b1.id"));
     }
 
     @Test

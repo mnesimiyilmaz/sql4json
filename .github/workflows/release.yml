@@ -1,0 +1,88 @@
+name: Release
+
+# Tag-driven release: pushing `vX.Y.Z` runs the full release pipeline (build → OWASP → sign → publish to Maven Central).
+# The git tag must match `<version>` in pom.xml (without the `v` prefix). Anything else fails fast.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Tag to release (e.g. v1.3.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: maven-central
+    env:
+      # Exposed at job level so setup-java sees the passphrase during the GPG key import step,
+      # not only during the deploy step that exports it explicitly for maven-gpg-plugin.
+      MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.inputs.ref || github.ref }}
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+          server-id: central
+          server-username: CENTRAL_USERNAME
+          server-password: CENTRAL_PASSWORD
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
+
+      - name: Verify tag matches pom version
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME:-${{ github.event.inputs.ref }}}"
+          tag_version="${tag#v}"
+          pom_version="$(./mvnw -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)"
+          if [ "$tag_version" != "$pom_version" ]; then
+            echo "Tag $tag (version=$tag_version) does not match pom.xml version $pom_version" >&2
+            exit 1
+          fi
+          echo "tag_version=$tag_version" >> "$GITHUB_ENV"
+
+      - name: Capture commit timestamp for reproducible build
+        run: |
+          ts="$(git log -1 --format=%cI HEAD)"
+          echo "Reproducible build timestamp: $ts"
+          echo "BUILD_OUTPUT_TIMESTAMP=$ts" >> "$GITHUB_ENV"
+
+      - name: Deploy to Maven Central
+        env:
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+          TZ: UTC
+          LC_ALL: C.UTF-8
+        run: >
+          ./mvnw --batch-mode --no-transfer-progress
+          -Prelease
+          -Dproject.build.outputTimestamp=${{ env.BUILD_OUTPUT_TIMESTAMP }}
+          clean deploy
+
+      - name: Upload OWASP dependency-check report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: |
+            target/dependency-check-report.html
+            target/dependency-check-report.json
+            target/dependency-check-report.sarif
+          if-no-files-found: ignore

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.json;
 
 import io.github.mnesimiyilmaz.sql4json.engine.Expression;
@@ -10,7 +11,6 @@ import io.github.mnesimiyilmaz.sql4json.parser.SelectColumnDef;
 import io.github.mnesimiyilmaz.sql4json.registry.FunctionRegistry;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
 import io.github.mnesimiyilmaz.sql4json.types.SqlValue;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -20,24 +20,21 @@ import java.util.Map;
 /**
  * Reconstructs nested {@link JsonValue} trees from flat rows produced by the query pipeline.
  *
- * <p>Since 1.2.0 the entry point accepts {@code List<RowAccessor>} — both lazy
- * {@link Row} and materialised {@link io.github.mnesimiyilmaz.sql4json.engine.FlatRow}
- * are supported. Aggregated rows from GROUP BY are read flat (their values are
- * pre-evaluated against the SELECT list); other rows go through expression
- * evaluation, with optional cherry-pick navigation when the row retains its
- * original {@link JsonValue}.</p>
+ * <p>Since 1.2.0 the entry point accepts {@code List<RowAccessor>} — both lazy {@link Row} and materialised
+ * {@link io.github.mnesimiyilmaz.sql4json.engine.FlatRow} are supported. Aggregated rows from GROUP BY are read flat
+ * (their values are pre-evaluated against the SELECT list); other rows go through expression evaluation, with optional
+ * cherry-pick navigation when the row retains its original {@link JsonValue}.
  */
 public final class JsonUnflattener {
 
     private static final int MAX_UNFLATTEN_ARRAY_INDEX = 10_000_000;
 
-    private JsonUnflattener() {
-    }
+    private JsonUnflattener() {}
 
     /**
      * Convenience overload for callers that don't need scalar function application.
      *
-     * @param rows    the flat rows to unflatten
+     * @param rows the flat rows to unflatten
      * @param columns the selected column definitions
      * @return the reconstructed JSON value
      */
@@ -48,13 +45,13 @@ public final class JsonUnflattener {
     /**
      * Unflattens the given rows into a JSON array value, applying scalar functions as needed.
      *
-     * @param rows             the flat rows to unflatten
-     * @param columns          the selected column definitions
+     * @param rows the flat rows to unflatten
+     * @param columns the selected column definitions
      * @param functionRegistry the function registry for expression evaluation, or {@code null}
      * @return the reconstructed JSON value
      */
-    public static JsonValue unflatten(List<RowAccessor> rows, List<SelectColumnDef> columns,
-                                      FunctionRegistry functionRegistry) {
+    public static JsonValue unflatten(
+            List<RowAccessor> rows, List<SelectColumnDef> columns, FunctionRegistry functionRegistry) {
         List<JsonValue> results = new ArrayList<>(rows.size());
         for (RowAccessor row : rows) {
             results.add(unflattenRow(row, columns, functionRegistry));
@@ -63,18 +60,17 @@ public final class JsonUnflattener {
     }
 
     /**
-     * Unflattens a single row through the SELECT column list. GROUP BY output is
-     * read as-is from the row (values are pre-evaluated by
-     * {@link io.github.mnesimiyilmaz.sql4json.grouping.GroupAggregator}); other
-     * rows are projected via {@link ExpressionEvaluator}.
+     * Unflattens a single row through the SELECT column list. GROUP BY output is read as-is from the row (values are
+     * pre-evaluated by {@link io.github.mnesimiyilmaz.sql4json.grouping.GroupAggregator}); other rows are projected via
+     * {@link ExpressionEvaluator}.
      *
-     * @param row              the row to unflatten
-     * @param columns          the selected column definitions
+     * @param row the row to unflatten
+     * @param columns the selected column definitions
      * @param functionRegistry the function registry, or {@code null}
      * @return the reconstructed JSON value for {@code row}
      */
-    public static JsonValue unflattenRow(RowAccessor row, List<SelectColumnDef> columns,
-                                         FunctionRegistry functionRegistry) {
+    public static JsonValue unflattenRow(
+            RowAccessor row, List<SelectColumnDef> columns, FunctionRegistry functionRegistry) {
         if (row.isAggregated()) {
             return reconstructFromAggregatedRow(row, columns, functionRegistry);
         }
@@ -82,13 +78,12 @@ public final class JsonUnflattener {
     }
 
     /**
-     * Project a non-aggregated row through the SELECT column list. Evaluates
-     * literal / scalar-function / case expressions via {@link ExpressionEvaluator};
-     * for plain column refs, prefers navigating the original JsonValue when
-     * available (so nested object/array structure is preserved).
+     * Project a non-aggregated row through the SELECT column list. Evaluates literal / scalar-function / case
+     * expressions via {@link ExpressionEvaluator}; for plain column refs, prefers navigating the original JsonValue
+     * when available (so nested object/array structure is preserved).
      */
-    private static JsonValue projectFromRow(RowAccessor row, List<SelectColumnDef> columns,
-                                            FunctionRegistry functionRegistry) {
+    private static JsonValue projectFromRow(
+            RowAccessor row, List<SelectColumnDef> columns, FunctionRegistry functionRegistry) {
         JsonValue original = row.originalValue().orElse(null);
 
         // SELECT * → return original as-is when available; otherwise reconstruct nested
@@ -108,9 +103,8 @@ public final class JsonUnflattener {
         // references — including those buried inside CASE WHEN conditions, where
         // SelectColumnDef.containsWindow() can't see them (the CriteriaNode closure is
         // opaque to expression-tree walking).
-        RowAccessor evalRow = (original != null && !row.hasWindowResults())
-                ? Row.lazy(original, new FieldKey.Interner())
-                : row;
+        RowAccessor evalRow =
+                (original != null && !row.hasWindowResults()) ? Row.lazy(original, new FieldKey.Interner()) : row;
 
         var root = new LinkedHashMap<String, Object>();
         for (SelectColumnDef col : columns) {
@@ -127,13 +121,17 @@ public final class JsonUnflattener {
     private static JsonValue projectAsterisk(RowAccessor row, JsonValue original) {
         if (original != null) return original;
         var root = new LinkedHashMap<String, Object>();
-        row.entries().forEach(e -> insertAtPath(root, e.getKey().getKey(),
-                JsonToSqlConverter.toJsonValue(e.getValue())));
+        row.entries()
+                .forEach(e -> insertAtPath(root, e.getKey().getKey(), JsonToSqlConverter.toJsonValue(e.getValue())));
         return buildJsonObject(root);
     }
 
-    private static JsonValue resolveColumnValue(SelectColumnDef col, RowAccessor row, RowAccessor evalRow,
-                                                JsonValue original, FunctionRegistry functionRegistry) {
+    private static JsonValue resolveColumnValue(
+            SelectColumnDef col,
+            RowAccessor row,
+            RowAccessor evalRow,
+            JsonValue original,
+            FunctionRegistry functionRegistry) {
         // Plain column with original — navigate to preserve nested structure.
         // ColumnRef can never contain a window, so no extra guard needed.
         if (col.expression() instanceof Expression.ColumnRef(var path) && original != null) {
@@ -152,18 +150,18 @@ public final class JsonUnflattener {
     }
 
     /**
-     * Reconstruct: build structured JSON from an aggregated row's flat values.
-     * Used for GROUP BY / aggregation results. Explicit dotted aliases are
-     * unflattened; other keys are kept flat.
+     * Reconstruct: build structured JSON from an aggregated row's flat values. Used for GROUP BY / aggregation results.
+     * Explicit dotted aliases are unflattened; other keys are kept flat.
      */
-    private static JsonValue reconstructFromAggregatedRow(RowAccessor row, List<SelectColumnDef> columns,
-                                                          FunctionRegistry functionRegistry) {
+    private static JsonValue reconstructFromAggregatedRow(
+            RowAccessor row, List<SelectColumnDef> columns, FunctionRegistry functionRegistry) {
         var root = new LinkedHashMap<String, Object>();
         for (SelectColumnDef col : columns) {
             if (col.isAsterisk()) {
                 // SELECT * → reconstruct nested structure from flat field paths
-                row.entries().forEach(e -> insertAtPath(root, e.getKey().getKey(),
-                        JsonToSqlConverter.toJsonValue(e.getValue())));
+                row.entries()
+                        .forEach(e ->
+                                insertAtPath(root, e.getKey().getKey(), JsonToSqlConverter.toJsonValue(e.getValue())));
                 continue;
             }
             JsonValue jv;
@@ -176,9 +174,8 @@ public final class JsonUnflattener {
             } else {
                 // Aggregate columns are stored under aliasOrName() by GroupAggregator.
                 // Non-aggregate columns are stored under columnName() (falls back to aliasOrName).
-                String keyName = col.containsAggregate() || col.columnName() == null
-                        ? col.aliasOrName()
-                        : col.columnName();
+                String keyName =
+                        col.containsAggregate() || col.columnName() == null ? col.aliasOrName() : col.columnName();
                 FieldKey key = FieldKey.of(keyName);
                 SqlValue val = row.get(key);
                 jv = JsonToSqlConverter.toJsonValue(val);
@@ -193,12 +190,11 @@ public final class JsonUnflattener {
     }
 
     /**
-     * Set a value at a dot-separated path within a nested map structure.
-     * E.g. setNestedField(root, "user.name", value) sets root["user"]["name"] = value.
+     * Set a value at a dot-separated path within a nested map structure. E.g. setNestedField(root, "user.name", value)
+     * sets root["user"]["name"] = value.
      */
     @SuppressWarnings("unchecked")
-    private static void setNestedField(Map<String, Object> root, String dottedKey,
-                                       JsonValue value) {
+    private static void setNestedField(Map<String, Object> root, String dottedKey, JsonValue value) {
         String[] parts = dottedKey.split("\\.");
         Map<String, Object> current = root;
         for (int i = 0; i < parts.length - 1; i++) {
@@ -213,10 +209,9 @@ public final class JsonUnflattener {
     }
 
     /**
-     * Insert a value at a flat field path, reconstructing nested objects and arrays.
-     * Handles dot-separated paths ("address.city") and array indices ("tags[0]").
-     * E.g. "address.geo.lat" → {"address":{"geo":{"lat":value}}}
-     * "tags[0]"        → {"tags":["value"]}
+     * Insert a value at a flat field path, reconstructing nested objects and arrays. Handles dot-separated paths
+     * ("address.city") and array indices ("tags[0]"). E.g. "address.geo.lat" → {"address":{"geo":{"lat":value}}}
+     * "tags[0]" → {"tags":["value"]}
      */
     @SuppressWarnings("unchecked")
     private static void insertAtPath(Map<String, Object> root, String path, JsonValue value) {
@@ -229,8 +224,7 @@ public final class JsonUnflattener {
             int bracket = seg.indexOf('[');
 
             if (bracket >= 0) {
-                current = insertArraySegment((Map<String, Object>) current, seg, bracket,
-                        isLast, value);
+                current = insertArraySegment((Map<String, Object>) current, seg, bracket, isLast, value);
                 if (current == null) break;
             } else {
                 Map<String, Object> map = (Map<String, Object>) current;
@@ -244,13 +238,12 @@ public final class JsonUnflattener {
     }
 
     @SuppressWarnings("unchecked")
-    private static Object insertArraySegment(Map<String, Object> map, String seg, int bracket,
-                                             boolean isLast, JsonValue value) {
+    private static Object insertArraySegment(
+            Map<String, Object> map, String seg, int bracket, boolean isLast, JsonValue value) {
         String field = seg.substring(0, bracket);
         int idx = Integer.parseInt(seg.substring(bracket + 1, seg.length() - 1));
         if (idx < 0 || idx > MAX_UNFLATTEN_ARRAY_INDEX) {
-            throw new SQL4JsonExecutionException(
-                    "Unflatten array index out of range: " + idx);
+            throw new SQL4JsonExecutionException("Unflatten array index out of range: " + idx);
         }
         List<Object> list = (List<Object>) map.computeIfAbsent(field, k -> new ArrayList<>());
         while (list.size() <= idx) list.add(null);
@@ -265,12 +258,10 @@ public final class JsonUnflattener {
     }
 
     /**
-     * Build a JsonObjectValue from a nested map.
-     * Values may be JsonValue, Map (nested object), or List (array).
+     * Build a JsonObjectValue from a nested map. Values may be JsonValue, Map (nested object), or List (array).
      *
-     * <p>Builds the {@link CompactStringMap}'s arrays directly to skip the
-     * intermediate {@link LinkedHashMap} that the legacy shape allocated per
-     * output row.</p>
+     * <p>Builds the {@link CompactStringMap}'s arrays directly to skip the intermediate {@link LinkedHashMap} that the
+     * legacy shape allocated per output row.
      */
     private static JsonObjectValue buildJsonObject(Map<String, Object> map) {
         int size = map.size();

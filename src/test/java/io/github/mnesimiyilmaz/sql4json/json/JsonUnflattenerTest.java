@@ -1,4 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.json;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.engine.FieldKey;
 import io.github.mnesimiyilmaz.sql4json.engine.Row;
@@ -7,13 +10,10 @@ import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
 import io.github.mnesimiyilmaz.sql4json.types.SqlNumber;
 import io.github.mnesimiyilmaz.sql4json.types.SqlString;
 import io.github.mnesimiyilmaz.sql4json.types.SqlValue;
-import org.junit.jupiter.api.Test;
-
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class JsonUnflattenerTest {
 
@@ -41,8 +41,7 @@ class JsonUnflattenerTest {
         JsonObjectValue original = personObj("Alice", 30);
         Row row = lazyRow(original);
 
-        JsonValue result = JsonUnflattener.unflatten(
-                List.of(row), List.of(SelectColumnDef.asterisk()));
+        JsonValue result = JsonUnflattener.unflatten(List.of(row), List.of(SelectColumnDef.asterisk()));
 
         assertInstanceOf(JsonArrayValue.class, result);
         List<JsonValue> arr = ((JsonArrayValue) result).elements();
@@ -56,9 +55,8 @@ class JsonUnflattenerTest {
         JsonObjectValue obj1 = personObj("Alice", 30);
         JsonObjectValue obj2 = personObj("Bob", 25);
 
-        JsonValue result = JsonUnflattener.unflatten(
-                List.of(lazyRow(obj1), lazyRow(obj2)),
-                List.of(SelectColumnDef.asterisk()));
+        JsonValue result =
+                JsonUnflattener.unflatten(List.of(lazyRow(obj1), lazyRow(obj2)), List.of(SelectColumnDef.asterisk()));
 
         assertEquals(2, ((JsonArrayValue) result).elements().size());
         assertSame(obj1, ((JsonArrayValue) result).elements().get(0));
@@ -72,14 +70,12 @@ class JsonUnflattenerTest {
         JsonObjectValue original = personObj("Alice", 30);
         Row row = lazyRow(original);
 
-        JsonValue result = JsonUnflattener.unflatten(
-                List.of(row), List.of(SelectColumnDef.column("name")));
+        JsonValue result = JsonUnflattener.unflatten(List.of(row), List.of(SelectColumnDef.column("name")));
 
         JsonArrayValue arr = (JsonArrayValue) result;
         JsonObjectValue resultObj = (JsonObjectValue) arr.elements().get(0);
         assertTrue(resultObj.fields().containsKey("name"));
-        assertFalse(resultObj.fields().containsKey("age"),
-                "age should NOT be in result when only name is selected");
+        assertFalse(resultObj.fields().containsKey("age"), "age should NOT be in result when only name is selected");
         assertEquals("Alice", ((JsonStringValue) resultObj.fields().get("name")).value());
     }
 
@@ -88,14 +84,13 @@ class JsonUnflattenerTest {
         JsonObjectValue original = personObj("Alice", 30);
         Row row = lazyRow(original);
 
-        JsonValue result = JsonUnflattener.unflatten(
-                List.of(row), List.of(SelectColumnDef.column("name", "personName")));
+        JsonValue result =
+                JsonUnflattener.unflatten(List.of(row), List.of(SelectColumnDef.column("name", "personName")));
 
-        JsonObjectValue resultObj = (JsonObjectValue) ((JsonArrayValue) result).elements().get(0);
-        assertTrue(resultObj.fields().containsKey("personName"),
-                "Alias 'personName' should be the output key");
-        assertFalse(resultObj.fields().containsKey("name"),
-                "Original 'name' should NOT appear when alias is set");
+        JsonObjectValue resultObj =
+                (JsonObjectValue) ((JsonArrayValue) result).elements().get(0);
+        assertTrue(resultObj.fields().containsKey("personName"), "Alias 'personName' should be the output key");
+        assertFalse(resultObj.fields().containsKey("name"), "Original 'name' should NOT appear when alias is set");
     }
 
     @Test
@@ -109,10 +104,10 @@ class JsonUnflattenerTest {
         Row row = lazyRow(original);
 
         JsonValue result = JsonUnflattener.unflatten(
-                List.of(row),
-                List.of(SelectColumnDef.column("name"), SelectColumnDef.column("age")));
+                List.of(row), List.of(SelectColumnDef.column("name"), SelectColumnDef.column("age")));
 
-        JsonObjectValue resultObj = (JsonObjectValue) ((JsonArrayValue) result).elements().get(0);
+        JsonObjectValue resultObj =
+                (JsonObjectValue) ((JsonArrayValue) result).elements().get(0);
         assertEquals(2, resultObj.fields().size());
         assertTrue(resultObj.fields().containsKey("name"));
         assertTrue(resultObj.fields().containsKey("age"));
@@ -127,13 +122,13 @@ class JsonUnflattenerTest {
         var root = new JsonObjectValue(java.util.Map.of("address", address));
         Row row = lazyRow(root);
 
-        JsonValue result = JsonUnflattener.unflatten(
-                List.of(row), List.of(SelectColumnDef.column("address.city")));
+        JsonValue result = JsonUnflattener.unflatten(List.of(row), List.of(SelectColumnDef.column("address.city")));
 
-        JsonObjectValue resultObj = (JsonObjectValue) ((JsonArrayValue) result).elements().get(0);
-        assertTrue(resultObj.fields().containsKey("address.city"),
-                "Column 'address.city' should appear in output");
-        assertEquals("LA",
+        JsonObjectValue resultObj =
+                (JsonObjectValue) ((JsonArrayValue) result).elements().get(0);
+        assertTrue(resultObj.fields().containsKey("address.city"), "Column 'address.city' should appear in output");
+        assertEquals(
+                "LA",
                 ((JsonStringValue) resultObj.fields().get("address.city")).value(),
                 "navigateToField should follow dot-separated path");
     }
@@ -144,21 +139,19 @@ class JsonUnflattenerTest {
     void reconstruct_modifiedRow_buildsFromFlatMap() {
         FieldKey deptKey = FieldKey.of("dept");
         FieldKey countKey = FieldKey.of("cnt");
-        Row row = eagerRow(Map.of(
-                deptKey, new SqlString("Engineering"),
-                countKey, SqlNumber.of(15)));
+        Row row = eagerRow(Map.of(deptKey, new SqlString("Engineering"), countKey, SqlNumber.of(15)));
 
         JsonValue result = JsonUnflattener.unflatten(
-                List.of(row),
-                List.of(SelectColumnDef.column("dept"), SelectColumnDef.column("cnt")));
+                List.of(row), List.of(SelectColumnDef.column("dept"), SelectColumnDef.column("cnt")));
 
         JsonArrayValue arr = (JsonArrayValue) result;
         assertEquals(1, arr.elements().size());
         JsonObjectValue resultObj = (JsonObjectValue) arr.elements().get(0);
-        assertEquals("Engineering",
-                ((JsonStringValue) resultObj.fields().get("dept")).value());
-        assertEquals(15.0,
-                ((JsonNumberValue) resultObj.fields().get("cnt")).numberValue().doubleValue(), 1e-10);
+        assertEquals("Engineering", ((JsonStringValue) resultObj.fields().get("dept")).value());
+        assertEquals(
+                15.0,
+                ((JsonNumberValue) resultObj.fields().get("cnt")).numberValue().doubleValue(),
+                1e-10);
     }
 
     @Test
@@ -167,10 +160,10 @@ class JsonUnflattenerTest {
         FieldKey k2 = FieldKey.of("y");
         Row row = eagerRow(Map.of(k1, new SqlString("a"), k2, SqlNumber.of(1)));
 
-        JsonValue result = JsonUnflattener.unflatten(
-                List.of(row), List.of(SelectColumnDef.asterisk()));
+        JsonValue result = JsonUnflattener.unflatten(List.of(row), List.of(SelectColumnDef.asterisk()));
 
-        JsonObjectValue resultObj = (JsonObjectValue) ((JsonArrayValue) result).elements().get(0);
+        JsonObjectValue resultObj =
+                (JsonObjectValue) ((JsonArrayValue) result).elements().get(0);
         assertEquals(2, resultObj.fields().size());
     }
 
@@ -178,8 +171,7 @@ class JsonUnflattenerTest {
 
     @Test
     void emptyRowList_returnsEmptyArray() {
-        JsonValue result = JsonUnflattener.unflatten(
-                List.of(), List.of(SelectColumnDef.asterisk()));
+        JsonValue result = JsonUnflattener.unflatten(List.of(), List.of(SelectColumnDef.asterisk()));
         assertInstanceOf(JsonArrayValue.class, result);
         assertEquals(0, ((JsonArrayValue) result).elements().size());
     }
@@ -198,10 +190,10 @@ class JsonUnflattenerTest {
                 "upper", List.of(new io.github.mnesimiyilmaz.sql4json.engine.Expression.ColumnRef("name")));
         var col = SelectColumnDef.of(expr, "upper_name");
 
-        JsonValue result = JsonUnflattener.unflatten(
-                List.of(row), List.of(col));
+        JsonValue result = JsonUnflattener.unflatten(List.of(row), List.of(col));
 
-        JsonObjectValue resultObj = (JsonObjectValue) ((JsonArrayValue) result).elements().get(0);
+        JsonObjectValue resultObj =
+                (JsonObjectValue) ((JsonArrayValue) result).elements().get(0);
         assertTrue(resultObj.fields().containsKey("upper_name"));
     }
 
@@ -214,10 +206,10 @@ class JsonUnflattenerTest {
         var expr = new io.github.mnesimiyilmaz.sql4json.engine.Expression.LiteralVal(SqlNumber.of(42));
         var col = SelectColumnDef.of(expr, "const");
 
-        JsonValue result = JsonUnflattener.unflatten(
-                List.of(row), List.of(col));
+        JsonValue result = JsonUnflattener.unflatten(List.of(row), List.of(col));
 
-        JsonObjectValue resultObj = (JsonObjectValue) ((JsonArrayValue) result).elements().get(0);
+        JsonObjectValue resultObj =
+                (JsonObjectValue) ((JsonArrayValue) result).elements().get(0);
         assertTrue(resultObj.fields().containsKey("const"));
         assertTrue(resultObj.fields().get("const").isNull());
     }
@@ -232,10 +224,10 @@ class JsonUnflattenerTest {
         Row modifiedRow = eagerRow(Map.of(nameKey, new SqlString("Modified")));
         assertTrue(modifiedRow.isModified());
 
-        JsonValue result = JsonUnflattener.unflatten(
-                List.of(modifiedRow), List.of(SelectColumnDef.column("name")));
+        JsonValue result = JsonUnflattener.unflatten(List.of(modifiedRow), List.of(SelectColumnDef.column("name")));
 
-        JsonObjectValue obj = (JsonObjectValue) ((JsonArrayValue) result).elements().get(0);
+        JsonObjectValue obj =
+                (JsonObjectValue) ((JsonArrayValue) result).elements().get(0);
         assertEquals("Modified", ((JsonStringValue) obj.fields().get("name")).value());
     }
 }

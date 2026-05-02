@@ -1,4 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.mapper;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.json.JsonArrayValue;
 import io.github.mnesimiyilmaz.sql4json.json.JsonLongValue;
@@ -6,14 +9,11 @@ import io.github.mnesimiyilmaz.sql4json.json.JsonObjectValue;
 import io.github.mnesimiyilmaz.sql4json.json.JsonStringValue;
 import io.github.mnesimiyilmaz.sql4json.settings.MappingSettings;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
-import org.junit.jupiter.api.Test;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class JsonValueMapperPassthroughTest {
 
@@ -46,8 +46,7 @@ class JsonValueMapperPassthroughTest {
 
     @Test
     void when_target_is_object_for_json_array_then_arraylist() {
-        JsonValue v = new JsonArrayValue(List.of(
-                new JsonLongValue(1L), new JsonStringValue("x")));
+        JsonValue v = new JsonArrayValue(List.of(new JsonLongValue(1L), new JsonStringValue("x")));
         Object out = JsonValueMapper.INSTANCE.map(v, Object.class, S);
         assertInstanceOf(ArrayList.class, out);
         List<?> l = (List<?>) out;

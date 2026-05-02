@@ -1,15 +1,15 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.registry;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.SQL4Json;
 import io.github.mnesimiyilmaz.sql4json.types.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class DateCoercionTest {
 
@@ -29,26 +29,22 @@ class DateCoercionTest {
 
     @Test
     void toLocalDate_fromIsoDateString_parsesCorrectly() {
-        assertEquals(LocalDate.of(2021, 8, 19),
-                DateCoercion.toLocalDate(new SqlString("2021-08-19")));
+        assertEquals(LocalDate.of(2021, 8, 19), DateCoercion.toLocalDate(new SqlString("2021-08-19")));
     }
 
     @Test
     void toLocalDate_fromIsoDateTimeString_returnsDatePart() {
-        assertEquals(LocalDate.of(2021, 8, 19),
-                DateCoercion.toLocalDate(new SqlString("2021-08-19T10:30:00")));
+        assertEquals(LocalDate.of(2021, 8, 19), DateCoercion.toLocalDate(new SqlString("2021-08-19T10:30:00")));
     }
 
     @Test
     void toLocalDate_fromOffsetDateTimeString_returnsDatePart() {
-        assertEquals(LocalDate.of(2021, 8, 19),
-                DateCoercion.toLocalDate(new SqlString("2021-08-19T10:30:00+03:00")));
+        assertEquals(LocalDate.of(2021, 8, 19), DateCoercion.toLocalDate(new SqlString("2021-08-19T10:30:00+03:00")));
     }
 
     @Test
     void toLocalDate_fromZuluString_returnsDatePart() {
-        assertEquals(LocalDate.of(2021, 8, 19),
-                DateCoercion.toLocalDate(new SqlString("2021-08-19T10:30:00Z")));
+        assertEquals(LocalDate.of(2021, 8, 19), DateCoercion.toLocalDate(new SqlString("2021-08-19T10:30:00Z")));
     }
 
     @Test
@@ -82,13 +78,14 @@ class DateCoercionTest {
 
     @Test
     void toLocalDateTime_fromIsoDateString_returnsStartOfDay() {
-        assertEquals(LocalDate.of(2021, 8, 19).atStartOfDay(),
-                DateCoercion.toLocalDateTime(new SqlString("2021-08-19")));
+        assertEquals(
+                LocalDate.of(2021, 8, 19).atStartOfDay(), DateCoercion.toLocalDateTime(new SqlString("2021-08-19")));
     }
 
     @Test
     void toLocalDateTime_fromIsoDateTimeString_parsesCorrectly() {
-        assertEquals(LocalDateTime.of(2021, 8, 19, 10, 30, 0),
+        assertEquals(
+                LocalDateTime.of(2021, 8, 19, 10, 30, 0),
                 DateCoercion.toLocalDateTime(new SqlString("2021-08-19T10:30:00")));
     }
 
@@ -159,8 +156,7 @@ class DateCoercionTest {
                 [
                   {"start": "2021-01-01", "end": "2021-01-11"}
                 ]""";
-        String result = SQL4Json.query(
-                "SELECT DATE_DIFF(end, start, 'DAY') AS diff FROM $r", json);
+        String result = SQL4Json.query("SELECT DATE_DIFF(end, start, 'DAY') AS diff FROM $r", json);
         assertTrue(result.contains("10"), "Expected diff of 10 days, got: " + result);
     }
 
@@ -170,8 +166,7 @@ class DateCoercionTest {
                 [
                   {"start": "2021-01-01T00:00:00", "end": "2021-01-01T06:00:00"}
                 ]""";
-        String result = SQL4Json.query(
-                "SELECT DATE_DIFF(end, start, 'HOUR') AS diff FROM $r", json);
+        String result = SQL4Json.query("SELECT DATE_DIFF(end, start, 'HOUR') AS diff FROM $r", json);
         assertTrue(result.contains("6"), "Expected diff of 6 hours, got: " + result);
     }
 
@@ -186,8 +181,7 @@ class DateCoercionTest {
                   {"registered_at": "2022-03-15T00:00:00"}
                 ]""";
         String result = SQL4Json.query(
-                "SELECT YEAR(registered_at) AS yr, COUNT(*) AS cnt FROM $r GROUP BY YEAR(registered_at)",
-                json);
+                "SELECT YEAR(registered_at) AS yr, COUNT(*) AS cnt FROM $r GROUP BY YEAR(registered_at)", json);
         // Should produce two groups: 2021 (count 2) and 2022 (count 1)
         // NOT collapsed into one null group
         assertTrue(result.contains("2021"), "Expected group for 2021, got: " + result);
@@ -203,8 +197,7 @@ class DateCoercionTest {
                 [
                   {"dt": "2021-01-01T00:00:00"}
                 ]""";
-        String result = SQL4Json.query(
-                "SELECT DATE_ADD(dt, 1, 'DAY') AS next FROM $r", json);
+        String result = SQL4Json.query("SELECT DATE_ADD(dt, 1, 'DAY') AS next FROM $r", json);
         assertTrue(result.contains("2021-01-02"), "Expected 2021-01-02 in result, got: " + result);
     }
 

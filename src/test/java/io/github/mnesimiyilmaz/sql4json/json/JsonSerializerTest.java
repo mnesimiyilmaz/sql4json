@@ -1,15 +1,15 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.json;
 
-import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.Test;
 
 class JsonSerializerTest {
 
@@ -49,15 +49,15 @@ class JsonSerializerTest {
 
     @Test
     void serialize_bigdecimal() {
-        assertEquals("12345678901234567890",
+        assertEquals(
+                "12345678901234567890",
                 JsonSerializer.serialize(new JsonDecimalValue(new BigDecimal("12345678901234567890"))));
     }
 
     @Test
     void serialize_bigdecimal_uses_scientific_notation() {
         // toString() gives "1E+2" — valid JSON and safe (toPlainString is a DoS vector)
-        assertEquals("1E+2",
-                JsonSerializer.serialize(new JsonDecimalValue(new BigDecimal("1E+2"))));
+        assertEquals("1E+2", JsonSerializer.serialize(new JsonDecimalValue(new BigDecimal("1E+2"))));
     }
 
     @Test
@@ -87,8 +87,7 @@ class JsonSerializerTest {
         Map<String, JsonValue> fields = new LinkedHashMap<>();
         fields.put("name", new JsonStringValue("Alice"));
         fields.put("age", new JsonLongValue(30L));
-        assertEquals("{\"name\":\"Alice\",\"age\":30}",
-                JsonSerializer.serialize(new JsonObjectValue(fields)));
+        assertEquals("{\"name\":\"Alice\",\"age\":30}", JsonSerializer.serialize(new JsonObjectValue(fields)));
     }
 
     // ── Arrays ──────────────────────────────────────────────────────────
@@ -101,10 +100,7 @@ class JsonSerializerTest {
     @Test
     void serialize_array_with_elements() {
         List<JsonValue> elems = List.of(
-                new JsonLongValue(1L),
-                new JsonStringValue("two"),
-                new JsonBooleanValue(true),
-                JsonNullValue.INSTANCE);
+                new JsonLongValue(1L), new JsonStringValue("two"), new JsonBooleanValue(true), JsonNullValue.INSTANCE);
         assertEquals("[1,\"two\",true,null]", JsonSerializer.serialize(new JsonArrayValue(elems)));
     }
 
@@ -159,9 +155,9 @@ class JsonSerializerTest {
     void prettySerialize_scalar_isPlainValue() {
         assertEquals("42", JsonSerializer.prettySerialize(new JsonLongValue(42L)));
         assertEquals("3.14", JsonSerializer.prettySerialize(new JsonDoubleValue(3.14)));
-        assertEquals("12345678901234567890",
-                JsonSerializer.prettySerialize(
-                        new JsonDecimalValue(new BigDecimal("12345678901234567890"))));
+        assertEquals(
+                "12345678901234567890",
+                JsonSerializer.prettySerialize(new JsonDecimalValue(new BigDecimal("12345678901234567890"))));
         assertEquals("\"hi\"", JsonSerializer.prettySerialize(new JsonStringValue("hi")));
         assertEquals("true", JsonSerializer.prettySerialize(new JsonBooleanValue(true)));
         assertEquals("null", JsonSerializer.prettySerialize(JsonNullValue.INSTANCE));
@@ -188,10 +184,8 @@ class JsonSerializerTest {
 
     @Test
     void prettySerialize_arrayOfPrimitives_oneElementPerLine() {
-        JsonArrayValue arr = new JsonArrayValue(List.of(
-                new JsonLongValue(1L),
-                new JsonLongValue(2L),
-                new JsonLongValue(3L)));
+        JsonArrayValue arr =
+                new JsonArrayValue(List.of(new JsonLongValue(1L), new JsonLongValue(2L), new JsonLongValue(3L)));
         assertEquals("[\n  1,\n  2,\n  3\n]", JsonSerializer.prettySerialize(arr));
     }
 
@@ -204,21 +198,13 @@ class JsonSerializerTest {
         Map<String, JsonValue> outerFields = new LinkedHashMap<>();
         outerFields.put("items", arr);
         JsonObjectValue outer = new JsonObjectValue(outerFields);
-        String expected =
-                "{\n" +
-                "  \"items\": [\n" +
-                "    {\n" +
-                "      \"id\": 1\n" +
-                "    }\n" +
-                "  ]\n" +
-                "}";
+        String expected = "{\n" + "  \"items\": [\n" + "    {\n" + "      \"id\": 1\n" + "    }\n" + "  ]\n" + "}";
         assertEquals(expected, JsonSerializer.prettySerialize(outer));
     }
 
     @Test
     void prettySerialize_string_escapesSameAsCompact() {
-        assertEquals("\"a\\nb\\\"c\"",
-                JsonSerializer.prettySerialize(new JsonStringValue("a\nb\"c")));
+        assertEquals("\"a\\nb\\\"c\"", JsonSerializer.prettySerialize(new JsonStringValue("a\nb\"c")));
     }
 
     @Test

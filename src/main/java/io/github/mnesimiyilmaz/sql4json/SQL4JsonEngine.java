@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json;
 
 import io.github.mnesimiyilmaz.sql4json.engine.FlatRow;
@@ -8,25 +9,24 @@ import io.github.mnesimiyilmaz.sql4json.parser.QueryParser;
 import io.github.mnesimiyilmaz.sql4json.settings.Sql4jsonSettings;
 import io.github.mnesimiyilmaz.sql4json.types.JsonCodec;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
-
 import java.util.List;
 import java.util.Map;
 
 /**
- * Stateful query engine with bound JSON data, an optional result cache, and bound
- * {@link Sql4jsonSettings} that governs all parsing and execution within this instance.
+ * Stateful query engine with bound JSON data, an optional result cache, and bound {@link Sql4jsonSettings} that governs
+ * all parsing and execution within this instance.
  *
- * <p>Designed to be long-lived (e.g., one per dataset). Data is bound once at build time
- * and reused across queries. When an {@link QueryResultCache} is configured (via
- * {@link Sql4jsonSettings#cache()}), deterministic query results are cached;
- * non-deterministic queries (e.g., those using {@code NOW()}) bypass the cache.</p>
+ * <p>Designed to be long-lived (e.g., one per dataset). Data is bound once at build time and reused across queries.
+ * When an {@link QueryResultCache} is configured (via {@link Sql4jsonSettings#cache()}), deterministic query results
+ * are cached; non-deterministic queries (e.g., those using {@code NOW()}) bypass the cache.
  *
- * <p>Thread-safe: all fields are immutable after construction, and the underlying executor
- * creates query-scoped state on each call. Cache implementations must be thread-safe.</p>
+ * <p>Thread-safe: all fields are immutable after construction, and the underlying executor creates query-scoped state
+ * on each call. Cache implementations must be thread-safe.
  *
- * <p>Use {@link SQL4Json#engine()} to obtain a {@link SQL4JsonEngineBuilder}.</p>
+ * <p>Use {@link SQL4Json#engine()} to obtain a {@link SQL4JsonEngineBuilder}.
  *
- * <p>Usage example:</p>
+ * <p>Usage example:
+ *
  * <pre>{@code
  * SQL4JsonEngine engine = SQL4Json.engine()
  *     .settings(Sql4jsonSettings.builder()
@@ -42,18 +42,22 @@ public final class SQL4JsonEngine {
 
     private static final QueryExecutor EXECUTOR = new QueryExecutor();
 
-    private final String                 rawJson;          // non-null when tree was released (string-based)
-    private final JsonValue              data;             // non-null when tree is kept (JsonValue-based)
-    private final List<FlatRow>          preFlattenedRows; // empty if data is not a top-level array
-    private final QueryResultCache       cache;            // null if caching not configured
-    private final JsonCodec              codec;
+    private final String rawJson; // non-null when tree was released (string-based)
+    private final JsonValue data; // non-null when tree is kept (JsonValue-based)
+    private final List<FlatRow> preFlattenedRows; // empty if data is not a top-level array
+    private final QueryResultCache cache; // null if caching not configured
+    private final JsonCodec codec;
     private final Map<String, JsonValue> namedSources; // null if no named sources configured
-    private final Sql4jsonSettings       settings;
+    private final Sql4jsonSettings settings;
 
-    SQL4JsonEngine(String rawJson, JsonValue data, List<FlatRow> preFlattenedRows,
-                   QueryResultCache cache, JsonCodec codec,
-                   Map<String, JsonValue> namedSources,
-                   Sql4jsonSettings settings) {
+    SQL4JsonEngine(
+            String rawJson,
+            JsonValue data,
+            List<FlatRow> preFlattenedRows,
+            QueryResultCache cache,
+            JsonCodec codec,
+            Map<String, JsonValue> namedSources,
+            Sql4jsonSettings settings) {
         this.rawJson = rawJson;
         this.data = data;
         this.preFlattenedRows = preFlattenedRows;
@@ -64,34 +68,32 @@ public final class SQL4JsonEngine {
     }
 
     /**
-     * Execute a SQL query against the bound data, returning the result as a JSON string.
-     * Parsing and execution limits are governed by the {@link Sql4jsonSettings} bound at build time.
+     * Execute a SQL query against the bound data, returning the result as a JSON string. Parsing and execution limits
+     * are governed by the {@link Sql4jsonSettings} bound at build time.
      *
      * @param sql SQL SELECT query
      * @return result serialized as a JSON string
-     * @throws io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonParseException     if the SQL has
-     *                                                                               syntax errors or exceeds the configured SQL length limit (see {@link Sql4jsonSettings})
-     * @throws io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException if an error
-     *                                                                               occurs during execution, including when a configured limit from
-     *                                                                               {@link Sql4jsonSettings} is exceeded (IN list size, LIKE wildcard count, subquery
-     *                                                                               depth, materialized row count, or JSON codec limits when re-parsing is required)
+     * @throws io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonParseException if the SQL has syntax errors or exceeds
+     *     the configured SQL length limit (see {@link Sql4jsonSettings})
+     * @throws io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException if an error occurs during
+     *     execution, including when a configured limit from {@link Sql4jsonSettings} is exceeded (IN list size, LIKE
+     *     wildcard count, subquery depth, materialized row count, or JSON codec limits when re-parsing is required)
      */
     public String query(String sql) {
         return codec.serialize(queryAsJsonValue(sql));
     }
 
     /**
-     * Execute a SQL query against the bound data, returning the result as a {@link JsonValue}.
-     * Parsing and execution limits are governed by the {@link Sql4jsonSettings} bound at build time.
+     * Execute a SQL query against the bound data, returning the result as a {@link JsonValue}. Parsing and execution
+     * limits are governed by the {@link Sql4jsonSettings} bound at build time.
      *
      * @param sql SQL SELECT query
      * @return result as a {@code JsonValue}
-     * @throws io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonParseException     if the SQL has
-     *                                                                               syntax errors or exceeds the configured SQL length limit (see {@link Sql4jsonSettings})
-     * @throws io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException if an error
-     *                                                                               occurs during execution, including when a configured limit from
-     *                                                                               {@link Sql4jsonSettings} is exceeded (IN list size, LIKE wildcard count, subquery
-     *                                                                               depth, materialized row count, or JSON codec limits when re-parsing is required)
+     * @throws io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonParseException if the SQL has syntax errors or exceeds
+     *     the configured SQL length limit (see {@link Sql4jsonSettings})
+     * @throws io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException if an error occurs during
+     *     execution, including when a configured limit from {@link Sql4jsonSettings} is exceeded (IN list size, LIKE
+     *     wildcard count, subquery depth, materialized row count, or JSON codec limits when re-parsing is required)
      */
     public JsonValue queryAsJsonValue(String sql) {
         SQL4Json.validateQuery(sql);
@@ -125,9 +127,9 @@ public final class SQL4JsonEngine {
     }
 
     /**
-     * Resolve data for query execution. When the tree was released (string-based Engine),
-     * re-parse from raw JSON only if the query actually needs the tree (subqueries or
-     * non-root FROM). For normal queries with pre-flattened rows, returns null.
+     * Resolve data for query execution. When the tree was released (string-based Engine), re-parse from raw JSON only
+     * if the query actually needs the tree (subqueries or non-root FROM). For normal queries with pre-flattened rows,
+     * returns null.
      */
     private JsonValue resolveData(QueryDefinition definition) {
         if (data != null) return data;
@@ -140,12 +142,12 @@ public final class SQL4JsonEngine {
     }
 
     /**
-     * Execute a query against bound data and map the single-row result to {@code type}.
-     * Unwrap rules match {@link SQL4Json#queryAs(String, String, Class)}.
+     * Execute a query against bound data and map the single-row result to {@code type}. Unwrap rules match
+     * {@link SQL4Json#queryAs(String, String, Class)}.
      *
-     * @param sql  SQL SELECT query
+     * @param sql SQL SELECT query
      * @param type target class
-     * @param <T>  target type
+     * @param <T> target type
      * @return mapped instance
      * @since 1.1.0
      */
@@ -157,9 +159,9 @@ public final class SQL4JsonEngine {
     /**
      * Execute a query against bound data and map each row to {@code type}.
      *
-     * @param sql  SQL SELECT query
+     * @param sql SQL SELECT query
      * @param type target class
-     * @param <T>  target type
+     * @param <T> target type
      * @return unmodifiable list of mapped instances
      * @since 1.1.0
      */
@@ -169,16 +171,15 @@ public final class SQL4JsonEngine {
     }
 
     /**
-     * Executes a parameterised SQL query against the bound data. Parameterised queries
-     * always bypass the result cache: parse reuse is already delivered by
-     * {@link PreparedQuery}, and result caching across distinct bind sets is low-value
-     * given the near-unbounded key space.
+     * Executes a parameterised SQL query against the bound data. Parameterised queries always bypass the result cache:
+     * parse reuse is already delivered by {@link PreparedQuery}, and result caching across distinct bind sets is
+     * low-value given the near-unbounded key space.
      *
-     * @param sql    SQL SELECT query with {@code ?} / {@code :name} placeholders
+     * @param sql SQL SELECT query with {@code ?} / {@code :name} placeholders
      * @param params bound parameter values
      * @return result serialised as a JSON string
-     * @throws io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonBindException      if binding fails
-     * @throws io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonParseException     if SQL is invalid
+     * @throws io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonBindException if binding fails
+     * @throws io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonParseException if SQL is invalid
      * @throws io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException on exec errors
      * @since 1.1.0
      */
@@ -187,10 +188,10 @@ public final class SQL4JsonEngine {
     }
 
     /**
-     * Executes a parameterised SQL query and returns the result as a {@link JsonValue}.
-     * See {@link #query(String, BoundParameters)} for caching semantics.
+     * Executes a parameterised SQL query and returns the result as a {@link JsonValue}. See {@link #query(String,
+     * BoundParameters)} for caching semantics.
      *
-     * @param sql    SQL SELECT query with placeholders
+     * @param sql SQL SELECT query with placeholders
      * @param params bound parameter values
      * @return result as a {@code JsonValue}
      * @since 1.1.0
@@ -213,10 +214,10 @@ public final class SQL4JsonEngine {
     /**
      * Executes a parameterised SQL query and maps the single-row result to {@code type}.
      *
-     * @param sql    SQL SELECT query with placeholders
-     * @param type   target class
+     * @param sql SQL SELECT query with placeholders
+     * @param type target class
      * @param params bound parameter values
-     * @param <T>    target type
+     * @param <T> target type
      * @return mapped instance
      * @since 1.1.0
      */
@@ -228,10 +229,10 @@ public final class SQL4JsonEngine {
     /**
      * Executes a parameterised SQL query and maps each result row to {@code type}.
      *
-     * @param sql    SQL SELECT query with placeholders
-     * @param type   target class
+     * @param sql SQL SELECT query with placeholders
+     * @param type target class
      * @param params bound parameter values
-     * @param <T>    element type
+     * @param <T> element type
      * @return unmodifiable list of mapped instances
      * @since 1.1.0
      */
@@ -240,9 +241,7 @@ public final class SQL4JsonEngine {
         return SQL4Json.mapList(raw, type, settings);
     }
 
-    /**
-     * Clear all cached query results. No-op if no cache is configured.
-     */
+    /** Clear all cached query results. No-op if no cache is configured. */
     public void clearCache() {
         if (cache != null) {
             cache.clear();
@@ -250,8 +249,7 @@ public final class SQL4JsonEngine {
     }
 
     /**
-     * Returns the number of entries currently held by the query result cache,
-     * or {@code 0} if no cache is configured.
+     * Returns the number of entries currently held by the query result cache, or {@code 0} if no cache is configured.
      *
      * @return current cache entry count
      */

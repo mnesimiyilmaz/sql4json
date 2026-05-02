@@ -1,17 +1,17 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException;
 import io.github.mnesimiyilmaz.sql4json.registry.FunctionRegistry;
 import io.github.mnesimiyilmaz.sql4json.types.*;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 
 class FunctionUnitTest {
 
@@ -25,7 +25,8 @@ class FunctionUnitTest {
     private static SqlValue apply(String fnName, SqlValue val, SqlValue... args) {
         return registry.getScalar(fnName)
                 .orElseThrow(() -> new AssertionError("Function not found: " + fnName))
-                .apply().apply(val, List.of(args));
+                .apply()
+                .apply(val, List.of(args));
     }
 
     @Nested
@@ -33,8 +34,7 @@ class FunctionUnitTest {
 
         @Test
         void concat_twoStrings() {
-            assertEquals(new SqlString("helloworld"),
-                    apply("concat", new SqlString("hello"), new SqlString("world")));
+            assertEquals(new SqlString("helloworld"), apply("concat", new SqlString("hello"), new SqlString("world")));
         }
 
         @Test
@@ -56,32 +56,32 @@ class FunctionUnitTest {
 
         @Test
         void substring_basic() {
-            assertEquals(new SqlString("ell"),
-                    apply("substring", new SqlString("hello"), SqlNumber.of(2), SqlNumber.of(3)));
+            assertEquals(
+                    new SqlString("ell"), apply("substring", new SqlString("hello"), SqlNumber.of(2), SqlNumber.of(3)));
         }
 
         @Test
         void substring_startBeyondLength() {
-            assertEquals(new SqlString(""),
-                    apply("substring", new SqlString("hi"), SqlNumber.of(10), SqlNumber.of(3)));
+            assertEquals(new SqlString(""), apply("substring", new SqlString("hi"), SqlNumber.of(10), SqlNumber.of(3)));
         }
 
         @Test
         void substring_lengthExceedsRemaining() {
-            assertEquals(new SqlString("llo"),
+            assertEquals(
+                    new SqlString("llo"),
                     apply("substring", new SqlString("hello"), SqlNumber.of(3), SqlNumber.of(100)));
         }
 
         @Test
         void substring_startLessThanOne() {
-            assertEquals(new SqlString("he"),
-                    apply("substring", new SqlString("hello"), SqlNumber.of(0), SqlNumber.of(3)));
+            assertEquals(
+                    new SqlString("he"), apply("substring", new SqlString("hello"), SqlNumber.of(0), SqlNumber.of(3)));
         }
 
         @Test
         void substring_zeroLength() {
-            assertEquals(new SqlString(""),
-                    apply("substring", new SqlString("hello"), SqlNumber.of(1), SqlNumber.of(0)));
+            assertEquals(
+                    new SqlString(""), apply("substring", new SqlString("hello"), SqlNumber.of(1), SqlNumber.of(0)));
         }
 
         @Test
@@ -101,13 +101,15 @@ class FunctionUnitTest {
 
         @Test
         void replace_basic() {
-            assertEquals(new SqlString("hXllo"),
+            assertEquals(
+                    new SqlString("hXllo"),
                     apply("replace", new SqlString("hello"), new SqlString("e"), new SqlString("X")));
         }
 
         @Test
         void replace_allOccurrences() {
-            assertEquals(new SqlString("XbXbX"),
+            assertEquals(
+                    new SqlString("XbXbX"),
                     apply("replace", new SqlString("ababa"), new SqlString("a"), new SqlString("X")));
         }
 
@@ -128,20 +130,20 @@ class FunctionUnitTest {
 
         @Test
         void lpad_basic() {
-            assertEquals(new SqlString("**hi"),
-                    apply("lpad", new SqlString("hi"), SqlNumber.of(4), new SqlString("*")));
+            assertEquals(
+                    new SqlString("**hi"), apply("lpad", new SqlString("hi"), SqlNumber.of(4), new SqlString("*")));
         }
 
         @Test
         void lpad_alreadyLong() {
-            assertEquals(new SqlString("hel"),
-                    apply("lpad", new SqlString("hello"), SqlNumber.of(3), new SqlString("*")));
+            assertEquals(
+                    new SqlString("hel"), apply("lpad", new SqlString("hello"), SqlNumber.of(3), new SqlString("*")));
         }
 
         @Test
         void rpad_basic() {
-            assertEquals(new SqlString("hi**"),
-                    apply("rpad", new SqlString("hi"), SqlNumber.of(4), new SqlString("*")));
+            assertEquals(
+                    new SqlString("hi**"), apply("rpad", new SqlString("hi"), SqlNumber.of(4), new SqlString("*")));
         }
 
         @Test
@@ -151,14 +153,12 @@ class FunctionUnitTest {
 
         @Test
         void position_found() {
-            assertEquals(SqlNumber.of(3),
-                    apply("position", new SqlString("l"), new SqlString("hello")));
+            assertEquals(SqlNumber.of(3), apply("position", new SqlString("l"), new SqlString("hello")));
         }
 
         @Test
         void position_notFound() {
-            assertEquals(SqlNumber.of(0),
-                    apply("position", new SqlString("z"), new SqlString("hello")));
+            assertEquals(SqlNumber.of(0), apply("position", new SqlString("z"), new SqlString("hello")));
         }
     }
 
@@ -281,26 +281,22 @@ class FunctionUnitTest {
 
         @Test
         void year_fromDateTime() {
-            assertEquals(SqlNumber.of(2024),
-                    apply("year", new SqlDateTime(LocalDateTime.of(2024, 6, 15, 10, 30))));
+            assertEquals(SqlNumber.of(2024), apply("year", new SqlDateTime(LocalDateTime.of(2024, 6, 15, 10, 30))));
         }
 
         @Test
         void hour_fromDateTime() {
-            assertEquals(SqlNumber.of(10),
-                    apply("hour", new SqlDateTime(LocalDateTime.of(2024, 6, 15, 10, 30, 45))));
+            assertEquals(SqlNumber.of(10), apply("hour", new SqlDateTime(LocalDateTime.of(2024, 6, 15, 10, 30, 45))));
         }
 
         @Test
         void minute_fromDateTime() {
-            assertEquals(SqlNumber.of(30),
-                    apply("minute", new SqlDateTime(LocalDateTime.of(2024, 6, 15, 10, 30, 45))));
+            assertEquals(SqlNumber.of(30), apply("minute", new SqlDateTime(LocalDateTime.of(2024, 6, 15, 10, 30, 45))));
         }
 
         @Test
         void second_fromDateTime() {
-            assertEquals(SqlNumber.of(45),
-                    apply("second", new SqlDateTime(LocalDateTime.of(2024, 6, 15, 10, 30, 45))));
+            assertEquals(SqlNumber.of(45), apply("second", new SqlDateTime(LocalDateTime.of(2024, 6, 15, 10, 30, 45))));
         }
 
         @Test
@@ -310,52 +306,65 @@ class FunctionUnitTest {
 
         @Test
         void dateAdd_days() {
-            assertEquals(new SqlDate(LocalDate.of(2024, 6, 20)),
-                    apply("date_add", new SqlDate(LocalDate.of(2024, 6, 15)),
-                            SqlNumber.of(5), new SqlString("DAY")));
+            assertEquals(
+                    new SqlDate(LocalDate.of(2024, 6, 20)),
+                    apply("date_add", new SqlDate(LocalDate.of(2024, 6, 15)), SqlNumber.of(5), new SqlString("DAY")));
         }
 
         @Test
         void dateAdd_months() {
-            assertEquals(new SqlDate(LocalDate.of(2024, 9, 15)),
-                    apply("date_add", new SqlDate(LocalDate.of(2024, 6, 15)),
-                            SqlNumber.of(3), new SqlString("MONTH")));
+            assertEquals(
+                    new SqlDate(LocalDate.of(2024, 9, 15)),
+                    apply("date_add", new SqlDate(LocalDate.of(2024, 6, 15)), SqlNumber.of(3), new SqlString("MONTH")));
         }
 
         @Test
         void dateAdd_dateTime_preservesType() {
-            var result = apply("date_add",
+            var result = apply(
+                    "date_add",
                     new SqlDateTime(LocalDateTime.of(2024, 6, 15, 10, 0)),
-                    SqlNumber.of(2), new SqlString("HOUR"));
+                    SqlNumber.of(2),
+                    new SqlString("HOUR"));
             assertInstanceOf(SqlDateTime.class, result);
             assertEquals(LocalDateTime.of(2024, 6, 15, 12, 0), ((SqlDateTime) result).value());
         }
 
         @Test
         void dateAdd_nullInput() {
-            assertEquals(SqlNull.INSTANCE,
-                    apply("date_add", SqlNull.INSTANCE, SqlNumber.of(1), new SqlString("DAY")));
+            assertEquals(SqlNull.INSTANCE, apply("date_add", SqlNull.INSTANCE, SqlNumber.of(1), new SqlString("DAY")));
         }
 
         @Test
         void dateDiff_days_positive() {
-            assertEquals(SqlNumber.of(5),
-                    apply("date_diff", new SqlDate(LocalDate.of(2024, 6, 20)),
-                            new SqlDate(LocalDate.of(2024, 6, 15)), new SqlString("DAY")));
+            assertEquals(
+                    SqlNumber.of(5),
+                    apply(
+                            "date_diff",
+                            new SqlDate(LocalDate.of(2024, 6, 20)),
+                            new SqlDate(LocalDate.of(2024, 6, 15)),
+                            new SqlString("DAY")));
         }
 
         @Test
         void dateDiff_days_negative() {
-            assertEquals(SqlNumber.of(-5),
-                    apply("date_diff", new SqlDate(LocalDate.of(2024, 6, 15)),
-                            new SqlDate(LocalDate.of(2024, 6, 20)), new SqlString("DAY")));
+            assertEquals(
+                    SqlNumber.of(-5),
+                    apply(
+                            "date_diff",
+                            new SqlDate(LocalDate.of(2024, 6, 15)),
+                            new SqlDate(LocalDate.of(2024, 6, 20)),
+                            new SqlString("DAY")));
         }
 
         @Test
         void dateDiff_months() {
-            assertEquals(SqlNumber.of(3),
-                    apply("date_diff", new SqlDate(LocalDate.of(2024, 9, 15)),
-                            new SqlDate(LocalDate.of(2024, 6, 15)), new SqlString("MONTH")));
+            assertEquals(
+                    SqlNumber.of(3),
+                    apply(
+                            "date_diff",
+                            new SqlDate(LocalDate.of(2024, 9, 15)),
+                            new SqlDate(LocalDate.of(2024, 6, 15)),
+                            new SqlString("MONTH")));
         }
     }
 
@@ -392,7 +401,8 @@ class FunctionUnitTest {
 
         @Test
         void cast_dateToString() {
-            assertEquals(new SqlString("2024-06-15"),
+            assertEquals(
+                    new SqlString("2024-06-15"),
                     apply("cast", new SqlDate(LocalDate.of(2024, 6, 15)), new SqlString("STRING")));
         }
 
@@ -414,8 +424,7 @@ class FunctionUnitTest {
         void cast_invalidStringToNumber() {
             SqlString input = new SqlString("abc");
             SqlString targetType = new SqlString("NUMBER");
-            assertThrows(SQL4JsonExecutionException.class,
-                    () -> apply("cast", input, targetType));
+            assertThrows(SQL4JsonExecutionException.class, () -> apply("cast", input, targetType));
         }
 
         // --- CAST to INTEGER ---
@@ -451,20 +460,21 @@ class FunctionUnitTest {
         void cast_dateToBoolean_throws() {
             SqlDate input = new SqlDate(LocalDate.now());
             SqlString targetType = new SqlString("BOOLEAN");
-            assertThrows(SQL4JsonExecutionException.class,
-                    () -> apply("cast", input, targetType));
+            assertThrows(SQL4JsonExecutionException.class, () -> apply("cast", input, targetType));
         }
 
         // --- CAST to DATE ---
         @Test
         void cast_stringToDate() {
-            assertEquals(new SqlDate(LocalDate.of(2024, 6, 15)),
+            assertEquals(
+                    new SqlDate(LocalDate.of(2024, 6, 15)),
                     apply("cast", new SqlString("2024-06-15"), new SqlString("DATE")));
         }
 
         @Test
         void cast_dateTimeToDate() {
-            assertEquals(new SqlDate(LocalDate.of(2024, 6, 15)),
+            assertEquals(
+                    new SqlDate(LocalDate.of(2024, 6, 15)),
                     apply("cast", new SqlDateTime(LocalDateTime.of(2024, 6, 15, 10, 30)), new SqlString("DATE")));
         }
 
@@ -472,8 +482,7 @@ class FunctionUnitTest {
         void cast_invalidStringToDate_throws() {
             SqlString input = new SqlString("not-a-date");
             SqlString targetType = new SqlString("DATE");
-            assertThrows(SQL4JsonExecutionException.class,
-                    () -> apply("cast", input, targetType));
+            assertThrows(SQL4JsonExecutionException.class, () -> apply("cast", input, targetType));
         }
 
         // --- CAST null passthrough ---
@@ -523,8 +532,7 @@ class FunctionUnitTest {
         void cast_invalidStringToDateTime_throws() {
             SqlString input = new SqlString("not-a-datetime");
             SqlString targetType = new SqlString("DATETIME");
-            assertThrows(SQL4JsonExecutionException.class,
-                    () -> apply("cast", input, targetType));
+            assertThrows(SQL4JsonExecutionException.class, () -> apply("cast", input, targetType));
         }
 
         @Test
@@ -538,8 +546,7 @@ class FunctionUnitTest {
         void cast_invalidStringToInteger_throws() {
             SqlString input = new SqlString("abc");
             SqlString targetType = new SqlString("INTEGER");
-            assertThrows(SQL4JsonExecutionException.class,
-                    () -> apply("cast", input, targetType));
+            assertThrows(SQL4JsonExecutionException.class, () -> apply("cast", input, targetType));
         }
 
         @Test
@@ -577,16 +584,14 @@ class FunctionUnitTest {
         void cast_numberToDateTime_throws() {
             SqlNumber input = SqlNumber.of(42);
             SqlString targetType = new SqlString("DATETIME");
-            assertThrows(SQL4JsonExecutionException.class,
-                    () -> apply("cast", input, targetType));
+            assertThrows(SQL4JsonExecutionException.class, () -> apply("cast", input, targetType));
         }
 
         @Test
         void cast_dateTimeToInteger_throws() {
             SqlDateTime dt = new SqlDateTime(LocalDateTime.of(2024, 1, 1, 0, 0));
             SqlString targetType = new SqlString("INTEGER");
-            assertThrows(SQL4JsonExecutionException.class,
-                    () -> apply("cast", dt, targetType));
+            assertThrows(SQL4JsonExecutionException.class, () -> apply("cast", dt, targetType));
         }
     }
 
@@ -601,8 +606,7 @@ class FunctionUnitTest {
         @Test
         void substring_nonString_coerced() {
             // val coerced to "42"; substring("42", 1, 3) → "42"
-            assertEquals(new SqlString("42"),
-                    apply("substring", SqlNumber.of(42), SqlNumber.of(1), SqlNumber.of(3)));
+            assertEquals(new SqlString("42"), apply("substring", SqlNumber.of(42), SqlNumber.of(1), SqlNumber.of(3)));
         }
 
         @Test
@@ -618,7 +622,8 @@ class FunctionUnitTest {
 
         @Test
         void substring_negativeLength() {
-            assertEquals(new SqlString(""), apply("substring", new SqlString("hello"), SqlNumber.of(1), SqlNumber.of(-1)));
+            assertEquals(
+                    new SqlString(""), apply("substring", new SqlString("hello"), SqlNumber.of(1), SqlNumber.of(-1)));
         }
 
         @Test
@@ -650,8 +655,8 @@ class FunctionUnitTest {
         @Test
         void replace_nonString_coerced() {
             // "42".replace("4", "b") → "b2"
-            assertEquals(new SqlString("b2"),
-                    apply("replace", SqlNumber.of(42), new SqlString("4"), new SqlString("b")));
+            assertEquals(
+                    new SqlString("b2"), apply("replace", SqlNumber.of(42), new SqlString("4"), new SqlString("b")));
         }
 
         @Test
@@ -684,8 +689,7 @@ class FunctionUnitTest {
         @Test
         void lpad_nonString_coerced() {
             // "42" padded to 5 with '*' → "***42"
-            assertEquals(new SqlString("***42"),
-                    apply("lpad", SqlNumber.of(42), SqlNumber.of(5), new SqlString("*")));
+            assertEquals(new SqlString("***42"), apply("lpad", SqlNumber.of(42), SqlNumber.of(5), new SqlString("*")));
         }
 
         @Test
@@ -696,8 +700,7 @@ class FunctionUnitTest {
         @Test
         void rpad_nonString_coerced() {
             // "42" padded to 5 with '*' → "42***"
-            assertEquals(new SqlString("42***"),
-                    apply("rpad", SqlNumber.of(42), SqlNumber.of(5), new SqlString("*")));
+            assertEquals(new SqlString("42***"), apply("rpad", SqlNumber.of(42), SqlNumber.of(5), new SqlString("*")));
         }
 
         @Test
@@ -746,29 +749,29 @@ class FunctionUnitTest {
         @Test
         void lpad_padArgNonString_coerced() {
             // pad arg is numeric 0; coerced to "0" — pad by repeating "0"
-            assertEquals(new SqlString("00042"),
-                    apply("lpad", SqlNumber.of(42), SqlNumber.of(5), SqlNumber.of(0)));
+            assertEquals(new SqlString("00042"), apply("lpad", SqlNumber.of(42), SqlNumber.of(5), SqlNumber.of(0)));
         }
 
         @Test
         void replace_searchArgNonString_coerced() {
             // search arg is numeric 2; coerced to "2" — "h2llo".replace("2", "e")
-            assertEquals(new SqlString("hello"),
+            assertEquals(
+                    new SqlString("hello"),
                     apply("replace", new SqlString("h2llo"), SqlNumber.of(2), new SqlString("e")));
         }
 
         @Test
         void replace_replacementArgNonString_coerced() {
             // replacement arg numeric 0 → "0"
-            assertEquals(new SqlString("h0llo"),
+            assertEquals(
+                    new SqlString("h0llo"),
                     apply("replace", new SqlString("hello"), new SqlString("e"), SqlNumber.of(0)));
         }
 
         @Test
         void position_strArgNonString_coerced() {
             // POSITION("4", 142) → "142".indexOf("4") = 1 → 1-based = 2
-            assertEquals(SqlNumber.of(2),
-                    apply("position", new SqlString("4"), SqlNumber.of(142)));
+            assertEquals(SqlNumber.of(2), apply("position", new SqlString("4"), SqlNumber.of(142)));
         }
 
         @Test
@@ -901,31 +904,37 @@ class FunctionUnitTest {
 
         @Test
         void toDate_customFormat_parsesDateTime() {
-            var result = apply("to_date", new SqlString("15/06/2024 10:30:00"),
-                    new SqlString("dd/MM/yyyy HH:mm:ss"));
+            var result = apply("to_date", new SqlString("15/06/2024 10:30:00"), new SqlString("dd/MM/yyyy HH:mm:ss"));
             assertInstanceOf(SqlDateTime.class, result);
         }
 
         @Test
         void dateAdd_dateTimeValue_staysDateTime() {
-            var result = apply("date_add",
+            var result = apply(
+                    "date_add",
                     new SqlDateTime(LocalDateTime.of(2024, 6, 15, 10, 0)),
-                    SqlNumber.of(5), new SqlString("DAY"));
+                    SqlNumber.of(5),
+                    new SqlString("DAY"));
             assertInstanceOf(SqlDateTime.class, result);
             assertEquals(LocalDateTime.of(2024, 6, 20, 10, 0), ((SqlDateTime) result).value());
         }
 
         @Test
         void dateAdd_nonDateValue_returnsNull() {
-            assertEquals(SqlNull.INSTANCE,
+            assertEquals(
+                    SqlNull.INSTANCE,
                     apply("date_add", new SqlString("not-a-date"), SqlNumber.of(1), new SqlString("DAY")));
         }
 
         @Test
         void dateDiff_nonDateInputs_returnsNull() {
-            assertEquals(SqlNull.INSTANCE,
-                    apply("date_diff", new SqlString("not-a-date"),
-                            new SqlDate(LocalDate.of(2024, 1, 1)), new SqlString("DAY")));
+            assertEquals(
+                    SqlNull.INSTANCE,
+                    apply(
+                            "date_diff",
+                            new SqlString("not-a-date"),
+                            new SqlDate(LocalDate.of(2024, 1, 1)),
+                            new SqlString("DAY")));
         }
 
         @Test

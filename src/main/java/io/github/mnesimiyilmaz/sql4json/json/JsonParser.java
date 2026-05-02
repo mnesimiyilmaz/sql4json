@@ -1,27 +1,27 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.json;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException;
 import io.github.mnesimiyilmaz.sql4json.settings.DefaultJsonCodecSettings;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
-
 import java.math.BigDecimal;
 import java.util.*;
 
 /**
- * Hand-written recursive descent JSON parser (RFC 8259).
- * Produces {@link JsonValue} instances directly — no intermediate tree.
+ * Hand-written recursive descent JSON parser (RFC 8259). Produces {@link JsonValue} instances directly — no
+ * intermediate tree.
  *
- * <p>Enforces security limits configured via {@link DefaultJsonCodecSettings} to prevent
- * denial-of-service from malicious input: maximum input length, nesting depth, number token
- * length, string value length, property name length, and array element count.</p>
+ * <p>Enforces security limits configured via {@link DefaultJsonCodecSettings} to prevent denial-of-service from
+ * malicious input: maximum input length, nesting depth, number token length, string value length, property name length,
+ * and array element count.
  */
 public final class JsonParser {
 
     private static final JsonLongValue[] SMALL_LONGS;
 
     /**
-     * Maximum number of distinct object shapes the per-parser shape registry will intern
-     * before bypassing further candidates. Bounds worst-case heterogeneous-JSON memory.
+     * Maximum number of distinct object shapes the per-parser shape registry will intern before bypassing further
+     * candidates. Bounds worst-case heterogeneous-JSON memory.
      */
     private static final int MAX_SHAPES = 256;
 
@@ -32,12 +32,12 @@ public final class JsonParser {
         }
     }
 
-    private final String                   input;
-    private final int                      endPos;
-    private       int                      pos;
-    private       int                      depth;
-    private final HashMap<String, String>  keyPool       = new HashMap<>();
-    private final HashMap<Long, String[]>  shapeRegistry = new HashMap<>();
+    private final String input;
+    private final int endPos;
+    private int pos;
+    private int depth;
+    private final HashMap<String, String> keyPool = new HashMap<>();
+    private final HashMap<Long, String[]> shapeRegistry = new HashMap<>();
     private final DefaultJsonCodecSettings settings;
 
     private JsonParser(String input, DefaultJsonCodecSettings settings) {
@@ -54,7 +54,7 @@ public final class JsonParser {
     /**
      * Parses a JSON string into a {@link JsonValue} tree using the given codec settings.
      *
-     * @param json     the JSON string to parse
+     * @param json the JSON string to parse
      * @param settings the codec settings controlling parsing limits
      * @return the parsed JSON value tree
      */
@@ -64,9 +64,8 @@ public final class JsonParser {
             throw new SQL4JsonExecutionException("Failed to parse JSON: input is null or blank");
         }
         if (json.length() > settings.maxInputLength()) {
-            throw new SQL4JsonExecutionException(
-                    "Failed to parse JSON: input length exceeds configured maximum ("
-                            + settings.maxInputLength() + ")");
+            throw new SQL4JsonExecutionException("Failed to parse JSON: input length exceeds configured maximum ("
+                    + settings.maxInputLength() + ")");
         }
         JsonParser parser = new JsonParser(json, settings);
         JsonValue result = parser.parseValue();
@@ -98,9 +97,7 @@ public final class JsonParser {
         return result;
     }
 
-    /**
-     * Convenience overload that parses the region using {@link DefaultJsonCodecSettings#defaults()}.
-     */
+    /** Convenience overload that parses the region using {@link DefaultJsonCodecSettings#defaults()}. */
     static JsonValue parseRegion(String input, int start, int end) {
         return parseRegion(input, start, end, DefaultJsonCodecSettings.defaults());
     }
@@ -141,9 +138,9 @@ public final class JsonParser {
         // LinkedHashMap + Entry chain that backed the legacy "build then convert"
         // shape. Pre-sized to 8 (good fit for nested inner objects, which are
         // usually small) and doubled on overflow for wider top-level rows.
-        String[]    keys   = new String[8];
+        String[] keys = new String[8];
         JsonValue[] values = new JsonValue[8];
-        int         size   = 0;
+        int size = 0;
         while (true) {
             String key = readObjectKey();
             JsonValue value = parseValue();
@@ -238,8 +235,7 @@ public final class JsonParser {
         while (true) {
             elements.add(parseValue());
             if (elements.size() > settings.maxArrayElements()) {
-                throw error("Array element count exceeds configured maximum ("
-                        + settings.maxArrayElements() + ")");
+                throw error("Array element count exceeds configured maximum (" + settings.maxArrayElements() + ")");
             }
             skipWhitespace();
             if (pos >= endPos) {
@@ -486,20 +482,17 @@ public final class JsonParser {
     }
 
     /**
-     * Returns a shared exact-fit key array for the given prefix when the same shape has
-     * been seen before in this parse; otherwise interns the candidate. Replaces the
-     * legacy {@code slack > 25%} trim path — every accepted candidate is exact-fit on
-     * return so {@link CompactStringMap} sees consistent input. Bounded by
-     * {@link #MAX_SHAPES} to cap heterogeneous-JSON worst case.
+     * Returns a shared exact-fit key array for the given prefix when the same shape has been seen before in this parse;
+     * otherwise interns the candidate. Replaces the legacy {@code slack > 25%} trim path — every accepted candidate is
+     * exact-fit on return so {@link CompactStringMap} sees consistent input. Bounded by {@link #MAX_SHAPES} to cap
+     * heterogeneous-JSON worst case.
      *
-     * <p>Uses an inline 64-bit hash + a {@code HashMap<Long, String[]>} so the lookup
-     * does not allocate a per-call key wrapper. On the rare hash collision (different
-     * shapes hashing to the same long), the second shape overwrites the first; both
-     * remain functionally correct, only the cache-sharing benefit is lost for the
-     * conflicting shapes.</p>
+     * <p>Uses an inline 64-bit hash + a {@code HashMap<Long, String[]>} so the lookup does not allocate a per-call key
+     * wrapper. On the rare hash collision (different shapes hashing to the same long), the second shape overwrites the
+     * first; both remain functionally correct, only the cache-sharing benefit is lost for the conflicting shapes.
      *
      * @param candidate the key array buffer (may have trailing slack)
-     * @param size      the number of valid keys in {@code candidate}
+     * @param size the number of valid keys in {@code candidate}
      * @return an exact-fit array (shared on cache hit, fresh on miss)
      */
     private String[] internShape(String[] candidate, int size) {
@@ -509,8 +502,7 @@ public final class JsonParser {
         }
         long hash = computeShapeHash(candidate, size);
         String[] existing = shapeRegistry.get(hash);
-        if (existing != null
-                && Arrays.equals(existing, 0, existing.length, candidate, 0, size)) {
+        if (existing != null && Arrays.equals(existing, 0, existing.length, candidate, 0, size)) {
             return existing;
         }
         // Cache miss or rare hash collision (different shape, same hash).

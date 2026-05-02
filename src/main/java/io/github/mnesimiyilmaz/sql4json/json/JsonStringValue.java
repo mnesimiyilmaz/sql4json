@@ -1,7 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.json;
 
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;

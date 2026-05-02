@@ -1,23 +1,22 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.json;
-
-import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
-import org.junit.jupiter.api.Test;
-
-import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
+import java.util.*;
+import org.junit.jupiter.api.Test;
+
 /**
- * Tests for CompactStringMap covering missed branches:
- * containsKey non-String, equals, hashCode, KeySet/EntrySet iterator exhaustion.
+ * Tests for CompactStringMap covering missed branches: containsKey non-String, equals, hashCode, KeySet/EntrySet
+ * iterator exhaustion.
  */
 class CompactStringMapTest {
 
     private CompactStringMap<JsonValue> createMap(String... keysAndValues) {
         var source = new LinkedHashMap<String, JsonValue>();
         for (int i = 0; i < keysAndValues.length; i += 2) {
-            source.put(keysAndValues[i],
-                    new JsonStringValue(keysAndValues[i + 1]));
+            source.put(keysAndValues[i], new JsonStringValue(keysAndValues[i + 1]));
         }
         return new CompactStringMap<>(source);
     }
@@ -52,15 +51,13 @@ class CompactStringMapTest {
     @Test
     void getOrDefault_existingKey() {
         var map = createMap("a", "1");
-        assertEquals(new JsonStringValue("1"),
-                map.getOrDefault("a", JsonNullValue.INSTANCE));
+        assertEquals(new JsonStringValue("1"), map.getOrDefault("a", JsonNullValue.INSTANCE));
     }
 
     @Test
     void getOrDefault_missingKey() {
         var map = createMap("a", "1");
-        assertEquals(JsonNullValue.INSTANCE,
-                map.getOrDefault("b", JsonNullValue.INSTANCE));
+        assertEquals(JsonNullValue.INSTANCE, map.getOrDefault("b", JsonNullValue.INSTANCE));
     }
 
     @Test

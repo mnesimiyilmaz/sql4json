@@ -1,4 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.engine;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.json.DefaultJsonCodec;
 import io.github.mnesimiyilmaz.sql4json.json.JsonParser;
@@ -10,8 +13,6 @@ import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 class QueryExecutorTest {
 
     private QueryExecutor executor;
@@ -22,16 +23,14 @@ class QueryExecutorTest {
     }
 
     private JsonValue execute(String sql, JsonValue data) {
-        return executor.execute(QueryParser.parse(sql, Sql4jsonSettings.defaults()),
-                data, Sql4jsonSettings.defaults());
+        return executor.execute(QueryParser.parse(sql, Sql4jsonSettings.defaults()), data, Sql4jsonSettings.defaults());
     }
 
     // ── Short-circuit: SELECT * FROM $r ──────────────────────────────────────
 
     @Test
     void select_all_returns_all_rows() {
-        JsonValue data = JsonParser.parse(
-                "[{\"name\":\"Alice\",\"age\":30},{\"name\":\"Bob\",\"age\":20}]");
+        JsonValue data = JsonParser.parse("[{\"name\":\"Alice\",\"age\":30},{\"name\":\"Bob\",\"age\":20}]");
         JsonValue result = execute("SELECT * FROM $r", data);
 
         assertTrue(result.isArray());
@@ -53,8 +52,7 @@ class QueryExecutorTest {
 
     @Test
     void select_specific_column_excludes_others() {
-        JsonValue data = JsonParser.parse(
-                "[{\"name\":\"Alice\",\"age\":30,\"dept\":\"IT\"}]");
+        JsonValue data = JsonParser.parse("[{\"name\":\"Alice\",\"age\":30,\"dept\":\"IT\"}]");
         JsonValue result = execute("SELECT name FROM $r", data);
 
         var row = result.asArray().get().getFirst().asObject().get();
@@ -67,26 +65,24 @@ class QueryExecutorTest {
 
     @Test
     void order_by_name_asc() {
-        JsonValue data = JsonParser.parse(
-                "[{\"name\":\"Charlie\"},{\"name\":\"Alice\"},{\"name\":\"Bob\"}]");
+        JsonValue data = JsonParser.parse("[{\"name\":\"Charlie\"},{\"name\":\"Alice\"},{\"name\":\"Bob\"}]");
         JsonValue result = execute("SELECT * FROM $r ORDER BY name ASC", data);
 
         var rows = result.asArray().get();
-        assertEquals("Alice", rows.get(0).asObject().get().get("name").asString().get());
+        assertEquals(
+                "Alice", rows.get(0).asObject().get().get("name").asString().get());
         assertEquals("Bob", rows.get(1).asObject().get().get("name").asString().get());
-        assertEquals("Charlie", rows.get(2).asObject().get().get("name").asString().get());
+        assertEquals(
+                "Charlie", rows.get(2).asObject().get().get("name").asString().get());
     }
 
     // ── GROUP BY + COUNT ──────────────────────────────────────────────────────
 
     @Test
     void group_by_count_returns_correct_group_count() {
-        JsonValue data = JsonParser.parse(
-                "[{\"dept\":\"IT\",\"name\":\"Alice\"}" +
-                        ",{\"dept\":\"IT\",\"name\":\"Bob\"}" +
-                        ",{\"dept\":\"HR\",\"name\":\"Carol\"}]");
-        JsonValue result = execute(
-                "SELECT dept, COUNT(name) AS cnt FROM $r GROUP BY dept", data);
+        JsonValue data = JsonParser.parse("[{\"dept\":\"IT\",\"name\":\"Alice\"}"
+                + ",{\"dept\":\"IT\",\"name\":\"Bob\"}" + ",{\"dept\":\"HR\",\"name\":\"Carol\"}]");
+        JsonValue result = execute("SELECT dept, COUNT(name) AS cnt FROM $r GROUP BY dept", data);
 
         assertEquals(2, result.asArray().get().size());
     }
@@ -95,42 +91,36 @@ class QueryExecutorTest {
 
     @Test
     void having_filters_groups_by_alias() {
-        JsonValue data = JsonParser.parse(
-                "[{\"dept\":\"IT\",\"name\":\"Alice\"}" +
-                        ",{\"dept\":\"IT\",\"name\":\"Bob\"}" +
-                        ",{\"dept\":\"HR\",\"name\":\"Carol\"}]");
+        JsonValue data = JsonParser.parse("[{\"dept\":\"IT\",\"name\":\"Alice\"}"
+                + ",{\"dept\":\"IT\",\"name\":\"Bob\"}" + ",{\"dept\":\"HR\",\"name\":\"Carol\"}]");
         // Only groups with cnt > 1 survive
-        JsonValue result = execute(
-                "SELECT dept, COUNT(name) AS cnt FROM $r GROUP BY dept HAVING cnt > 1", data);
+        JsonValue result = execute("SELECT dept, COUNT(name) AS cnt FROM $r GROUP BY dept HAVING cnt > 1", data);
 
         var rows = result.asArray().get();
         assertEquals(1, rows.size());
-        assertEquals("IT", rows.getFirst().asObject().get().get("dept").asString().get());
+        assertEquals(
+                "IT", rows.getFirst().asObject().get().get("dept").asString().get());
     }
 
     // ── FROM subquery ─────────────────────────────────────────────────────────
 
     @Test
     void from_subquery_chains_two_queries() {
-        JsonValue data = JsonParser.parse(
-                "[{\"name\":\"Alice\",\"age\":30}" +
-                        ",{\"name\":\"Bob\",\"age\":20}" +
-                        ",{\"name\":\"Carol\",\"age\":35}]");
-        JsonValue result = execute(
-                "SELECT name FROM (SELECT * FROM $r WHERE age > 25) WHERE name != 'Carol'",
-                data);
+        JsonValue data = JsonParser.parse("[{\"name\":\"Alice\",\"age\":30}" + ",{\"name\":\"Bob\",\"age\":20}"
+                + ",{\"name\":\"Carol\",\"age\":35}]");
+        JsonValue result = execute("SELECT name FROM (SELECT * FROM $r WHERE age > 25) WHERE name != 'Carol'", data);
 
         var rows = result.asArray().get();
         assertEquals(1, rows.size());
-        assertEquals("Alice", rows.getFirst().asObject().get().get("name").asString().get());
+        assertEquals(
+                "Alice", rows.getFirst().asObject().get().get("name").asString().get());
     }
 
     // ── Nested FROM path ─────────────────────────────────────────────────────
 
     @Test
     void nested_from_path_navigates_to_array() {
-        JsonValue data = JsonParser.parse(
-                "{\"data\":{\"items\":[{\"id\":1},{\"id\":2}]}}");
+        JsonValue data = JsonParser.parse("{\"data\":{\"items\":[{\"id\":1},{\"id\":2}]}}");
         JsonValue result = execute("SELECT * FROM $r.data.items", data);
 
         assertEquals(2, result.asArray().get().size());
@@ -180,8 +170,7 @@ class QueryExecutorTest {
         String json = "[{\"name\":\"Alice\"},{\"name\":\"Bob\"}]";
         Sql4jsonSettings settings = Sql4jsonSettings.defaults();
 
-        JsonValue result = executor.executeStreamingAsJsonValue(
-                "SELECT * FROM $r", json, settings);
+        JsonValue result = executor.executeStreamingAsJsonValue("SELECT * FROM $r", json, settings);
         assertTrue(result.isArray());
         assertEquals(2, result.asArray().orElseThrow().size());
     }
@@ -191,8 +180,7 @@ class QueryExecutorTest {
         String json = "[{\"name\":\"Alice\",\"age\":30},{\"name\":\"Bob\",\"age\":20}]";
         Sql4jsonSettings settings = Sql4jsonSettings.defaults();
 
-        String result = executor.executeStreaming(
-                "SELECT name FROM (SELECT * FROM $r WHERE age > 25)", json, settings);
+        String result = executor.executeStreaming("SELECT name FROM (SELECT * FROM $r WHERE age > 25)", json, settings);
         assertTrue(result.contains("Alice"));
         assertFalse(result.contains("Bob"));
     }
@@ -202,8 +190,7 @@ class QueryExecutorTest {
         String json = "{\"data\":{\"items\":[{\"id\":1},{\"id\":2}]}}";
         Sql4jsonSettings settings = Sql4jsonSettings.defaults();
 
-        String result = executor.executeStreaming(
-                "SELECT * FROM $r.data.items", json, settings);
+        String result = executor.executeStreaming("SELECT * FROM $r.data.items", json, settings);
         assertTrue(result.contains("\"id\":1"));
         assertTrue(result.contains("\"id\":2"));
     }
@@ -236,8 +223,8 @@ class QueryExecutorTest {
 
         // Tree path
         JsonValue data = codec.parse(json);
-        String treeResult = codec.serialize(
-                execute("SELECT dept, SUM(sal) AS total FROM $r GROUP BY dept ORDER BY dept", data));
+        String treeResult =
+                codec.serialize(execute("SELECT dept, SUM(sal) AS total FROM $r GROUP BY dept ORDER BY dept", data));
 
         // Streaming path
         String streamResult = executor.executeStreaming(

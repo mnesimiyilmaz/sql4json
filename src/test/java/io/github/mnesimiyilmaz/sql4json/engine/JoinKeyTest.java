@@ -1,13 +1,13 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.engine;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.types.SqlNull;
 import io.github.mnesimiyilmaz.sql4json.types.SqlNumber;
 import io.github.mnesimiyilmaz.sql4json.types.SqlString;
-import org.junit.jupiter.api.Test;
-
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class JoinKeyTest {
 
@@ -45,7 +45,6 @@ class JoinKeyTest {
     void values_are_immutable() {
         var k = new JoinKey(List.of(SqlNumber.of(1.0)));
         var values = k.values();
-        assertThrows(UnsupportedOperationException.class,
-                () -> values.add(SqlNumber.of(2.0)));
+        assertThrows(UnsupportedOperationException.class, () -> values.add(SqlNumber.of(2.0)));
     }
 }

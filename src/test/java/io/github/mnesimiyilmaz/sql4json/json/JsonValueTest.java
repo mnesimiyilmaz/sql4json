@@ -1,12 +1,12 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.json;
 
-import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
+import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class JsonValueTest {
 
@@ -178,17 +178,18 @@ class JsonValueTest {
     @Test
     void jsonNumber_sealedExhaustiveSwitch() {
         JsonValue[] numbers = {
-                new JsonLongValue(1L),
-                new JsonDoubleValue(1.5),
-                new JsonDecimalValue(new java.math.BigDecimal("1.000000000000000001"))
+            new JsonLongValue(1L),
+            new JsonDoubleValue(1.5),
+            new JsonDecimalValue(new java.math.BigDecimal("1.000000000000000001"))
         };
         for (JsonValue n : numbers) {
-            String tag = switch (n) {
-                case JsonLongValue ignored    -> "long";
-                case JsonDoubleValue ignored  -> "double";
-                case JsonDecimalValue ignored -> "decimal";
-                default                       -> "other";
-            };
+            String tag =
+                    switch (n) {
+                        case JsonLongValue ignored -> "long";
+                        case JsonDoubleValue ignored -> "double";
+                        case JsonDecimalValue ignored -> "decimal";
+                        default -> "other";
+                    };
             assertNotEquals("other", tag);
             assertTrue(n.isNumber());
         }

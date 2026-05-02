@@ -1,19 +1,19 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.parser;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.github.mnesimiyilmaz.sql4json.engine.Expression;
 import io.github.mnesimiyilmaz.sql4json.registry.*;
 import io.github.mnesimiyilmaz.sql4json.settings.Sql4jsonSettings;
-import org.junit.jupiter.api.Test;
-
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.Test;
 
 /**
- * Verifies that {@link SQL4JsonParserListener} tags every {@link Expression.ParameterRef}
- * with the correct {@link ParameterPositionKind} based on the placeholder's syntactic
- * position. Consumed by the bind-time parameter validator.
+ * Verifies that {@link SQL4JsonParserListener} tags every {@link Expression.ParameterRef} with the correct
+ * {@link ParameterPositionKind} based on the placeholder's syntactic position. Consumed by the bind-time parameter
+ * validator.
  */
 class ParameterPositionKindTest {
 
@@ -21,20 +21,20 @@ class ParameterPositionKindTest {
 
     @Test
     void parameter_in_array_literal_has_ARRAY_ELEMENT_kind() {
-        QueryDefinition def = QueryParser.parse(
-                "SELECT * FROM $r WHERE tags @> ARRAY[?, ?]", DEFAULTS);
+        QueryDefinition def = QueryParser.parse("SELECT * FROM $r WHERE tags @> ARRAY[?, ?]", DEFAULTS);
         List<Expression.ParameterRef> refs = collectParameterRefs(def);
         assertEquals(2, refs.size());
         for (Expression.ParameterRef r : refs) {
-            assertEquals(ParameterPositionKind.ARRAY_ELEMENT, r.positionKind(),
+            assertEquals(
+                    ParameterPositionKind.ARRAY_ELEMENT,
+                    r.positionKind(),
                     "expected ARRAY_ELEMENT, got " + r.positionKind());
         }
     }
 
     @Test
     void bare_parameter_rhs_has_BARE_ARRAY_RHS_kind() {
-        QueryDefinition def = QueryParser.parse(
-                "SELECT * FROM $r WHERE tags @> :tagList", DEFAULTS);
+        QueryDefinition def = QueryParser.parse("SELECT * FROM $r WHERE tags @> :tagList", DEFAULTS);
         List<Expression.ParameterRef> refs = collectParameterRefs(def);
         assertEquals(1, refs.size());
         assertEquals(ParameterPositionKind.BARE_ARRAY_RHS, refs.getFirst().positionKind());
@@ -42,8 +42,7 @@ class ParameterPositionKindTest {
 
     @Test
     void scalar_position_parameter_has_REGULAR_SCALAR_kind() {
-        QueryDefinition def = QueryParser.parse(
-                "SELECT * FROM $r WHERE name = :n", DEFAULTS);
+        QueryDefinition def = QueryParser.parse("SELECT * FROM $r WHERE name = :n", DEFAULTS);
         List<Expression.ParameterRef> refs = collectParameterRefs(def);
         assertEquals(1, refs.size());
         assertEquals(ParameterPositionKind.REGULAR_SCALAR, refs.getFirst().positionKind());
@@ -51,8 +50,7 @@ class ParameterPositionKindTest {
 
     @Test
     void in_list_parameter_has_IN_LIST_kind() {
-        QueryDefinition def = QueryParser.parse(
-                "SELECT * FROM $r WHERE id IN (?)", DEFAULTS);
+        QueryDefinition def = QueryParser.parse("SELECT * FROM $r WHERE id IN (?)", DEFAULTS);
         List<Expression.ParameterRef> refs = collectParameterRefs(def);
         assertEquals(1, refs.size());
         assertEquals(ParameterPositionKind.IN_LIST, refs.getFirst().positionKind());
@@ -60,8 +58,7 @@ class ParameterPositionKindTest {
 
     @Test
     void contains_keyword_parameter_has_REGULAR_SCALAR_kind() {
-        QueryDefinition def = QueryParser.parse(
-                "SELECT * FROM $r WHERE tags CONTAINS :v", DEFAULTS);
+        QueryDefinition def = QueryParser.parse("SELECT * FROM $r WHERE tags CONTAINS :v", DEFAULTS);
         List<Expression.ParameterRef> refs = collectParameterRefs(def);
         assertEquals(1, refs.size());
         assertEquals(ParameterPositionKind.REGULAR_SCALAR, refs.getFirst().positionKind());
@@ -69,8 +66,7 @@ class ParameterPositionKindTest {
 
     @Test
     void array_equality_literal_parameter_has_ARRAY_ELEMENT_kind() {
-        QueryDefinition def = QueryParser.parse(
-                "SELECT * FROM $r WHERE tags = ARRAY[?, ?]", DEFAULTS);
+        QueryDefinition def = QueryParser.parse("SELECT * FROM $r WHERE tags = ARRAY[?, ?]", DEFAULTS);
         List<Expression.ParameterRef> refs = collectParameterRefs(def);
         assertEquals(2, refs.size());
         for (Expression.ParameterRef r : refs) {

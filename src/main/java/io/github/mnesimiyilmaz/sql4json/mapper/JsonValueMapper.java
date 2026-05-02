@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.mapper;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonMappingException;
@@ -5,7 +6,6 @@ import io.github.mnesimiyilmaz.sql4json.json.*;
 import io.github.mnesimiyilmaz.sql4json.settings.MappingSettings;
 import io.github.mnesimiyilmaz.sql4json.settings.MissingFieldPolicy;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
-
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
@@ -22,37 +22,34 @@ import java.util.concurrent.ConcurrentHashMap;
  * Maps a {@link JsonValue} to a Java target type. Singleton via {@link #INSTANCE}.
  *
  * <p>Entry points:
+ *
  * <ul>
- *   <li>{@link #map(JsonValue, Class, MappingSettings)} — public, type-safe</li>
+ *   <li>{@link #map(JsonValue, Class, MappingSettings)} — public, type-safe
  * </ul>
  *
- * <p>Thread-safe: reflection metadata cached in a {@link ConcurrentHashMap}. No
- * per-call mutable state outside a stack-scoped {@link VisitedStack} and
- * {@link MappingPath}.
+ * <p>Thread-safe: reflection metadata cached in a {@link ConcurrentHashMap}. No per-call mutable state outside a
+ * stack-scoped {@link VisitedStack} and {@link MappingPath}.
  */
 @SuppressWarnings("java:S6548") // Intentional singleton — stateless mapper with a shared reflection cache.
 public final class JsonValueMapper {
 
-    /**
-     * Shared singleton.
-     */
+    /** Shared singleton. */
     public static final JsonValueMapper INSTANCE = new JsonValueMapper();
 
     private final ConcurrentHashMap<Class<?>, TypeDescriptor> descriptorCache = new ConcurrentHashMap<>();
 
-    private JsonValueMapper() {
-    }
+    private JsonValueMapper() {}
 
     /**
      * Map {@code value} to an instance of {@code type}.
      *
-     * @param value    JSON value to map
-     * @param type     target class
+     * @param value JSON value to map
+     * @param type target class
      * @param settings mapping settings (missing-field policy, etc.)
-     * @param <T>      target type
+     * @param <T> target type
      * @return mapped instance of {@code type}
-     * @throws SQL4JsonMappingException on any mapping failure (null-to-primitive,
-     *                                  unsupported target, enum mismatch, etc.)
+     * @throws SQL4JsonMappingException on any mapping failure (null-to-primitive, unsupported target, enum mismatch,
+     *     etc.)
      */
     @SuppressWarnings("unchecked")
     public <T> T map(JsonValue value, Class<T> type, MappingSettings settings) {
@@ -63,8 +60,8 @@ public final class JsonValueMapper {
         return (T) result;
     }
 
-    Object mapInternal(JsonValue value, Type targetType,
-                       MappingPath path, VisitedStack visited, MappingSettings settings) {
+    Object mapInternal(
+            JsonValue value, Type targetType, MappingPath path, VisitedStack visited, MappingSettings settings) {
         Class<?> rawType = TypeIntrospection.rawType(targetType);
 
         // JsonValue passthrough — target accepts the raw tree (before null handling so
@@ -106,9 +103,7 @@ public final class JsonValueMapper {
                 "Unsupported target " + rawType.getName() + " for value " + value + " at " + path);
     }
 
-    /**
-     * Sentinel returned by {@link #mapScalar} when the value is not a scalar JSON type.
-     */
+    /** Sentinel returned by {@link #mapScalar} when the value is not a scalar JSON type. */
     private static final Object NOT_SCALAR = new Object();
 
     private Object mapScalar(JsonValue value, Class<?> rawType, MappingPath path) {
@@ -124,14 +119,18 @@ public final class JsonValueMapper {
         return NOT_SCALAR;
     }
 
-    private Object mapArrayLike(List<JsonValue> elements, Type targetType, Class<?> rawType,
-                                MappingPath path, VisitedStack visited, MappingSettings settings) {
+    private Object mapArrayLike(
+            List<JsonValue> elements,
+            Type targetType,
+            Class<?> rawType,
+            MappingPath path,
+            VisitedStack visited,
+            MappingSettings settings) {
         if (rawType.isArray()) {
             Class<?> componentType = rawType.getComponentType();
             Object array = Array.newInstance(componentType, elements.size());
             for (int i = 0; i < elements.size(); i++) {
-                Object elem = mapInternal(elements.get(i), componentType,
-                        path.index(i), visited, settings);
+                Object elem = mapInternal(elements.get(i), componentType, path.index(i), visited, settings);
                 Array.set(array, i, elem);
             }
             return array;
@@ -142,7 +141,7 @@ public final class JsonValueMapper {
             if (rawType == Set.class || rawType == LinkedHashSet.class) {
                 out = new LinkedHashSet<>();
             } else {
-                out = new ArrayList<>(elements.size());  // List, Collection, Iterable
+                out = new ArrayList<>(elements.size()); // List, Collection, Iterable
             }
             int i = 0;
             for (JsonValue elem : elements) {
@@ -151,24 +150,27 @@ public final class JsonValueMapper {
             }
             return out;
         }
-        throw new SQL4JsonMappingException(
-                "Unsupported target " + rawType.getName() + " for array value at " + path);
+        throw new SQL4JsonMappingException("Unsupported target " + rawType.getName() + " for array value at " + path);
     }
 
-    private Object mapObjectLike(Map<String, JsonValue> fields, Type targetType, Class<?> rawType,
-                                 MappingPath path, VisitedStack visited, MappingSettings settings) {
+    private Object mapObjectLike(
+            Map<String, JsonValue> fields,
+            Type targetType,
+            Class<?> rawType,
+            MappingPath path,
+            VisitedStack visited,
+            MappingSettings settings) {
         if (Map.class.isAssignableFrom(rawType)) {
             Type keyType = TypeIntrospection.typeArg(targetType, 0);
             if (keyType != String.class && keyType != Object.class) {
-                throw new SQL4JsonMappingException(
-                        "Map keys must be String, got " + keyType + " at " + path);
+                throw new SQL4JsonMappingException("Map keys must be String, got " + keyType + " at " + path);
             }
             Type valueType = TypeIntrospection.typeArg(targetType, 1);
             Map<String, Object> out = new LinkedHashMap<>();
             for (Map.Entry<String, JsonValue> entry : fields.entrySet()) {
-                out.put(entry.getKey(),
-                        mapInternal(entry.getValue(), valueType,
-                                path.key(entry.getKey()), visited, settings));
+                out.put(
+                        entry.getKey(),
+                        mapInternal(entry.getValue(), valueType, path.key(entry.getKey()), visited, settings));
             }
             return out;
         }
@@ -178,8 +180,7 @@ public final class JsonValueMapper {
         if (!rawType.isInterface() && !Modifier.isAbstract(rawType.getModifiers())) {
             return mapPojo(fields, rawType, path, visited, settings);
         }
-        throw new SQL4JsonMappingException(
-                "Unsupported target " + rawType.getName() + " for object value at " + path);
+        throw new SQL4JsonMappingException("Unsupported target " + rawType.getName() + " for object value at " + path);
     }
 
     private Object mapNumber(Number n, Class<?> rawType, MappingPath path) {
@@ -191,8 +192,7 @@ public final class JsonValueMapper {
         if (rawType == Instant.class) return Instant.ofEpochMilli(n.longValue());
         if (rawType == String.class || rawType == CharSequence.class) return n.toString();
         if (rawType == Object.class) return n;
-        throw new SQL4JsonMappingException(
-                "Cannot map number to " + rawType.getName() + " at " + path);
+        throw new SQL4JsonMappingException("Cannot map number to " + rawType.getName() + " at " + path);
     }
 
     private static Object mapNumberToPrimitive(Number n, Class<?> rawType) {
@@ -210,8 +210,7 @@ public final class JsonValueMapper {
         try {
             return new BigInteger(n.toString());
         } catch (NumberFormatException e) {
-            throw new SQL4JsonMappingException(
-                    "Cannot map non-integer number '" + n + "' to BigInteger at " + path, e);
+            throw new SQL4JsonMappingException("Cannot map non-integer number '" + n + "' to BigInteger at " + path, e);
         }
     }
 
@@ -222,8 +221,7 @@ public final class JsonValueMapper {
         if (temporal != null) return temporal;
         if (rawType == BigDecimal.class) return stringToBigDecimal(s, path);
         if (rawType == BigInteger.class) return stringToBigInteger(s, path);
-        throw new SQL4JsonMappingException(
-                "Cannot map string to " + rawType.getName() + " at " + path);
+        throw new SQL4JsonMappingException("Cannot map string to " + rawType.getName() + " at " + path);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -234,27 +232,25 @@ public final class JsonValueMapper {
             throw new SQL4JsonMappingException(
                     "Invalid enum value '" + s + "' for " + rawType.getName()
                             + " at " + path + ". Available: "
-                            + Arrays.toString(rawType.getEnumConstants()), e);
+                            + Arrays.toString(rawType.getEnumConstants()),
+                    e);
         }
     }
 
     private static Object stringToTemporal(String s, Class<?> rawType, MappingPath path) {
         if (rawType == LocalDate.class) {
             LocalDate d = IsoTemporals.tryParseDate(s);
-            if (d == null) throw new SQL4JsonMappingException(
-                    "Cannot parse '" + s + "' as ISO date at " + path);
+            if (d == null) throw new SQL4JsonMappingException("Cannot parse '" + s + "' as ISO date at " + path);
             return d;
         }
         if (rawType == LocalDateTime.class) {
             LocalDateTime dt = IsoTemporals.tryParseDateTime(s);
-            if (dt == null) throw new SQL4JsonMappingException(
-                    "Cannot parse '" + s + "' as ISO datetime at " + path);
+            if (dt == null) throw new SQL4JsonMappingException("Cannot parse '" + s + "' as ISO datetime at " + path);
             return dt;
         }
         if (rawType == Instant.class) {
             Instant i = IsoTemporals.tryParseInstant(s);
-            if (i == null) throw new SQL4JsonMappingException(
-                    "Cannot parse '" + s + "' as ISO instant at " + path);
+            if (i == null) throw new SQL4JsonMappingException("Cannot parse '" + s + "' as ISO instant at " + path);
             return i;
         }
         return null;
@@ -264,8 +260,7 @@ public final class JsonValueMapper {
         try {
             return new BigDecimal(s);
         } catch (NumberFormatException e) {
-            throw new SQL4JsonMappingException(
-                    "Cannot parse '" + s + "' as BigDecimal at " + path, e);
+            throw new SQL4JsonMappingException("Cannot parse '" + s + "' as BigDecimal at " + path, e);
         }
     }
 
@@ -273,8 +268,7 @@ public final class JsonValueMapper {
         try {
             return new BigInteger(s);
         } catch (NumberFormatException e) {
-            throw new SQL4JsonMappingException(
-                    "Cannot parse '" + s + "' as BigInteger at " + path, e);
+            throw new SQL4JsonMappingException("Cannot parse '" + s + "' as BigInteger at " + path, e);
         }
     }
 
@@ -282,14 +276,17 @@ public final class JsonValueMapper {
         if (rawType == boolean.class || rawType == Boolean.class) return b;
         if (rawType == String.class || rawType == CharSequence.class) return Boolean.toString(b);
         if (rawType == Object.class) return b;
-        throw new SQL4JsonMappingException(
-                "Cannot map boolean to " + rawType.getName() + " at " + path);
+        throw new SQL4JsonMappingException("Cannot map boolean to " + rawType.getName() + " at " + path);
     }
 
-    private Object mapRecord(Map<String, JsonValue> fields, Class<?> rawType,
-                             MappingPath path, VisitedStack visited, MappingSettings settings) {
-        TypeDescriptor.RecordDescriptor desc = (TypeDescriptor.RecordDescriptor)
-                descriptorCache.computeIfAbsent(rawType, TypeDescriptor::build);
+    private Object mapRecord(
+            Map<String, JsonValue> fields,
+            Class<?> rawType,
+            MappingPath path,
+            VisitedStack visited,
+            MappingSettings settings) {
+        TypeDescriptor.RecordDescriptor desc =
+                (TypeDescriptor.RecordDescriptor) descriptorCache.computeIfAbsent(rawType, TypeDescriptor::build);
         Object[] args = new Object[desc.components().length];
         for (int i = 0; i < desc.components().length; i++) {
             var comp = desc.components()[i];
@@ -298,8 +295,7 @@ public final class JsonValueMapper {
             if (fieldValue == null) {
                 args[i] = missingFieldValue(comp.getType(), path.field(comp.getName()), settings);
             } else {
-                args[i] = mapInternal(fieldValue, compType,
-                        path.field(comp.getName()), visited, settings);
+                args[i] = mapInternal(fieldValue, compType, path.field(comp.getName()), visited, settings);
             }
         }
         try {
@@ -308,52 +304,52 @@ public final class JsonValueMapper {
             throw new SQL4JsonMappingException(
                     "Record constructor threw at " + path + ": " + e.getCause().getMessage(), e.getCause());
         } catch (ReflectiveOperationException e) {
-            throw new SQL4JsonMappingException(
-                    "Failed to instantiate record " + rawType.getName() + " at " + path, e);
+            throw new SQL4JsonMappingException("Failed to instantiate record " + rawType.getName() + " at " + path, e);
         }
     }
 
-    private Object mapPojo(Map<String, JsonValue> fields, Class<?> rawType,
-                           MappingPath path, VisitedStack visited, MappingSettings settings) {
+    private Object mapPojo(
+            Map<String, JsonValue> fields,
+            Class<?> rawType,
+            MappingPath path,
+            VisitedStack visited,
+            MappingSettings settings) {
         if (visited.contains(fields, rawType)) {
             throw new SQL4JsonMappingException("Cycle detected at " + path);
         }
         visited.push(fields, rawType);
         try {
-            TypeDescriptor.PojoDescriptor desc = (TypeDescriptor.PojoDescriptor)
-                    descriptorCache.computeIfAbsent(rawType, TypeDescriptor::build);
+            TypeDescriptor.PojoDescriptor desc =
+                    (TypeDescriptor.PojoDescriptor) descriptorCache.computeIfAbsent(rawType, TypeDescriptor::build);
             Object instance;
             try {
                 instance = desc.noArgConstructor().newInstance();
             } catch (ReflectiveOperationException e) {
-                throw new SQL4JsonMappingException(
-                        "Failed to instantiate " + rawType.getName() + " at " + path, e);
+                throw new SQL4JsonMappingException("Failed to instantiate " + rawType.getName() + " at " + path, e);
             }
 
-            for (Map.Entry<String, TypeDescriptor.PojoDescriptor.SetterInfo> entry
-                    : desc.settersByProperty().entrySet()) {
+            for (Map.Entry<String, TypeDescriptor.PojoDescriptor.SetterInfo> entry :
+                    desc.settersByProperty().entrySet()) {
                 String prop = entry.getKey();
                 TypeDescriptor.PojoDescriptor.SetterInfo setter = entry.getValue();
                 JsonValue fieldValue = fields.get(prop);
                 if (fieldValue == null) {
                     if (settings.missingFieldPolicy() == MissingFieldPolicy.FAIL) {
-                        throw new SQL4JsonMappingException(
-                                "Missing field at " + path.field(prop));
+                        throw new SQL4JsonMappingException("Missing field at " + path.field(prop));
                     }
                     continue;
                 }
-                Object arg = mapInternal(fieldValue, setter.paramType(),
-                        path.field(prop), visited, settings);
+                Object arg = mapInternal(fieldValue, setter.paramType(), path.field(prop), visited, settings);
                 try {
                     setter.method().invoke(instance, arg);
                 } catch (InvocationTargetException e) {
                     throw new SQL4JsonMappingException(
-                            "Setter " + setter.method().getName() + " threw at " + path.field(prop)
-                                    + ": " + e.getCause().getMessage(), e.getCause());
+                            "Setter " + setter.method().getName() + " threw at " + path.field(prop) + ": "
+                                    + e.getCause().getMessage(),
+                            e.getCause());
                 } catch (ReflectiveOperationException e) {
                     throw new SQL4JsonMappingException(
-                            "Failed to invoke setter " + setter.method().getName()
-                                    + " at " + path.field(prop), e);
+                            "Failed to invoke setter " + setter.method().getName() + " at " + path.field(prop), e);
                 }
             }
             return instance;
@@ -390,8 +386,7 @@ public final class JsonValueMapper {
         throw new IllegalStateException("Unknown primitive " + t);
     }
 
-    private Object naturalValue(JsonValue v, MappingPath path,
-                                VisitedStack visited, MappingSettings settings) {
+    private Object naturalValue(JsonValue v, MappingPath path, VisitedStack visited, MappingSettings settings) {
         if (v instanceof JsonNullValue) return null;
         if (v instanceof JsonBooleanValue(boolean b)) return b;
         if (v instanceof JsonNumberValue jn) return jn.numberValue();
@@ -416,8 +411,7 @@ public final class JsonValueMapper {
     private Object handleNull(Class<?> rawType, MappingPath path) {
         if (rawType == Optional.class) return Optional.empty();
         if (rawType.isPrimitive()) {
-            throw new SQL4JsonMappingException(
-                    "Cannot map null to primitive " + rawType.getName() + " at " + path);
+            throw new SQL4JsonMappingException("Cannot map null to primitive " + rawType.getName() + " at " + path);
         }
         return null;
     }

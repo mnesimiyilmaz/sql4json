@@ -1,18 +1,18 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.json;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException;
 import io.github.mnesimiyilmaz.sql4json.settings.DefaultJsonCodecSettings;
 import io.github.mnesimiyilmaz.sql4json.settings.DuplicateKeyPolicy;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class JsonParserTest {
 
@@ -144,9 +144,11 @@ class JsonParserTest {
     @Test
     void parse_object_duplicate_keys_last_wins() {
         var settings = DefaultJsonCodecSettings.builder()
-                .duplicateKeyPolicy(DuplicateKeyPolicy.LAST_WINS).build();
+                .duplicateKeyPolicy(DuplicateKeyPolicy.LAST_WINS)
+                .build();
         JsonValue v = JsonParser.parse("{\"a\":1,\"a\":2}", settings);
-        assertEquals(2, v.asObject().orElseThrow().get("a").asNumber().orElseThrow().intValue());
+        assertEquals(
+                2, v.asObject().orElseThrow().get("a").asNumber().orElseThrow().intValue());
     }
 
     // ── Arrays ──────────────────────────────────────────────────────────
@@ -175,10 +177,17 @@ class JsonParserTest {
     @Test
     void parse_nested_object() {
         JsonValue v = JsonParser.parse("{\"profile\":{\"address\":{\"city\":\"Istanbul\"}}}");
-        String city = v.asObject().orElseThrow()
-                .get("profile").asObject().orElseThrow()
-                .get("address").asObject().orElseThrow()
-                .get("city").asString().orElseThrow();
+        String city = v.asObject()
+                .orElseThrow()
+                .get("profile")
+                .asObject()
+                .orElseThrow()
+                .get("address")
+                .asObject()
+                .orElseThrow()
+                .get("city")
+                .asString()
+                .orElseThrow();
         assertEquals("Istanbul", city);
     }
 
@@ -187,7 +196,15 @@ class JsonParserTest {
         JsonValue v = JsonParser.parse("[{\"id\":1},{\"id\":2},{\"id\":3}]");
         List<JsonValue> arr = v.asArray().orElseThrow();
         assertEquals(3, arr.size());
-        assertEquals(2, arr.get(1).asObject().orElseThrow().get("id").asNumber().orElseThrow().intValue());
+        assertEquals(
+                2,
+                arr.get(1)
+                        .asObject()
+                        .orElseThrow()
+                        .get("id")
+                        .asNumber()
+                        .orElseThrow()
+                        .intValue());
     }
 
     // ── Whitespace handling ─────────────────────────────────────────────
@@ -204,16 +221,14 @@ class JsonParserTest {
     void parsed_object_is_unmodifiable() {
         JsonValue v = JsonParser.parse("{\"a\":1}");
         var obj = v.asObject().orElseThrow();
-        assertThrows(UnsupportedOperationException.class,
-                () -> obj.put("b", JsonNullValue.INSTANCE));
+        assertThrows(UnsupportedOperationException.class, () -> obj.put("b", JsonNullValue.INSTANCE));
     }
 
     @Test
     void parsed_array_is_unmodifiable() {
         JsonValue v = JsonParser.parse("[1,2]");
         var arr = v.asArray().orElseThrow();
-        assertThrows(UnsupportedOperationException.class,
-                () -> arr.add(JsonNullValue.INSTANCE));
+        assertThrows(UnsupportedOperationException.class, () -> arr.add(JsonNullValue.INSTANCE));
     }
 
     // ── Error cases ─────────────────────────────────────────────────────
@@ -596,10 +611,7 @@ class JsonParserTest {
 
     @Test
     void parseObject_sameShapeRecords_shareKeyArray() {
-        String json = "[" +
-                "{\"id\":1,\"name\":\"A\"}," +
-                "{\"id\":2,\"name\":\"B\"}," +
-                "{\"id\":3,\"name\":\"C\"}]";
+        String json = "[" + "{\"id\":1,\"name\":\"A\"}," + "{\"id\":2,\"name\":\"B\"}," + "{\"id\":3,\"name\":\"C\"}]";
         JsonValue parsed = JsonParser.parse(json);
         var arr = ((JsonArrayValue) parsed).elements();
         String[] k0 = extractKeyArray(arr.get(0));
@@ -611,9 +623,7 @@ class JsonParserTest {
 
     @Test
     void parseObject_differentShapes_doNotShareKeyArray() {
-        String json = "[" +
-                "{\"id\":1,\"name\":\"A\"}," +
-                "{\"id\":2,\"city\":\"X\"}]";
+        String json = "[" + "{\"id\":1,\"name\":\"A\"}," + "{\"id\":2,\"city\":\"X\"}]";
         JsonValue parsed = JsonParser.parse(json);
         var arr = ((JsonArrayValue) parsed).elements();
         assertNotSame(extractKeyArray(arr.get(0)), extractKeyArray(arr.get(1)));
@@ -621,9 +631,7 @@ class JsonParserTest {
 
     @Test
     void parseObject_sameShapeNestedObjects_alsoShareKeyArray() {
-        String json = "[" +
-                "{\"a\":{\"x\":1,\"y\":2}}," +
-                "{\"a\":{\"x\":3,\"y\":4}}]";
+        String json = "[" + "{\"a\":{\"x\":1,\"y\":2}}," + "{\"a\":{\"x\":3,\"y\":4}}]";
         JsonValue parsed = JsonParser.parse(json);
         var arr = ((JsonArrayValue) parsed).elements();
         JsonValue nested0 = ((JsonObjectValue) arr.get(0)).fields().get("a");

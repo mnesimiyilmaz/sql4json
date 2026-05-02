@@ -1,18 +1,18 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.github.mnesimiyilmaz.sql4json.json.JsonParser;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
-import org.junit.jupiter.api.Test;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.Test;
 
 class ThreadSafetyFixesTest {
 
@@ -34,8 +34,7 @@ class ThreadSafetyFixesTest {
 
     @Test
     void nestedJsonValue_deeplyUnmodifiable() {
-        JsonValue parsed = JsonParser.parse(
-                "{\"profile\":{\"address\":{\"city\":\"Istanbul\"}}}");
+        JsonValue parsed = JsonParser.parse("{\"profile\":{\"address\":{\"city\":\"Istanbul\"}}}");
 
         // Top-level object
         Map<String, JsonValue> root = parsed.asObject().get();
@@ -68,16 +67,16 @@ class ThreadSafetyFixesTest {
             futures.add(executor.submit(() -> {
                 for (int p = 0; p < patternsPerThread; p++) {
                     // Each thread uses a mix of patterns to stress the shared cache
-                    String pattern = switch (p % 4) {
-                        case 0 -> "Ali%";
-                        case 1 -> "%ob";
-                        case 2 -> "Char%";
-                        default -> "%" + threadIdx + "_" + p + "%";
-                    };
+                    String pattern =
+                            switch (p % 4) {
+                                case 0 -> "Ali%";
+                                case 1 -> "%ob";
+                                case 2 -> "Char%";
+                                default -> "%" + threadIdx + "_" + p + "%";
+                            };
                     String sql = "SELECT * FROM $r WHERE name LIKE '" + pattern + "'";
                     assertDoesNotThrow(
-                            () -> SQL4Json.query(sql, json),
-                            "Thread " + threadIdx + " pattern " + p + " failed");
+                            () -> SQL4Json.query(sql, json), "Thread " + threadIdx + " pattern " + p + " failed");
                 }
             }));
         }

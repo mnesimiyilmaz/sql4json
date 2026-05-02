@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.engine.stage;
 
 import io.github.mnesimiyilmaz.sql4json.engine.FieldKey;
@@ -6,13 +7,12 @@ import io.github.mnesimiyilmaz.sql4json.engine.RowAccessor;
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException;
 import io.github.mnesimiyilmaz.sql4json.sorting.SqlValueComparator;
 import io.github.mnesimiyilmaz.sql4json.types.*;
-
 import java.util.*;
 import java.util.stream.Stream;
 
 /**
- * Materializing pipeline stage that eliminates duplicate rows (SQL DISTINCT).
- * Uses value-based equality via {@link SqlValueComparator}.
+ * Materializing pipeline stage that eliminates duplicate rows (SQL DISTINCT). Uses value-based equality via
+ * {@link SqlValueComparator}.
  */
 public final class DistinctStage implements MaterializingPipelineStage {
 
@@ -47,8 +47,7 @@ public final class DistinctStage implements MaterializingPipelineStage {
         static DistinctKey of(RowAccessor row) {
             List<SqlValue> vals = new ArrayList<>();
             row.entries()
-                    .sorted(Map.Entry.comparingByKey(
-                            Comparator.comparing(FieldKey::getKey)))
+                    .sorted(Map.Entry.comparingByKey(Comparator.comparing(FieldKey::getKey)))
                     .forEach(e -> vals.add(e.getValue()));
             return new DistinctKey(vals);
         }

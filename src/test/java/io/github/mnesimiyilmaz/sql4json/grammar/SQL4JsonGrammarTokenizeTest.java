@@ -1,11 +1,11 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.grammar;
-
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.List;
+import org.junit.jupiter.api.Test;
 
 class SQL4JsonGrammarTokenizeTest {
 
@@ -56,8 +56,11 @@ class SQL4JsonGrammarTokenizeTest {
 
     @Test
     void positionalAndNamedParameters() {
-        assertEquals(TokenKind.PARAM_POSITIONAL, SQL4JsonGrammar.tokenize("?").getFirst().kind());
-        assertEquals(TokenKind.PARAM_NAMED, SQL4JsonGrammar.tokenize(":x").getFirst().kind());
+        assertEquals(
+                TokenKind.PARAM_POSITIONAL,
+                SQL4JsonGrammar.tokenize("?").getFirst().kind());
+        assertEquals(
+                TokenKind.PARAM_NAMED, SQL4JsonGrammar.tokenize(":x").getFirst().kind());
     }
 
     @Test
@@ -86,8 +89,8 @@ class SQL4JsonGrammarTokenizeTest {
             Token t = tokens.get(i);
             assertTrue(t.startOffset() <= t.endOffset(), "negative-length token " + t);
             if (i > 0) {
-                assertEquals(tokens.get(i - 1).endOffset(), t.startOffset(),
-                        "gap between tokens " + (i - 1) + " and " + i);
+                assertEquals(
+                        tokens.get(i - 1).endOffset(), t.startOffset(), "gap between tokens " + (i - 1) + " and " + i);
             }
         }
     }
@@ -111,14 +114,12 @@ class SQL4JsonGrammarTokenizeTest {
                 .filter(t -> t.kind() == TokenKind.OPERATOR)
                 .map(t -> sql.substring(t.startOffset(), t.endOffset()))
                 .toList();
-        assertTrue(operatorTokens.contains("@>"),
-                "expected '@>' among operator slices, got " + operatorTokens);
+        assertTrue(operatorTokens.contains("@>"), "expected '@>' among operator slices, got " + operatorTokens);
         List<String> keywordTokens = tokens.stream()
                 .filter(t -> t.kind() == TokenKind.KEYWORD)
                 .map(t -> sql.substring(t.startOffset(), t.endOffset()).toUpperCase())
                 .toList();
-        assertTrue(keywordTokens.contains("ARRAY"),
-                "expected 'ARRAY' among keyword slices, got " + keywordTokens);
+        assertTrue(keywordTokens.contains("ARRAY"), "expected 'ARRAY' among keyword slices, got " + keywordTokens);
     }
 
     @Test
@@ -129,8 +130,8 @@ class SQL4JsonGrammarTokenizeTest {
                 .filter(t -> t.kind() == TokenKind.KEYWORD)
                 .map(t -> sql.substring(t.startOffset(), t.endOffset()).toUpperCase())
                 .toList();
-        assertTrue(keywordSlices.contains("CONTAINS"),
-                "expected 'CONTAINS' among keyword slices, got " + keywordSlices);
+        assertTrue(
+                keywordSlices.contains("CONTAINS"), "expected 'CONTAINS' among keyword slices, got " + keywordSlices);
     }
 
     @Test
@@ -141,9 +142,7 @@ class SQL4JsonGrammarTokenizeTest {
                 .filter(t -> t.kind() == TokenKind.OPERATOR)
                 .map(t -> sql.substring(t.startOffset(), t.endOffset()))
                 .toList();
-        assertTrue(operatorSlices.contains("<@"),
-                "expected '<@' among operator slices, got " + operatorSlices);
-        assertTrue(operatorSlices.contains("&&"),
-                "expected '&&' among operator slices, got " + operatorSlices);
+        assertTrue(operatorSlices.contains("<@"), "expected '<@' among operator slices, got " + operatorSlices);
+        assertTrue(operatorSlices.contains("&&"), "expected '&&' among operator slices, got " + operatorSlices);
     }
 }

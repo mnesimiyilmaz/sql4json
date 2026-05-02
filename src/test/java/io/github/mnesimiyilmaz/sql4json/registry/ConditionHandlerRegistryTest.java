@@ -1,4 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.registry;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.engine.Expression;
 import io.github.mnesimiyilmaz.sql4json.engine.Expression.ColumnRef;
@@ -11,18 +14,14 @@ import io.github.mnesimiyilmaz.sql4json.json.JsonStringValue;
 import io.github.mnesimiyilmaz.sql4json.settings.Sql4jsonSettings;
 import io.github.mnesimiyilmaz.sql4json.types.SqlNumber;
 import io.github.mnesimiyilmaz.sql4json.types.SqlString;
-import org.junit.jupiter.api.Test;
-
 import java.util.LinkedHashMap;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class ConditionHandlerRegistryTest {
 
-    private final FunctionRegistry         fns      = FunctionRegistry.createDefault();
-    private final OperatorRegistry         ops      = OperatorRegistry.createDefault();
-    private final ConditionHandlerRegistry handlers =
-            ConditionHandlerRegistry.forSettings(Sql4jsonSettings.defaults());
+    private final FunctionRegistry fns = FunctionRegistry.createDefault();
+    private final OperatorRegistry ops = OperatorRegistry.createDefault();
+    private final ConditionHandlerRegistry handlers = ConditionHandlerRegistry.forSettings(Sql4jsonSettings.defaults());
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -38,9 +37,16 @@ class ConditionHandlerRegistryTest {
     void resolve_comparison_producesWorkingNode() {
         ConditionContext ctx = new ConditionContext(
                 ConditionContext.ConditionType.COMPARISON,
-                new ColumnRef("age"), ">", SqlNumber.of(18),
-                new Expression.LiteralVal(SqlNumber.of(18)), null, null, null,
-                null, null, null);
+                new ColumnRef("age"),
+                ">",
+                SqlNumber.of(18),
+                new Expression.LiteralVal(SqlNumber.of(18)),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
 
         CriteriaNode node = handlers.resolve(ctx);
 
@@ -52,9 +58,16 @@ class ConditionHandlerRegistryTest {
     void resolve_comparison_equalsString() {
         ConditionContext ctx = new ConditionContext(
                 ConditionContext.ConditionType.COMPARISON,
-                new ColumnRef("status"), "=", new SqlString("active"),
-                new Expression.LiteralVal(new SqlString("active")), null, null, null,
-                null, null, null);
+                new ColumnRef("status"),
+                "=",
+                new SqlString("active"),
+                new Expression.LiteralVal(new SqlString("active")),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
 
         CriteriaNode node = handlers.resolve(ctx);
 
@@ -68,9 +81,16 @@ class ConditionHandlerRegistryTest {
     void resolve_like_producesWorkingNode() {
         ConditionContext ctx = new ConditionContext(
                 ConditionContext.ConditionType.LIKE,
-                new ColumnRef("name"), "LIKE", new SqlString("Ali%"),
-                new Expression.LiteralVal(new SqlString("Ali%")), null, null, null,
-                null, null, null);
+                new ColumnRef("name"),
+                "LIKE",
+                new SqlString("Ali%"),
+                new Expression.LiteralVal(new SqlString("Ali%")),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
 
         CriteriaNode node = handlers.resolve(ctx);
 
@@ -84,8 +104,16 @@ class ConditionHandlerRegistryTest {
     void resolve_isNull_producesWorkingNode() {
         ConditionContext ctx = new ConditionContext(
                 ConditionContext.ConditionType.IS_NULL,
-                new ColumnRef("email"), null, null, null, null, null, null,
-                null, null, null);
+                new ColumnRef("email"),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
 
         CriteriaNode node = handlers.resolve(ctx);
 
@@ -104,8 +132,16 @@ class ConditionHandlerRegistryTest {
     void resolve_isNotNull_producesWorkingNode() {
         ConditionContext ctx = new ConditionContext(
                 ConditionContext.ConditionType.IS_NOT_NULL,
-                new ColumnRef("phone"), null, null, null, null, null, null,
-                null, null, null);
+                new ColumnRef("phone"),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
 
         CriteriaNode node = handlers.resolve(ctx);
 
@@ -121,13 +157,19 @@ class ConditionHandlerRegistryTest {
     @Test
     void resolve_noHandler_throwsException() {
         // Register an empty registry with no handlers
-        ConditionHandlerRegistry empty =
-                new ConditionHandlerRegistry(ops, fns);
+        ConditionHandlerRegistry empty = new ConditionHandlerRegistry(ops, fns);
         ConditionContext ctx = new ConditionContext(
                 ConditionContext.ConditionType.COMPARISON,
-                new ColumnRef("age"), ">", SqlNumber.of(1),
-                new Expression.LiteralVal(SqlNumber.of(1)), null, null, null,
-                null, null, null);
+                new ColumnRef("age"),
+                ">",
+                SqlNumber.of(1),
+                new Expression.LiteralVal(SqlNumber.of(1)),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
         assertThrows(SQL4JsonExecutionException.class, () -> empty.resolve(ctx));
     }
 
@@ -138,14 +180,28 @@ class ConditionHandlerRegistryTest {
         // (age > 18) AND (status = 'active')
         ConditionContext ageCond = new ConditionContext(
                 ConditionContext.ConditionType.COMPARISON,
-                new ColumnRef("age"), ">", SqlNumber.of(18),
-                new Expression.LiteralVal(SqlNumber.of(18)), null, null, null,
-                null, null, null);
+                new ColumnRef("age"),
+                ">",
+                SqlNumber.of(18),
+                new Expression.LiteralVal(SqlNumber.of(18)),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
         ConditionContext statusCond = new ConditionContext(
                 ConditionContext.ConditionType.COMPARISON,
-                new ColumnRef("status"), "=", new SqlString("active"),
-                new Expression.LiteralVal(new SqlString("active")), null, null, null,
-                null, null, null);
+                new ColumnRef("status"),
+                "=",
+                new SqlString("active"),
+                new Expression.LiteralVal(new SqlString("active")),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
 
         CriteriaNode ageNode = handlers.resolve(ageCond);
         CriteriaNode statusNode = handlers.resolve(statusCond);
@@ -169,18 +225,30 @@ class ConditionHandlerRegistryTest {
         // (name LIKE 'Al%') OR (age > 50)
         ConditionContext likeCond = new ConditionContext(
                 ConditionContext.ConditionType.LIKE,
-                new ColumnRef("name"), "LIKE", new SqlString("Al%"),
-                new Expression.LiteralVal(new SqlString("Al%")), null, null, null,
-                null, null, null);
+                new ColumnRef("name"),
+                "LIKE",
+                new SqlString("Al%"),
+                new Expression.LiteralVal(new SqlString("Al%")),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
         ConditionContext ageCond = new ConditionContext(
                 ConditionContext.ConditionType.COMPARISON,
-                new ColumnRef("age"), ">", SqlNumber.of(50),
-                new Expression.LiteralVal(SqlNumber.of(50)), null, null, null,
-                null, null, null);
+                new ColumnRef("age"),
+                ">",
+                SqlNumber.of(50),
+                new Expression.LiteralVal(SqlNumber.of(50)),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
 
-        CriteriaNode combined = new OrNode(
-                handlers.resolve(likeCond),
-                handlers.resolve(ageCond));
+        CriteriaNode combined = new OrNode(handlers.resolve(likeCond), handlers.resolve(ageCond));
 
         // Matches via name
         Row row1 = rowWith("name", new JsonStringValue("Alice"));
@@ -206,17 +274,30 @@ class ConditionHandlerRegistryTest {
         // IS NOT NULL AND name LIKE 'A%'
         ConditionContext nullCheck = new ConditionContext(
                 ConditionContext.ConditionType.IS_NOT_NULL,
-                new ColumnRef("name"), null, null, null, null, null, null,
-                null, null, null);
+                new ColumnRef("name"),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
         ConditionContext likeCond = new ConditionContext(
                 ConditionContext.ConditionType.LIKE,
-                new ColumnRef("name"), "LIKE", new SqlString("A%"),
-                new Expression.LiteralVal(new SqlString("A%")), null, null, null,
-                null, null, null);
+                new ColumnRef("name"),
+                "LIKE",
+                new SqlString("A%"),
+                new Expression.LiteralVal(new SqlString("A%")),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
 
-        CriteriaNode combined = new AndNode(
-                handlers.resolve(nullCheck),
-                handlers.resolve(likeCond));
+        CriteriaNode combined = new AndNode(handlers.resolve(nullCheck), handlers.resolve(likeCond));
 
         assertTrue(combined.test(rowWith("name", new JsonStringValue("Alice"))));
         assertFalse(combined.test(rowWith("name", new JsonStringValue("Bob"))));

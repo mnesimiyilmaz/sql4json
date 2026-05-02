@@ -1,17 +1,17 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.mapper;
 
 /**
- * Immutable, copy-on-descend path accumulator used for error messages
- * (e.g. {@code $.orders[2].amount}). Each {@code field} or {@code index}
- * call returns a new node, so recursion can share prefix nodes without
- * mutating shared state.
+ * Immutable, copy-on-descend path accumulator used for error messages (e.g. {@code $.orders[2].amount}). Each
+ * {@code field} or {@code index} call returns a new node, so recursion can share prefix nodes without mutating shared
+ * state.
  */
 final class MappingPath {
 
     private static final MappingPath ROOT = new MappingPath(null, "$");
 
     private final MappingPath parent;
-    private final String      segment;
+    private final String segment;
 
     private MappingPath(MappingPath parent, String segment) {
         this.parent = parent;

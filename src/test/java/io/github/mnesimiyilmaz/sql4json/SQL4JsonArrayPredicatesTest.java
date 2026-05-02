@@ -1,8 +1,9 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json;
 
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.*;
+
+import org.junit.jupiter.api.Test;
 
 class SQL4JsonArrayPredicatesTest {
 
@@ -85,8 +86,7 @@ class SQL4JsonArrayPredicatesTest {
                   {"id": 3, "tags": ["editor"]}
                 ]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags @> ARRAY['admin','editor']", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE tags @> ARRAY['admin','editor']", json);
         assertTrue(result.contains("\"id\":1"), result);
         assertFalse(result.contains("\"id\":2"), result);
         assertFalse(result.contains("\"id\":3"), result);
@@ -111,8 +111,7 @@ class SQL4JsonArrayPredicatesTest {
                   {"id": 3, "tags": ["admin","superuser"]}
                 ]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags <@ ARRAY['admin','editor','viewer']", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE tags <@ ARRAY['admin','editor','viewer']", json);
         assertTrue(result.contains("\"id\":1"), result);
         assertTrue(result.contains("\"id\":2"), result);
         assertFalse(result.contains("\"id\":3"), result);
@@ -123,8 +122,7 @@ class SQL4JsonArrayPredicatesTest {
         String json = """
                 [{"id": 1, "tags": []}]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags <@ ARRAY['admin']", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE tags <@ ARRAY['admin']", json);
         assertTrue(result.contains("\"id\":1"), result);
     }
 
@@ -137,8 +135,7 @@ class SQL4JsonArrayPredicatesTest {
                   {"id": 3, "tags": ["editor","other"]}
                 ]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags && ARRAY['admin','superuser']", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE tags && ARRAY['admin','superuser']", json);
         assertTrue(result.contains("\"id\":1"), result);
         assertFalse(result.contains("\"id\":2"), result);
         assertFalse(result.contains("\"id\":3"), result);
@@ -158,8 +155,7 @@ class SQL4JsonArrayPredicatesTest {
         String json = """
                 [{"id": 1, "name": "x"}]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags @> ARRAY['admin']", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE tags @> ARRAY['admin']", json);
         assertEquals("[]", result);
     }
 
@@ -172,8 +168,7 @@ class SQL4JsonArrayPredicatesTest {
                 ]
                 """;
         String result = SQL4Json.prepare("SELECT id FROM $r WHERE tags @> :req")
-                .execute(json,
-                        BoundParameters.named().bind("req", java.util.List.of("admin", "editor")));
+                .execute(json, BoundParameters.named().bind("req", java.util.List.of("admin", "editor")));
         assertTrue(result.contains("\"id\":1"), result);
         assertFalse(result.contains("\"id\":2"), result);
     }
@@ -212,9 +207,7 @@ class SQL4JsonArrayPredicatesTest {
                 ]
                 """;
         String result = SQL4Json.prepare("SELECT id FROM $r WHERE tags <@ :allowed")
-                .execute(json,
-                        BoundParameters.named().bind("allowed",
-                                java.util.List.of("a", "b")));
+                .execute(json, BoundParameters.named().bind("allowed", java.util.List.of("a", "b")));
         assertTrue(result.contains("\"id\":1"), result);
         assertFalse(result.contains("\"id\":2"), result);
     }
@@ -228,8 +221,7 @@ class SQL4JsonArrayPredicatesTest {
                   {"id": 3, "tags": ["admin"]}
                 ]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags = ARRAY['admin','editor']", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE tags = ARRAY['admin','editor']", json);
         assertTrue(result.contains("\"id\":1"), result);
         assertFalse(result.contains("\"id\":2"), result);
         assertFalse(result.contains("\"id\":3"), result);
@@ -243,8 +235,7 @@ class SQL4JsonArrayPredicatesTest {
                   {"id": 2, "tags": ["editor","admin"]}
                 ]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags != ARRAY['admin','editor']", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE tags != ARRAY['admin','editor']", json);
         assertTrue(result.contains("\"id\":2"), result);
         assertFalse(result.contains("\"id\":1"), result);
     }
@@ -254,8 +245,7 @@ class SQL4JsonArrayPredicatesTest {
         String json = """
                 [{"id": 1, "tags": []}, {"id": 2, "tags": ["a"]}]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags = ARRAY[]", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE tags = ARRAY[]", json);
         assertTrue(result.contains("\"id\":1"), result);
         assertFalse(result.contains("\"id\":2"), result);
     }
@@ -265,8 +255,7 @@ class SQL4JsonArrayPredicatesTest {
         String json = """
                 [{"id": 1, "name": "x"}]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags = ARRAY['admin']", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE tags = ARRAY['admin']", json);
         assertEquals("[]", result);
     }
 
@@ -277,8 +266,7 @@ class SQL4JsonArrayPredicatesTest {
         String json = """
                 [{"id": 1, "name": "x"}]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags != ARRAY['admin']", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE tags != ARRAY['admin']", json);
         assertEquals("[]", result);
     }
 
@@ -287,8 +275,7 @@ class SQL4JsonArrayPredicatesTest {
         String json = """
                 [{"id": 1, "tags": ["admin", null]}]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags = ARRAY['admin','editor']", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE tags = ARRAY['admin','editor']", json);
         assertEquals("[]", result);
     }
 
@@ -311,7 +298,7 @@ class SQL4JsonArrayPredicatesTest {
         String r3 = SQL4Json.query("SELECT id FROM $r WHERE tags CONTAINS '1'", json);
         assertTrue(r1.contains("\"id\":1"), r1);
         assertTrue(r2.contains("\"id\":1"), r2);
-        assertEquals("[]", r3);   // string '1' != number 1 per SqlValueComparator
+        assertEquals("[]", r3); // string '1' != number 1 per SqlValueComparator
     }
 
     @Test
@@ -319,8 +306,7 @@ class SQL4JsonArrayPredicatesTest {
         String json = """
                 [{"id": 1, "tags": ["admin", "admin"]}]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags @> ARRAY['admin']", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE tags @> ARRAY['admin']", json);
         assertTrue(result.contains("\"id\":1"), result);
     }
 
@@ -329,8 +315,7 @@ class SQL4JsonArrayPredicatesTest {
         String json = """
                 [{"id": 1, "tags": ["admin", "admin"]}]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags = ARRAY['admin']", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE tags = ARRAY['admin']", json);
         assertEquals("[]", result);
     }
 
@@ -342,8 +327,7 @@ class SQL4JsonArrayPredicatesTest {
                   {"id": 2, "user": {"tags": ["viewer"]}}
                 ]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE user.tags CONTAINS 'admin'", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE user.tags CONTAINS 'admin'", json);
         assertTrue(result.contains("\"id\":1"), result);
         assertFalse(result.contains("\"id\":2"), result);
     }
@@ -353,8 +337,7 @@ class SQL4JsonArrayPredicatesTest {
         String json = """
                 [{"id": 1, "flags": [true, false]}]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE flags @> ARRAY[true]", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE flags @> ARRAY[true]", json);
         assertTrue(result.contains("\"id\":1"), result);
     }
 
@@ -367,8 +350,7 @@ class SQL4JsonArrayPredicatesTest {
                   {"id": 3, "active": true,  "tags": ["viewer"]}
                 ]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags CONTAINS 'admin' AND active = true", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE tags CONTAINS 'admin' AND active = true", json);
         assertTrue(result.contains("\"id\":1"), result);
         assertFalse(result.contains("\"id\":2"), result);
         assertFalse(result.contains("\"id\":3"), result);
@@ -383,8 +365,7 @@ class SQL4JsonArrayPredicatesTest {
                 ]
                 """;
         String result = SQL4Json.query(
-                "SELECT id, CASE WHEN tags CONTAINS 'admin' THEN 'yes' ELSE 'no' END AS isAdmin FROM $r",
-                json);
+                "SELECT id, CASE WHEN tags CONTAINS 'admin' THEN 'yes' ELSE 'no' END AS isAdmin FROM $r", json);
         assertTrue(result.contains("\"id\":1"), result);
         assertTrue(result.contains("\"isAdmin\":\"yes\""), result);
         assertTrue(result.contains("\"id\":2"), result);
@@ -401,9 +382,7 @@ class SQL4JsonArrayPredicatesTest {
                 ]
                 """;
         String result = SQL4Json.query(
-                "SELECT dept, COUNT(*) AS c FROM $r WHERE tags CONTAINS 'admin' "
-                        + "GROUP BY dept HAVING c > 0",
-                json);
+                "SELECT dept, COUNT(*) AS c FROM $r WHERE tags CONTAINS 'admin' " + "GROUP BY dept HAVING c > 0", json);
         assertTrue(result.contains("\"dept\":\"eng\""), result);
         assertTrue(result.contains("\"dept\":\"ops\""), result);
     }
@@ -417,8 +396,8 @@ class SQL4JsonArrayPredicatesTest {
                   {"id": 3, "tags": ["viewer"]}
                 ]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE (tags CONTAINS 'admin' OR tags CONTAINS 'editor')", json);
+        String result =
+                SQL4Json.query("SELECT id FROM $r WHERE (tags CONTAINS 'admin' OR tags CONTAINS 'editor')", json);
         assertTrue(result.contains("\"id\":1"), result);
         assertTrue(result.contains("\"id\":2"), result);
         assertFalse(result.contains("\"id\":3"), result);
@@ -435,8 +414,7 @@ class SQL4JsonArrayPredicatesTest {
                 """;
         // Strict order match AND must contain editor
         String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags = ARRAY['admin','editor'] AND tags @> ARRAY['editor']",
-                json);
+                "SELECT id FROM $r WHERE tags = ARRAY['admin','editor'] AND tags @> ARRAY['editor']", json);
         assertTrue(result.contains("\"id\":1"), result);
         assertFalse(result.contains("\"id\":2"), result);
         assertFalse(result.contains("\"id\":3"), result);
@@ -451,9 +429,8 @@ class SQL4JsonArrayPredicatesTest {
                   {"name": "albert",  "tags": ["editor"]}
                 ]
                 """;
-        String result = SQL4Json.query(
-                "SELECT name FROM $r WHERE name LIKE 'al%' AND tags && ARRAY['admin','editor']",
-                json);
+        String result =
+                SQL4Json.query("SELECT name FROM $r WHERE name LIKE 'al%' AND tags && ARRAY['admin','editor']", json);
         assertTrue(result.contains("\"name\":\"alice\""), result);
         assertTrue(result.contains("\"name\":\"albert\""), result);
         assertFalse(result.contains("\"name\":\"bob\""), result);
@@ -488,8 +465,7 @@ class SQL4JsonArrayPredicatesTest {
                 [{"userId": 1, "tags": ["admin","editor"]}]
                 """;
         String result = SQL4Json.query(
-                "SELECT u.name FROM users u LEFT JOIN roles r ON u.id = r.userId "
-                        + "WHERE r.tags CONTAINS 'admin'",
+                "SELECT u.name FROM users u LEFT JOIN roles r ON u.id = r.userId " + "WHERE r.tags CONTAINS 'admin'",
                 java.util.Map.of("users", users, "roles", roles));
         assertTrue(result.contains("\"u.name\":\"alice\""), result);
     }
@@ -506,8 +482,7 @@ class SQL4JsonArrayPredicatesTest {
                 [{"userId": 1}, {"userId": 2}]
                 """;
         String result = SQL4Json.query(
-                "SELECT u.name FROM users u JOIN orders o ON u.id = o.userId "
-                        + "WHERE u.tags CONTAINS 'admin'",
+                "SELECT u.name FROM users u JOIN orders o ON u.id = o.userId " + "WHERE u.tags CONTAINS 'admin'",
                 java.util.Map.of("users", users, "orders", orders));
         assertTrue(result.contains("\"u.name\":\"alice\""), result);
         assertFalse(result.contains("\"u.name\":\"bob\""), result);
@@ -540,8 +515,7 @@ class SQL4JsonArrayPredicatesTest {
                   {"id": 2, "tags": ["a"],         "required": ["a","b"]}
                 ]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags @> required", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE tags @> required", json);
         assertTrue(result.contains("\"id\":1"), result);
         assertFalse(result.contains("\"id\":2"), result);
     }
@@ -551,8 +525,7 @@ class SQL4JsonArrayPredicatesTest {
         String json = """
                 [{"id": 1, "tags": ["a"]}]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags @> required", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE tags @> required", json);
         assertEquals("[]", result);
     }
 
@@ -561,8 +534,7 @@ class SQL4JsonArrayPredicatesTest {
         String json = """
                 [{"id": 1, "tags": ["a"], "required": "a"}]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags @> required", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE tags @> required", json);
         assertEquals("[]", result);
     }
 
@@ -574,8 +546,7 @@ class SQL4JsonArrayPredicatesTest {
                   {"id": 2, "tags": ["a","c"], "allowed": ["a","b"]}
                 ]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags <@ allowed", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE tags <@ allowed", json);
         assertTrue(result.contains("\"id\":1"), result);
         assertFalse(result.contains("\"id\":2"), result);
     }
@@ -585,8 +556,7 @@ class SQL4JsonArrayPredicatesTest {
         String json = """
                 [{"id": 1, "tags": ["admin","editor"]}]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags @> ARRAY['admin', NULL]", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE tags @> ARRAY['admin', NULL]", json);
         assertEquals("[]", result);
     }
 
@@ -595,8 +565,7 @@ class SQL4JsonArrayPredicatesTest {
         String json = """
                 [{"id": 1, "tags": ["a", null]}]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags <@ ARRAY['a','b']", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE tags <@ ARRAY['a','b']", json);
         assertEquals("[]", result);
     }
 
@@ -605,8 +574,7 @@ class SQL4JsonArrayPredicatesTest {
         String json = """
                 [{"id": 1, "tags": ["admin"]}]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags && ARRAY['admin', NULL]", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE tags && ARRAY['admin', NULL]", json);
         assertTrue(result.contains("\"id\":1"), result);
     }
 
@@ -615,8 +583,7 @@ class SQL4JsonArrayPredicatesTest {
         String json = """
                 [{"id": 1, "tags": ["a","b"]}]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags = ARRAY['a', NULL]", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE tags = ARRAY['a', NULL]", json);
         assertEquals("[]", result);
     }
 
@@ -626,8 +593,7 @@ class SQL4JsonArrayPredicatesTest {
         String json = """
                 [{"id": 1, "tags": [null, "admin"]}]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags CONTAINS 'admin'", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE tags CONTAINS 'admin'", json);
         assertTrue(result.contains("\"id\":1"), result);
     }
 
@@ -637,8 +603,7 @@ class SQL4JsonArrayPredicatesTest {
         String json = """
                 [{"id": 1, "tags": [null, "admin"]}]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags @> ARRAY['admin']", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE tags @> ARRAY['admin']", json);
         assertTrue(result.contains("\"id\":1"), result);
     }
 
@@ -648,8 +613,7 @@ class SQL4JsonArrayPredicatesTest {
         String json = """
                 [{"id": 1, "tags": ["a"]}]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags <@ ARRAY['a', NULL]", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE tags <@ ARRAY['a', NULL]", json);
         assertTrue(result.contains("\"id\":1"), result);
     }
 
@@ -659,8 +623,7 @@ class SQL4JsonArrayPredicatesTest {
         String json = """
                 [{"id": 1, "tags": [null, "admin"]}]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags && ARRAY['admin']", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE tags && ARRAY['admin']", json);
         assertTrue(result.contains("\"id\":1"), result);
     }
 
@@ -671,8 +634,7 @@ class SQL4JsonArrayPredicatesTest {
         String json = """
                 [{"id": 1, "tags": ["admin"]}]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags && ARRAY[NULL, 'admin']", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE tags && ARRAY[NULL, 'admin']", json);
         assertTrue(result.contains("\"id\":1"), result);
     }
 
@@ -685,8 +647,7 @@ class SQL4JsonArrayPredicatesTest {
                   {"id": 2, "tags": ["viewer"],        "needle": "admin"}
                 ]
                 """;
-        String result = SQL4Json.query(
-                "SELECT id FROM $r WHERE tags CONTAINS needle", json);
+        String result = SQL4Json.query("SELECT id FROM $r WHERE tags CONTAINS needle", json);
         assertTrue(result.contains("\"id\":1"), result);
         assertFalse(result.contains("\"id\":2"), result);
     }

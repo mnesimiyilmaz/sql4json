@@ -1,17 +1,17 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.engine.stage;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.mnesimiyilmaz.sql4json.engine.FieldKey;
 import io.github.mnesimiyilmaz.sql4json.engine.Row;
 import io.github.mnesimiyilmaz.sql4json.engine.RowAccessor;
 import io.github.mnesimiyilmaz.sql4json.types.SqlNumber;
-import org.junit.jupiter.api.Test;
-
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
 
 class WhereStageTest {
 
@@ -26,7 +26,8 @@ class WhereStageTest {
             return age instanceof SqlNumber n && n.doubleValue() > 25;
         });
 
-        List<RowAccessor> result = stage.apply(Stream.<RowAccessor>of(row1, row2, row3)).toList();
+        List<RowAccessor> result =
+                stage.apply(Stream.<RowAccessor>of(row1, row2, row3)).toList();
         assertEquals(2, result.size()); // row1 and row3
     }
 
@@ -38,7 +39,8 @@ class WhereStageTest {
     @Test
     void all_rows_filtered_returns_empty() {
         var row = Row.eager(Map.of(FieldKey.of("age"), SqlNumber.of(5)));
-        List<RowAccessor> result = new WhereStage(r -> false).apply(Stream.<RowAccessor>of(row)).toList();
+        List<RowAccessor> result =
+                new WhereStage(r -> false).apply(Stream.<RowAccessor>of(row)).toList();
         assertTrue(result.isEmpty());
     }
 }

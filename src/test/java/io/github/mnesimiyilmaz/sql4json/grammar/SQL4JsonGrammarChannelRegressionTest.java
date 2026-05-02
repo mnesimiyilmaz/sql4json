@@ -1,15 +1,15 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.grammar;
-
-import io.github.mnesimiyilmaz.sql4json.parser.QueryParser;
-import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import io.github.mnesimiyilmaz.sql4json.parser.QueryParser;
+import org.junit.jupiter.api.Test;
+
 /**
- * Confirms that moving {@code ESC} to {@code channel(HIDDEN)} leaves the parser
- * unaffected for representative multi-line queries. If this test fails after
- * the channel change, {@code CommonTokenStream}'s default filter is not
+ * Confirms that moving {@code ESC} to {@code channel(HIDDEN)} leaves the parser unaffected for representative
+ * multi-line queries. If this test fails after the channel change, {@code CommonTokenStream}'s default filter is not
  * handling hidden whitespace as expected.
  */
 class SQL4JsonGrammarChannelRegressionTest {

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.parser;
 
 import io.github.mnesimiyilmaz.sql4json.engine.Expression;
@@ -7,7 +8,7 @@ import io.github.mnesimiyilmaz.sql4json.engine.Expression.ColumnRef;
  * Defines a single column in an ORDER BY clause, combining an expression with a sort direction.
  *
  * @param expression the expression to evaluate for sorting
- * @param direction  the sort direction ({@code "ASC"} or {@code "DESC"})
+ * @param direction the sort direction ({@code "ASC"} or {@code "DESC"})
  */
 public record OrderByColumnDef(Expression expression, String direction) {
 
@@ -34,7 +35,7 @@ public record OrderByColumnDef(Expression expression, String direction) {
      * Creates an ORDER BY definition for the given column name and direction.
      *
      * @param columnName the column name to sort by
-     * @param direction  the sort direction ({@code "ASC"} or {@code "DESC"})
+     * @param direction the sort direction ({@code "ASC"} or {@code "DESC"})
      * @return a new OrderByColumnDef
      */
     public static OrderByColumnDef of(String columnName, String direction) {
@@ -45,7 +46,7 @@ public record OrderByColumnDef(Expression expression, String direction) {
      * Creates an ORDER BY definition for the given expression and direction.
      *
      * @param expression the expression to sort by
-     * @param direction  the sort direction ({@code "ASC"} or {@code "DESC"})
+     * @param direction the sort direction ({@code "ASC"} or {@code "DESC"})
      * @return a new OrderByColumnDef
      */
     public static OrderByColumnDef of(Expression expression, String direction) {

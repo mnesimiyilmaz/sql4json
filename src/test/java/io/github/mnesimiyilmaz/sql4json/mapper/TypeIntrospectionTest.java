@@ -1,21 +1,21 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.mapper;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class TypeIntrospectionTest {
 
     @SuppressWarnings("unused")
     static class Holder<T> {
-        List<String>         list;
+        List<String> list;
         Map<String, Integer> map;
-        List<String>[]       genericArray;
+        List<String>[] genericArray;
     }
 
     @Test

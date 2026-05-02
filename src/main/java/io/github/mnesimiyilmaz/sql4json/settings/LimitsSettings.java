@@ -1,11 +1,12 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.settings;
 
 /**
- * SQL parser and pipeline limits subsection of {@link Sql4jsonSettings}: caps SQL input
- * size, subquery nesting, IN-list breadth, and per-query row counts to guard against
- * denial-of-service and runaway memory usage.
+ * SQL parser and pipeline limits subsection of {@link Sql4jsonSettings}: caps SQL input size, subquery nesting, IN-list
+ * breadth, and per-query row counts to guard against denial-of-service and runaway memory usage.
  *
  * <p>Usage example:
+ *
  * <pre>{@code
  * Sql4jsonSettings settings = Sql4jsonSettings.builder()
  *     .limits(l -> l.maxSqlLength(128 * 1024).maxRowsPerQuery(500_000))
@@ -15,61 +16,49 @@ package io.github.mnesimiyilmaz.sql4json.settings;
  * <p>Thread-safe: immutable record; a single instance may be shared across threads.
  *
  * <h2>Row-count enforcement</h2>
- * <p>
- * The {@code maxRowsPerQuery} limit is enforced at every materializing pipeline stage.
- * When a stage would exceed the limit it throws {@code SQL4JsonExecutionException} with
- * a message of the form:
- * <pre>"&lt;STAGE&gt; row count exceeds configured maximum (&lt;N&gt;)"</pre>
- * where {@code <STAGE>} is one of the canonical stage names:
- * {@code GROUP BY}, {@code ORDER BY}, {@code WINDOW}, {@code JOIN},
- * {@code DISTINCT}, {@code PIPELINE}, {@code STREAMING}.
  *
- * <p>
- * The boundary is strict: a query producing exactly {@code maxRowsPerQuery} rows passes;
- * one producing {@code maxRowsPerQuery + 1} throws.
+ * <p>The {@code maxRowsPerQuery} limit is enforced at every materializing pipeline stage. When a stage would exceed the
+ * limit it throws {@code SQL4JsonExecutionException} with a message of the form:
+ *
+ * <pre>"&lt;STAGE&gt; row count exceeds configured maximum (&lt;N&gt;)"</pre>
+ *
+ * where {@code <STAGE>} is one of the canonical stage names: {@code GROUP BY}, {@code ORDER BY}, {@code WINDOW},
+ * {@code JOIN}, {@code DISTINCT}, {@code PIPELINE}, {@code STREAMING}.
+ *
+ * <p>The boundary is strict: a query producing exactly {@code maxRowsPerQuery} rows passes; one producing
+ * {@code maxRowsPerQuery + 1} throws.
  *
  * <h3>What "row count" means per stage</h3>
+ *
  * <ul>
- *   <li>{@code GROUP BY} / {@code ORDER BY} / {@code WINDOW}: counts input rows
- *       (before grouping / sorting / windowing). These stages must buffer the entire
- *       input before producing output, so the limit guards memory usage at that point.</li>
- *   <li>{@code DISTINCT}: counts output rows (distinct keys). The input stream may be
- *       arbitrarily larger than the number of distinct values accumulated.</li>
- *   <li>{@code JOIN}: counts output (merged) rows produced by the hash probe, not the
- *       sizes of the left or right input sources.</li>
- *   <li>{@code PIPELINE} / {@code STREAMING}: counts final result rows delivered at the
- *       end of the pipeline or streaming sink — i.e. the row count after all prior stages
- *       have filtered, grouped, and ordered the data.</li>
+ *   <li>{@code GROUP BY} / {@code ORDER BY} / {@code WINDOW}: counts input rows (before grouping / sorting /
+ *       windowing). These stages must buffer the entire input before producing output, so the limit guards memory usage
+ *       at that point.
+ *   <li>{@code DISTINCT}: counts output rows (distinct keys). The input stream may be arbitrarily larger than the
+ *       number of distinct values accumulated.
+ *   <li>{@code JOIN}: counts output (merged) rows produced by the hash probe, not the sizes of the left or right input
+ *       sources.
+ *   <li>{@code PIPELINE} / {@code STREAMING}: counts final result rows delivered at the end of the pipeline or
+ *       streaming sink — i.e. the row count after all prior stages have filtered, grouped, and ordered the data.
  * </ul>
  *
- * <p>
- * When tuning this limit in production, size it against the largest intermediate row
- * count that is possible in the pipeline, not just the final output size.
+ * <p>When tuning this limit in production, size it against the largest intermediate row count that is possible in the
+ * pipeline, not just the final output size.
  *
- * @param maxSqlLength     maximum SQL query string length in chars; default {@code 65_536} (64 KiB)
+ * @param maxSqlLength maximum SQL query string length in chars; default {@code 65_536} (64 KiB)
  * @param maxSubqueryDepth maximum nesting depth of FROM subqueries; default {@code 16}
- * @param maxInListSize    maximum number of values in an IN / NOT IN list; default {@code 1_024}
- * @param maxRowsPerQuery  maximum rows allowed at any materializing pipeline stage;
- *                         default {@code 1_000_000}
- * @param maxParameters    maximum number of parameter placeholders ({@code ?} and {@code :name}
- *                         combined) permitted in a single query; default {@code 1_024}
+ * @param maxInListSize maximum number of values in an IN / NOT IN list; default {@code 1_024}
+ * @param maxRowsPerQuery maximum rows allowed at any materializing pipeline stage; default {@code 1_000_000}
+ * @param maxParameters maximum number of parameter placeholders ({@code ?} and {@code :name} combined) permitted in a
+ *     single query; default {@code 1_024}
  * @see Sql4jsonSettings
  * @see SecuritySettings
  * @see CacheSettings
  */
 public record LimitsSettings(
-        int maxSqlLength,
-        int maxSubqueryDepth,
-        int maxInListSize,
-        int maxRowsPerQuery,
-        int maxParameters) {
+        int maxSqlLength, int maxSubqueryDepth, int maxInListSize, int maxRowsPerQuery, int maxParameters) {
 
-    private static final LimitsSettings DEFAULTS = new LimitsSettings(
-            65_536,
-            16,
-            1_024,
-            1_000_000,
-            1_024);
+    private static final LimitsSettings DEFAULTS = new LimitsSettings(65_536, 16, 1_024, 1_000_000, 1_024);
 
     /**
      * Returns the shared default limits settings singleton.
@@ -98,9 +87,7 @@ public record LimitsSettings(
         return new Builder(this);
     }
 
-    /**
-     * Mutable builder for {@link LimitsSettings}.
-     */
+    /** Mutable builder for {@link LimitsSettings}. */
     public static final class Builder {
         private int maxSqlLength;
         private int maxSubqueryDepth;
@@ -121,9 +108,8 @@ public record LimitsSettings(
          *
          * <p><b>Default:</b> {@code 65_536} (64 KiB).
          *
-         * <p><b>Security rationale:</b> DoS guard against unbounded SQL input. Hand-written SQL
-         * is rarely more than a few KiB; 64 KiB absorbs generated queries while preventing
-         * resource exhaustion from arbitrarily large inputs.
+         * <p><b>Security rationale:</b> DoS guard against unbounded SQL input. Hand-written SQL is rarely more than a
+         * few KiB; 64 KiB absorbs generated queries while preventing resource exhaustion from arbitrarily large inputs.
          *
          * <p><b>Acceptable range:</b> Must be positive ({@code > 0}). Non-positive values throw
          * {@link IllegalArgumentException}.
@@ -142,9 +128,8 @@ public record LimitsSettings(
          *
          * <p><b>Default:</b> {@code 16}.
          *
-         * <p><b>Security rationale:</b> Recursion bomb guard. 16 levels of subquery nesting
-         * is generous for any realistic use case; deeper nesting almost certainly indicates
-         * a malformed or adversarial input.
+         * <p><b>Security rationale:</b> Recursion bomb guard. 16 levels of subquery nesting is generous for any
+         * realistic use case; deeper nesting almost certainly indicates a malformed or adversarial input.
          *
          * <p><b>Acceptable range:</b> Must be positive ({@code > 0}). Non-positive values throw
          * {@link IllegalArgumentException}.
@@ -163,9 +148,8 @@ public record LimitsSettings(
          *
          * <p><b>Default:</b> {@code 1_024}.
          *
-         * <p><b>Security rationale:</b> Parse-time amplification guard. 1,024 literal values
-         * in an IN list is already extreme for any real query; larger lists can cause
-         * disproportionate parse-time or evaluation-time work.
+         * <p><b>Security rationale:</b> Parse-time amplification guard. 1,024 literal values in an IN list is already
+         * extreme for any real query; larger lists can cause disproportionate parse-time or evaluation-time work.
          *
          * <p><b>Acceptable range:</b> Must be positive ({@code > 0}). Non-positive values throw
          * {@link IllegalArgumentException}.
@@ -184,11 +168,10 @@ public record LimitsSettings(
          *
          * <p><b>Default:</b> {@code 1_000_000}.
          *
-         * <p><b>Security rationale:</b> Memory guard at materializing pipeline stages
-         * ({@code GROUP BY}, {@code ORDER BY}, {@code WINDOW}, {@code JOIN}, {@code DISTINCT},
-         * pipeline sink, and streaming sink). One million rows equates to roughly 100 MB of
-         * heap for a typical row shape. See the class-level Javadoc for the precise per-stage
-         * semantics of "row count".
+         * <p><b>Security rationale:</b> Memory guard at materializing pipeline stages ({@code GROUP BY}, {@code ORDER
+         * BY}, {@code WINDOW}, {@code JOIN}, {@code DISTINCT}, pipeline sink, and streaming sink). One million rows
+         * equates to roughly 100 MB of heap for a typical row shape. See the class-level Javadoc for the precise
+         * per-stage semantics of "row count".
          *
          * <p><b>Acceptable range:</b> Must be positive ({@code > 0}). Non-positive values throw
          * {@link IllegalArgumentException}.
@@ -203,15 +186,14 @@ public record LimitsSettings(
         }
 
         /**
-         * Sets the maximum number of parameter placeholders permitted in a single query
-         * (positional and named combined, globally across any nested subqueries).
+         * Sets the maximum number of parameter placeholders permitted in a single query (positional and named combined,
+         * globally across any nested subqueries).
          *
          * <p><b>Default:</b> {@code 1_024}.
          *
-         * <p><b>Security rationale:</b> DoS guard against adversarial placeholder flooding.
-         * Hand-written queries virtually never exceed ~20 placeholders; 1,024 absorbs
-         * generated queries (e.g. IN-list expansions pre-expansion) while preventing
-         * resource exhaustion from pathological input.
+         * <p><b>Security rationale:</b> DoS guard against adversarial placeholder flooding. Hand-written queries
+         * virtually never exceed ~20 placeholders; 1,024 absorbs generated queries (e.g. IN-list expansions
+         * pre-expansion) while preventing resource exhaustion from pathological input.
          *
          * <p><b>Acceptable range:</b> Must be positive ({@code > 0}). Non-positive values throw
          * {@link IllegalArgumentException}.
@@ -232,8 +214,7 @@ public record LimitsSettings(
          * @return a new limits settings instance
          */
         public LimitsSettings build() {
-            return new LimitsSettings(maxSqlLength, maxSubqueryDepth, maxInListSize, maxRowsPerQuery,
-                    maxParameters);
+            return new LimitsSettings(maxSqlLength, maxSubqueryDepth, maxInListSize, maxRowsPerQuery, maxParameters);
         }
 
         private static int positive(int v, String name) {

@@ -1,4 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonParseException;
 import io.github.mnesimiyilmaz.sql4json.json.DefaultJsonCodec;
@@ -7,15 +10,12 @@ import io.github.mnesimiyilmaz.sql4json.json.JsonSerializer;
 import io.github.mnesimiyilmaz.sql4json.settings.Sql4jsonSettings;
 import io.github.mnesimiyilmaz.sql4json.types.JsonCodec;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class IntegrationTest {
 
@@ -38,37 +38,27 @@ class IntegrationTest {
             return SQL4Json.queryAsJsonValue(sql, DATA);
         }
 
-        /**
-         * Helper: get array elements from a JsonValue.
-         */
+        /** Helper: get array elements from a JsonValue. */
         private static List<JsonValue> arr(JsonValue v) {
             return v.asArray().orElseThrow();
         }
 
-        /**
-         * Helper: get object fields from a JsonValue.
-         */
+        /** Helper: get object fields from a JsonValue. */
         private static Map<String, JsonValue> obj(JsonValue v) {
             return v.asObject().orElseThrow();
         }
 
-        /**
-         * Helper: get string value.
-         */
+        /** Helper: get string value. */
         private static String str(JsonValue v) {
             return v.asString().orElseThrow();
         }
 
-        /**
-         * Helper: get int value.
-         */
+        /** Helper: get int value. */
         private static int num(JsonValue v) {
             return v.asNumber().orElseThrow().intValue();
         }
 
-        /**
-         * Helper: get a field from a row.
-         */
+        /** Helper: get a field from a row. */
         private static JsonValue f(JsonValue row, String key) {
             return obj(row).get(key);
         }
@@ -92,8 +82,7 @@ class IntegrationTest {
 
         @Test
         void orderBy_dateField() {
-            JsonValue result = query(
-                    "SELECT name FROM $r ORDER BY hire_date ASC");
+            JsonValue result = query("SELECT name FROM $r ORDER BY hire_date ASC");
             // 2018-01-20 < 2019-07-01 < 2021-03-15 (string comparison, same format)
             assertEquals("Charlie", str(f(arr(result).get(0), "name")));
             assertEquals("Bob", str(f(arr(result).get(1), "name")));
@@ -104,8 +93,7 @@ class IntegrationTest {
 
         @Test
         void where_rhsFunctionCall() {
-            JsonValue result = query(
-                    "SELECT name FROM $r WHERE UPPER(name) = UPPER('alice')");
+            JsonValue result = query("SELECT name FROM $r WHERE UPPER(name) = UPPER('alice')");
             assertEquals(1, arr(result).size());
             assertEquals("Alice", str(f(arr(result).get(0), "name")));
         }
@@ -114,8 +102,7 @@ class IntegrationTest {
 
         @Test
         void where_castInCondition() {
-            JsonValue result = query(
-                    "SELECT name FROM $r WHERE CAST(age AS STRING) = '30'");
+            JsonValue result = query("SELECT name FROM $r WHERE CAST(age AS STRING) = '30'");
             assertEquals(1, arr(result).size());
             assertEquals("Alice", str(f(arr(result).get(0), "name")));
         }
@@ -124,8 +111,7 @@ class IntegrationTest {
 
         @Test
         void groupBy_selectStar() {
-            JsonValue result = query(
-                    "SELECT * FROM $r GROUP BY active ORDER BY active ASC");
+            JsonValue result = query("SELECT * FROM $r GROUP BY active ORDER BY active ASC");
             // Two groups: active=false and active=true
             assertEquals(2, arr(result).size());
         }
@@ -134,22 +120,19 @@ class IntegrationTest {
 
         @Test
         void invalidSql_throwsParseException() {
-            assertThrows(SQL4JsonParseException.class,
-                    () -> SQL4Json.query("SELECT FROM", DATA));
+            assertThrows(SQL4JsonParseException.class, () -> SQL4Json.query("SELECT FROM", DATA));
         }
 
         @Test
         void invalidSql_missingFrom_throwsParseException() {
-            assertThrows(SQL4JsonParseException.class,
-                    () -> SQL4Json.query("SELECT name WHERE age > 1", DATA));
+            assertThrows(SQL4JsonParseException.class, () -> SQL4Json.query("SELECT name WHERE age > 1", DATA));
         }
 
         // ── DATE_ADD/DATE_DIFF via SQL (covers integration path) ──
 
         @Test
         void dateAdd_inSelect() {
-            JsonValue result = query(
-                    "SELECT name, DATE_ADD(TO_DATE(hire_date), 30, 'DAY') AS future FROM $r LIMIT 1");
+            JsonValue result = query("SELECT name, DATE_ADD(TO_DATE(hire_date), 30, 'DAY') AS future FROM $r LIMIT 1");
             assertEquals(1, arr(result).size());
             assertEquals("2021-04-14", str(f(arr(result).get(0), "future")));
         }
@@ -160,8 +143,7 @@ class IntegrationTest {
                     [{"d1":"2024-01-11","d2":"2024-01-01"}]
                     """;
             JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT DATE_DIFF(TO_DATE(d1), TO_DATE(d2), 'DAY') AS diff FROM $r",
-                    dateData);
+                    "SELECT DATE_DIFF(TO_DATE(d1), TO_DATE(d2), 'DAY') AS diff FROM $r", dateData);
             assertEquals(1, arr(result).size());
             assertEquals(10, num(f(arr(result).get(0), "diff")));
         }
@@ -189,33 +171,28 @@ class IntegrationTest {
         @Test
         void cast_dateTimeToDate_inSelect() {
             String dtData = "[{\"ts\":\"2024-06-15T14:30:00\"}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT CAST(TO_DATE(ts) AS DATE) AS d FROM $r",
-                    dtData);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT CAST(TO_DATE(ts) AS DATE) AS d FROM $r", dtData);
             assertEquals("2024-06-15", str(f(arr(result).get(0), "d")));
         }
 
         @Test
         void cast_dateToDateTime_inSelect() {
             String dData = "[{\"dt\":\"2024-06-15\"}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT CAST(TO_DATE(dt) AS DATETIME) AS result FROM $r",
-                    dData);
+            JsonValue result =
+                    SQL4Json.queryAsJsonValue("SELECT CAST(TO_DATE(dt) AS DATETIME) AS result FROM $r", dData);
             assertEquals("2024-06-15T00:00", str(f(arr(result).get(0), "result")));
         }
 
         @Test
         void cast_booleanToInteger_inSelect() {
-            JsonValue result = query(
-                    "SELECT CAST(active AS INTEGER) AS val FROM $r WHERE name = 'Alice'");
+            JsonValue result = query("SELECT CAST(active AS INTEGER) AS val FROM $r WHERE name = 'Alice'");
             assertEquals(1, arr(result).size());
             assertEquals(1, num(f(arr(result).get(0), "val")));
         }
 
         @Test
         void cast_booleanToString_inSelect() {
-            JsonValue result = query(
-                    "SELECT CAST(active AS STRING) AS val FROM $r WHERE name = 'Alice'");
+            JsonValue result = query("SELECT CAST(active AS STRING) AS val FROM $r WHERE name = 'Alice'");
             assertEquals("true", str(f(arr(result).get(0), "val")));
         }
 
@@ -223,8 +200,7 @@ class IntegrationTest {
 
         @Test
         void where_rhsNestedFunction() {
-            JsonValue result = query(
-                    "SELECT name FROM $r WHERE name = UPPER('alice')");
+            JsonValue result = query("SELECT name FROM $r WHERE name = UPPER('alice')");
             // UPPER('alice') = 'ALICE', but name is 'Alice' → no match
             assertEquals(0, arr(result).size());
         }
@@ -233,8 +209,7 @@ class IntegrationTest {
 
         @Test
         void groupBy_withLiteralInSelect() {
-            JsonValue result = query(
-                    "SELECT active, COUNT(*) AS cnt FROM $r GROUP BY active ORDER BY active ASC");
+            JsonValue result = query("SELECT active, COUNT(*) AS cnt FROM $r GROUP BY active ORDER BY active ASC");
             assertEquals(2, arr(result).size());
             // false group: Bob
             assertEquals(1, num(f(arr(result).get(0), "cnt")));
@@ -247,9 +222,7 @@ class IntegrationTest {
         @Test
         void where_isNull() {
             String data = "[{\"name\":\"Alice\",\"x\":null},{\"name\":\"Bob\",\"x\":1}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT name FROM $r WHERE x IS NULL",
-                    data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT name FROM $r WHERE x IS NULL", data);
             assertEquals(1, arr(result).size());
             assertEquals("Alice", str(f(arr(result).get(0), "name")));
         }
@@ -278,9 +251,7 @@ class IntegrationTest {
         @Test
         void distinct_deduplicates() {
             String data = "[{\"x\":1},{\"x\":1},{\"x\":2}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT DISTINCT x FROM $r ORDER BY x ASC",
-                    data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT DISTINCT x FROM $r ORDER BY x ASC", data);
             assertEquals(2, arr(result).size());
         }
 
@@ -305,16 +276,14 @@ class IntegrationTest {
 
         @Test
         void cast_numberToString_inSelect() {
-            JsonValue result = query(
-                    "SELECT CAST(age AS STRING) AS age_str FROM $r WHERE name = 'Alice'");
+            JsonValue result = query("SELECT CAST(age AS STRING) AS age_str FROM $r WHERE name = 'Alice'");
             // JSON integer 30 → SqlNumber(Integer(30)) → toString → "30"
             assertEquals("30", str(f(arr(result).get(0), "age_str")));
         }
 
         @Test
         void cast_stringToDate_inSelect() {
-            JsonValue result = query(
-                    "SELECT CAST(hire_date AS DATE) AS d FROM $r WHERE name = 'Alice'");
+            JsonValue result = query("SELECT CAST(hire_date AS DATE) AS d FROM $r WHERE name = 'Alice'");
             assertEquals("2021-03-15", str(f(arr(result).get(0), "d")));
         }
 
@@ -322,8 +291,7 @@ class IntegrationTest {
 
         @Test
         void where_inList() {
-            JsonValue result = query(
-                    "SELECT name FROM $r WHERE name IN ('Alice', 'Charlie') ORDER BY name ASC");
+            JsonValue result = query("SELECT name FROM $r WHERE name IN ('Alice', 'Charlie') ORDER BY name ASC");
             assertEquals(2, arr(result).size());
             assertEquals("Alice", str(f(arr(result).get(0), "name")));
             assertEquals("Charlie", str(f(arr(result).get(1), "name")));
@@ -331,8 +299,7 @@ class IntegrationTest {
 
         @Test
         void where_notIn() {
-            JsonValue result = query(
-                    "SELECT name FROM $r WHERE name NOT IN ('Alice', 'Charlie')");
+            JsonValue result = query("SELECT name FROM $r WHERE name NOT IN ('Alice', 'Charlie')");
             assertEquals(1, arr(result).size());
             assertEquals("Bob", str(f(arr(result).get(0), "name")));
         }
@@ -340,8 +307,7 @@ class IntegrationTest {
         @Test
         void where_between() {
             // ages: Alice=30, Bob=20, Charlie=35
-            JsonValue result = query(
-                    "SELECT name FROM $r WHERE age BETWEEN 20 AND 30 ORDER BY name ASC");
+            JsonValue result = query("SELECT name FROM $r WHERE age BETWEEN 20 AND 30 ORDER BY name ASC");
             assertEquals(2, arr(result).size());
             assertEquals("Alice", str(f(arr(result).get(0), "name")));
             assertEquals("Bob", str(f(arr(result).get(1), "name")));
@@ -350,16 +316,14 @@ class IntegrationTest {
         @Test
         void where_notBetween() {
             // ages: Alice=30, Bob=20, Charlie=35 → NOT BETWEEN 20 AND 30 → Charlie
-            JsonValue result = query(
-                    "SELECT name FROM $r WHERE age NOT BETWEEN 20 AND 30");
+            JsonValue result = query("SELECT name FROM $r WHERE age NOT BETWEEN 20 AND 30");
             assertEquals(1, arr(result).size());
             assertEquals("Charlie", str(f(arr(result).get(0), "name")));
         }
 
         @Test
         void where_notLike() {
-            JsonValue result = query(
-                    "SELECT name FROM $r WHERE name NOT LIKE 'A%' ORDER BY name ASC");
+            JsonValue result = query("SELECT name FROM $r WHERE name NOT LIKE 'A%' ORDER BY name ASC");
             assertEquals(2, arr(result).size());
             assertEquals("Bob", str(f(arr(result).get(0), "name")));
             assertEquals("Charlie", str(f(arr(result).get(1), "name")));
@@ -367,8 +331,7 @@ class IntegrationTest {
 
         @Test
         void where_isNotNull() {
-            JsonValue result = query(
-                    "SELECT name FROM $r WHERE salary IS NOT NULL");
+            JsonValue result = query("SELECT name FROM $r WHERE salary IS NOT NULL");
             assertEquals(3, arr(result).size());
         }
 
@@ -376,8 +339,7 @@ class IntegrationTest {
 
         @Test
         void select_castExpression() {
-            JsonValue result = query(
-                    "SELECT CAST(salary AS STRING) AS sal_str FROM $r WHERE name = 'Alice'");
+            JsonValue result = query("SELECT CAST(salary AS STRING) AS sal_str FROM $r WHERE name = 'Alice'");
             assertEquals("75000", str(f(arr(result).get(0), "sal_str")));
         }
 
@@ -413,8 +375,7 @@ class IntegrationTest {
             // CAST(TRIM('  30  ') AS NUMBER) on the RHS — function inside CAST on RHS
             // Covers: RhsCastExprContext path (lines 353-358) AND
             // evaluateRhsColumnExpr FunctionCallExprContext path (lines 369-371)
-            JsonValue result = query(
-                    "SELECT name FROM $r WHERE age = CAST(TRIM(' 30 ') AS NUMBER)");
+            JsonValue result = query("SELECT name FROM $r WHERE age = CAST(TRIM(' 30 ') AS NUMBER)");
             assertEquals(1, arr(result).size());
             assertEquals("Alice", str(f(arr(result).get(0), "name")));
         }
@@ -422,8 +383,7 @@ class IntegrationTest {
         @Test
         void where_rhsCastWithFunction() {
             // CAST(UPPER('alice') AS STRING) — function inside CAST on RHS
-            JsonValue result = query(
-                    "SELECT name FROM $r WHERE name = CAST(UPPER('Alice') AS STRING)");
+            JsonValue result = query("SELECT name FROM $r WHERE name = CAST(UPPER('Alice') AS STRING)");
             // UPPER('Alice') = 'ALICE', CAST(... AS STRING) = 'ALICE', name='Alice' → no match
             assertEquals(0, arr(result).size());
         }
@@ -433,9 +393,7 @@ class IntegrationTest {
         @Test
         void where_comparisonWithNull() {
             String data = "[{\"name\":\"Alice\",\"x\":null},{\"name\":\"Bob\",\"x\":1}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT name FROM $r WHERE x = NULL",
-                    data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT name FROM $r WHERE x = NULL", data);
             // SQL semantics: NULL = NULL → false; use IS NULL instead
             assertEquals(0, arr(result).size());
         }
@@ -446,8 +404,7 @@ class IntegrationTest {
         void where_rhsFunctionWithNestedFunctionArg() {
             // CONCAT(UPPER('al'), LOWER('ICE')) — nested function calls on RHS
             // evaluateRhsFunctionArg → ExprFunctionArgContext → evaluateRhsColumnExpr
-            JsonValue result = query(
-                    "SELECT name FROM $r WHERE name = CONCAT(UPPER('al'), LOWER('ICE'))");
+            JsonValue result = query("SELECT name FROM $r WHERE name = CONCAT(UPPER('al'), LOWER('ICE'))");
             // UPPER('al')='AL', LOWER('ICE')='ice' → CONCAT='ALice'
             // name='Alice' vs 'ALice' → no match (case diff)
             assertEquals(0, arr(result).size());
@@ -456,8 +413,7 @@ class IntegrationTest {
         @Test
         void where_rhsReplace() {
             // REPLACE('Alica', 'a', 'e') on RHS — function with multiple value args
-            JsonValue result = query(
-                    "SELECT name FROM $r WHERE name = REPLACE('Alica', 'a', 'e')");
+            JsonValue result = query("SELECT name FROM $r WHERE name = REPLACE('Alica', 'a', 'e')");
             // REPLACE('Alica', 'a', 'e') = 'Alice' → matches Alice
             assertEquals(1, arr(result).size());
             assertEquals("Alice", str(f(arr(result).get(0), "name")));
@@ -600,23 +556,17 @@ class IntegrationTest {
             return SQL4Json.queryAsJsonValue(sql, DATA);
         }
 
-        /**
-         * Helper: get array element at index from a JsonValue array.
-         */
+        /** Helper: get array element at index from a JsonValue array. */
         private static List<JsonValue> arr(JsonValue v) {
             return v.asArray().orElseThrow();
         }
 
-        /**
-         * Helper: get object field map from a JsonValue object.
-         */
+        /** Helper: get object field map from a JsonValue object. */
         private static Map<String, JsonValue> obj(JsonValue v) {
             return v.asObject().orElseThrow();
         }
 
-        /**
-         * Helper: get a nested object field.
-         */
+        /** Helper: get a nested object field. */
         private static JsonValue field(JsonValue v, String... keys) {
             JsonValue current = v;
             for (String key : keys) {
@@ -625,33 +575,27 @@ class IntegrationTest {
             return current;
         }
 
-        /**
-         * Helper: get string value.
-         */
+        /** Helper: get string value. */
         private static String str(JsonValue v) {
             return v.asString().orElseThrow();
         }
 
-        /**
-         * Helper: get int value.
-         */
+        /** Helper: get int value. */
         private static int num(JsonValue v) {
             return v.asNumber().orElseThrow().intValue();
         }
 
-        /**
-         * Helper: get double value.
-         */
+        /** Helper: get double value. */
         private static double dbl(JsonValue v) {
             return v.asNumber().orElseThrow().doubleValue();
         }
 
         /**
-         * Nested query filters active employees, then outer groups by department with
-         * aggregates and filters groups via HAVING, ordered by total salary.
-         * <p>
-         * Features: nested query, WHERE (inner), nested field select + alias,
-         * GROUP BY, HAVING, COUNT, SUM, AVG, ORDER BY aggregate DESC
+         * Nested query filters active employees, then outer groups by department with aggregates and filters groups via
+         * HAVING, ordered by total salary.
+         *
+         * <p>Features: nested query, WHERE (inner), nested field select + alias, GROUP BY, HAVING, COUNT, SUM, AVG,
+         * ORDER BY aggregate DESC
          */
         @Test
         void nestedQuery_groupBy_having_orderByAggregate() {
@@ -693,11 +637,11 @@ class IntegrationTest {
         }
 
         /**
-         * Two-level nested query. Innermost filters by salary, middle filters by country,
-         * outer re-projects with nested aliases, applies ORDER BY and LIMIT.
-         * <p>
-         * Features: 2-level nested queries, WHERE at each level, nested field access
-         * (address.city, address.country), nested output aliases, ORDER BY, LIMIT
+         * Two-level nested query. Innermost filters by salary, middle filters by country, outer re-projects with nested
+         * aliases, applies ORDER BY and LIMIT.
+         *
+         * <p>Features: 2-level nested queries, WHERE at each level, nested field access (address.city,
+         * address.country), nested output aliases, ORDER BY, LIMIT
          */
         @Test
         void twoLevelNestedQuery_filtersAtEachLevel_orderBy_limit() {
@@ -741,12 +685,11 @@ class IntegrationTest {
         }
 
         /**
-         * Nested query pre-computes UPPER on a nested field, then outer query groups
-         * by it, applies NOT LIKE filter, multiple aggregates, ORDER BY, and LIMIT.
-         * <p>
-         * Features: nested query, UPPER, NOT LIKE, nested field access (address.country),
-         * GROUP BY, COUNT, SUM, AVG, MAX, MIN, ORDER BY aggregate, LIMIT,
-         * nested output aliases
+         * Nested query pre-computes UPPER on a nested field, then outer query groups by it, applies NOT LIKE filter,
+         * multiple aggregates, ORDER BY, and LIMIT.
+         *
+         * <p>Features: nested query, UPPER, NOT LIKE, nested field access (address.country), GROUP BY, COUNT, SUM, AVG,
+         * MAX, MIN, ORDER BY aggregate, LIMIT, nested output aliases
          */
         @Test
         void stringFunctions_groupBy_aggregates_orderBy_limit() {
@@ -798,11 +741,10 @@ class IntegrationTest {
         }
 
         /**
-         * Nested query uses LEFT to extract year from date string. Outer query
-         * applies BETWEEN pre-filter, GROUP BY on the extracted year, HAVING, ORDER BY.
-         * <p>
-         * Features: LEFT, BETWEEN, nested query, GROUP BY, HAVING,
-         * COUNT, AVG, ORDER BY, nested aliases
+         * Nested query uses LEFT to extract year from date string. Outer query applies BETWEEN pre-filter, GROUP BY on
+         * the extracted year, HAVING, ORDER BY.
+         *
+         * <p>Features: LEFT, BETWEEN, nested query, GROUP BY, HAVING, COUNT, AVG, ORDER BY, nested aliases
          */
         @Test
         void dateFunctions_between_groupByYear_having_orderBy() {
@@ -842,13 +784,13 @@ class IntegrationTest {
         }
 
         /**
-         * Complex WHERE with IN, NOT LIKE, AND/OR with parentheses, combined with
-         * DISTINCT, ORDER BY, LIMIT, and OFFSET. Nested field access throughout.
-         * <p>
-         * Pipeline order: WHERE → ORDER BY → LIMIT/OFFSET → SELECT → DISTINCT
-         * <p>
-         * Features: IN, NOT LIKE, AND, OR, parentheses, DISTINCT, ORDER BY,
-         * LIMIT, OFFSET, nested field select + alias
+         * Complex WHERE with IN, NOT LIKE, AND/OR with parentheses, combined with DISTINCT, ORDER BY, LIMIT, and
+         * OFFSET. Nested field access throughout.
+         *
+         * <p>Pipeline order: WHERE → ORDER BY → LIMIT/OFFSET → SELECT → DISTINCT
+         *
+         * <p>Features: IN, NOT LIKE, AND, OR, parentheses, DISTINCT, ORDER BY, LIMIT, OFFSET, nested field select +
+         * alias
          */
         @Test
         void in_notLike_compoundWhere_distinct_orderBy_limitOffset() {
@@ -905,14 +847,12 @@ class IntegrationTest {
         }
 
         /**
-         * The kitchen sink: nested query with 3-level deep source field access →
-         * WHERE inner + outer → GROUP BY multiple columns → HAVING → ORDER BY → LIMIT.
-         * Nested aliases produce deeply structured JSON output.
-         * <p>
-         * Features: nested query, WHERE (inner + outer), IS NOT NULL,
-         * nested field access (department.manager.name — 3 levels),
-         * deeply nested output aliases, GROUP BY multiple columns,
-         * HAVING, COUNT, SUM, AVG, MAX, MIN, ORDER BY, LIMIT
+         * The kitchen sink: nested query with 3-level deep source field access → WHERE inner + outer → GROUP BY
+         * multiple columns → HAVING → ORDER BY → LIMIT. Nested aliases produce deeply structured JSON output.
+         *
+         * <p>Features: nested query, WHERE (inner + outer), IS NOT NULL, nested field access (department.manager.name —
+         * 3 levels), deeply nested output aliases, GROUP BY multiple columns, HAVING, COUNT, SUM, AVG, MAX, MIN, ORDER
+         * BY, LIMIT
          */
         @Test
         void kitchenSink_nestedQuery_functions_groupBy_having_orderBy_limit() {
@@ -979,11 +919,11 @@ class IntegrationTest {
         }
 
         /**
-         * COALESCE and NULLIF in a nested query, NOT BETWEEN and NOT IN in the outer,
-         * GROUP BY with HAVING on aggregate alias.
-         * <p>
-         * Features: nested query, COALESCE, NULLIF, NOT BETWEEN, NOT IN,
-         * GROUP BY, HAVING, COUNT, AVG, nested aliases, ORDER BY
+         * COALESCE and NULLIF in a nested query, NOT BETWEEN and NOT IN in the outer, GROUP BY with HAVING on aggregate
+         * alias.
+         *
+         * <p>Features: nested query, COALESCE, NULLIF, NOT BETWEEN, NOT IN, GROUP BY, HAVING, COUNT, AVG, nested
+         * aliases, ORDER BY
          */
         @Test
         void coalesce_nullif_notBetween_notIn_groupBy_having() {
@@ -1030,13 +970,12 @@ class IntegrationTest {
         }
 
         /**
-         * Deeply nested output aliases producing a 4-level JSON structure. Nested query
-         * with LENGTH function, grouped by a nested source field, HAVING, ORDER BY.
-         * <p>
-         * Features: 4-level deep nested output aliases (org.level.stats.X),
-         * nested source field access (department.manager.level),
-         * LENGTH function, nested query, GROUP BY, HAVING,
-         * COUNT, SUM, MAX, ORDER BY deeply nested alias
+         * Deeply nested output aliases producing a 4-level JSON structure. Nested query with LENGTH function, grouped
+         * by a nested source field, HAVING, ORDER BY.
+         *
+         * <p>Features: 4-level deep nested output aliases (org.level.stats.X), nested source field access
+         * (department.manager.level), LENGTH function, nested query, GROUP BY, HAVING, COUNT, SUM, MAX, ORDER BY deeply
+         * nested alias
          */
         @Test
         void deeplyNestedOutputAliases_groupByNestedField_functions() {
@@ -1098,8 +1037,7 @@ class IntegrationTest {
                      {"dept":"A","salary":200},{"dept":"B","salary":50}]
                     """;
             JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT dept, AVG(NULLIF(salary, 0)) AS avg_sal FROM $r GROUP BY dept ORDER BY dept ASC",
-                    data);
+                    "SELECT dept, AVG(NULLIF(salary, 0)) AS avg_sal FROM $r GROUP BY dept ORDER BY dept ASC", data);
             // Dept A: AVG of [100, NULL, 200] = 150
             assertEquals(150.0, dbl(field(arr(result).get(0), "avg_sal")), 0.01);
             assertEquals(50.0, dbl(field(arr(result).get(1), "avg_sal")), 0.01);
@@ -1110,9 +1048,8 @@ class IntegrationTest {
             String data = """
                     [{"dept":"X","val":10},{"dept":"X","val":20},{"dept":"X","val":30}]
                     """;
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT ROUND(AVG(val), 2) AS result FROM $r GROUP BY dept",
-                    data);
+            JsonValue result =
+                    SQL4Json.queryAsJsonValue("SELECT ROUND(AVG(val), 2) AS result FROM $r GROUP BY dept", data);
             assertEquals(20.0, dbl(field(arr(result).get(0), "result")), 0.01);
         }
 
@@ -1122,8 +1059,7 @@ class IntegrationTest {
                     [{"name":"  hi  "},{"name":""},{"name":"  world  "}]
                     """;
             JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT LPAD(TRIM(NULLIF(name, '')), 10, '*') AS padded FROM $r ORDER BY name ASC",
-                    data);
+                    "SELECT LPAD(TRIM(NULLIF(name, '')), 10, '*') AS padded FROM $r ORDER BY name ASC", data);
             // Row with "" → NULLIF returns NULL → TRIM(NULL) → LPAD(NULL) → NULL
             assertTrue(field(arr(result).get(0), "padded").isNull());
             assertEquals("********hi", str(field(arr(result).get(1), "padded")));
@@ -1135,9 +1071,8 @@ class IntegrationTest {
             String data = """
                     [{"name":"  Alice  "},{"name":""},{"name":"  Bob  "}]
                     """;
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE TRIM(NULLIF(name, '')) = 'Alice'",
-                    data);
+            JsonValue result =
+                    SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE TRIM(NULLIF(name, '')) = 'Alice'", data);
             assertEquals(1, arr(result).size());
             assertEquals("  Alice  ", str(field(arr(result).get(0), "name")));
         }
@@ -1147,9 +1082,7 @@ class IntegrationTest {
             String data = """
                     [{"name":"  short  "},{"name":"  very long name  "},{"name":"  mid  "}]
                     """;
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT name FROM $r ORDER BY LENGTH(TRIM(name)) ASC",
-                    data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT name FROM $r ORDER BY LENGTH(TRIM(name)) ASC", data);
             assertEquals("  mid  ", str(field(arr(result).get(0), "name")));
             assertEquals("  short  ", str(field(arr(result).get(1), "name")));
             assertEquals("  very long name  ", str(field(arr(result).get(2), "name")));
@@ -1162,8 +1095,7 @@ class IntegrationTest {
                      {"dept":"B","val":100},{"dept":"B","val":200}]
                     """;
             JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT dept, AVG(val) AS mean FROM $r GROUP BY dept HAVING ROUND(AVG(val), 0) > 50",
-                    data);
+                    "SELECT dept, AVG(val) AS mean FROM $r GROUP BY dept HAVING ROUND(AVG(val), 0) > 50", data);
             // Dept A: AVG=15, ROUND=15 → filtered. Dept B: AVG=150, ROUND=150 → passes
             assertEquals(1, arr(result).size());
             assertEquals("B", str(field(arr(result).get(0), "dept")));
@@ -1216,28 +1148,29 @@ class IntegrationTest {
             // ORDER BY dept ASC: Charlie(HR), Diana(HR), Alice(IT), Bob(IT), Eve(IT)
             // LIMIT 2: Charlie(HR), Diana(HR)
             // DISTINCT on projected dept: just "HR"
-            var result = query(
-                    "SELECT DISTINCT dept FROM $r WHERE age BETWEEN 25 AND 35 ORDER BY dept ASC LIMIT 2");
+            var result = query("SELECT DISTINCT dept FROM $r WHERE age BETWEEN 25 AND 35 ORDER BY dept ASC LIMIT 2");
             var rows = result.asArray().orElseThrow();
             assertEquals(1, rows.size());
-            assertEquals("HR", rows.get(0).asObject().orElseThrow().get("dept").asString().orElseThrow());
+            assertEquals(
+                    "HR",
+                    rows.get(0).asObject().orElseThrow().get("dept").asString().orElseThrow());
         }
 
         @Test
         void cast_upper_notIn() {
-            var result = query(
-                    "SELECT CAST(age AS STRING), UPPER(name) FROM $r WHERE dept NOT IN ('Sales', 'HR')");
+            var result = query("SELECT CAST(age AS STRING), UPPER(name) FROM $r WHERE dept NOT IN ('Sales', 'HR')");
             assertEquals(3, result.asArray().orElseThrow().size()); // Alice, Bob, Eve (IT dept)
         }
 
         @Test
         void limit_offset_orderBy() {
-            var result = query(
-                    "SELECT name, salary FROM $r ORDER BY name ASC LIMIT 3 OFFSET 1");
+            var result = query("SELECT name, salary FROM $r ORDER BY name ASC LIMIT 3 OFFSET 1");
             var rows = result.asArray().orElseThrow();
             assertEquals(3, rows.size());
             // Offset 1 from alphabetical: Alice(0), Bob(1), Charlie(2), Diana(3) -> Bob, Charlie, Diana
-            assertEquals("Bob", rows.get(0).asObject().orElseThrow().get("name").asString().orElseThrow());
+            assertEquals(
+                    "Bob",
+                    rows.get(0).asObject().orElseThrow().get("name").asString().orElseThrow());
         }
 
         @Test
@@ -1249,8 +1182,7 @@ class IntegrationTest {
 
         @Test
         void between_withStringDates() {
-            var result = query(
-                    "SELECT * FROM $r WHERE created_at BETWEEN '2024-01-01' AND '2024-06-30'");
+            var result = query("SELECT * FROM $r WHERE created_at BETWEEN '2024-01-01' AND '2024-06-30'");
             // Alice(Jan), Bob(Mar), Charlie(Jun) = 3
             assertEquals(3, result.asArray().orElseThrow().size());
         }
@@ -1263,16 +1195,14 @@ class IntegrationTest {
 
         @Test
         void in_combinedWithOr() {
-            var result = query(
-                    "SELECT * FROM $r WHERE dept IN ('IT') OR age > 35");
+            var result = query("SELECT * FROM $r WHERE dept IN ('IT') OR age > 35");
             // IT: Alice, Bob, Eve + age>35: Frank = 4
             assertEquals(4, result.asArray().orElseThrow().size());
         }
 
         @Test
         void distinct_withGroupBy() {
-            var result = query(
-                    "SELECT DISTINCT dept, COUNT(*) AS cnt FROM $r GROUP BY dept");
+            var result = query("SELECT DISTINCT dept, COUNT(*) AS cnt FROM $r GROUP BY dept");
             assertEquals(3, result.asArray().orElseThrow().size()); // IT, HR, Sales
         }
     }
@@ -1351,14 +1281,13 @@ class IntegrationTest {
         // ── Tests ───────────────────────────────────────────────────────────
 
         /**
-         * JOIN + GROUP BY + window RANK on aggregated result + WHERE + ORDER BY + LIMIT.
-         * Joins employees to orders, filters completed orders, groups by employee,
-         * ranks by total sales, returns top 3.
-         * <p>
-         * Pipeline: JOIN → WHERE → GROUP BY → WINDOW (RANK on alias) → ORDER BY → LIMIT → SELECT
-         * <p>
-         * Features: INNER JOIN, WHERE, GROUP BY, SUM aggregate, window RANK (references alias),
-         * ORDER BY window result, LIMIT
+         * JOIN + GROUP BY + window RANK on aggregated result + WHERE + ORDER BY + LIMIT. Joins employees to orders,
+         * filters completed orders, groups by employee, ranks by total sales, returns top 3.
+         *
+         * <p>Pipeline: JOIN → WHERE → GROUP BY → WINDOW (RANK on alias) → ORDER BY → LIMIT → SELECT
+         *
+         * <p>Features: INNER JOIN, WHERE, GROUP BY, SUM aggregate, window RANK (references alias), ORDER BY window
+         * result, LIMIT
          */
         @Test
         void join_window_rank_where_orderBy_limit() {
@@ -1373,8 +1302,7 @@ class IntegrationTest {
                     ORDER BY sales_rank
                     LIMIT 3""";
 
-            JsonValue result = SQL4Json.queryAsJsonValue(sql,
-                    Map.of("employees", EMPLOYEES, "orders", ORDERS));
+            JsonValue result = SQL4Json.queryAsJsonValue(sql, Map.of("employees", EMPLOYEES, "orders", ORDERS));
 
             // Completed orders per employee:
             //   Alice: 5000+3200=8200, Frank: 2100+6300=8400, Grace: 5500,
@@ -1397,10 +1325,10 @@ class IntegrationTest {
         }
 
         /**
-         * Window functions with PARTITION BY + JOIN + aggregate windows + WHERE.
-         * Computes per-department salary stats alongside each employee's own data.
-         * <p>
-         * Features: window SUM/COUNT/AVG OVER PARTITION BY, WHERE, ORDER BY
+         * Window functions with PARTITION BY + JOIN + aggregate windows + WHERE. Computes per-department salary stats
+         * alongside each employee's own data.
+         *
+         * <p>Features: window SUM/COUNT/AVG OVER PARTITION BY, WHERE, ORDER BY
          */
         @Test
         void window_aggregate_partitioned_with_where() {
@@ -1430,13 +1358,13 @@ class IntegrationTest {
         }
 
         /**
-         * LEFT JOIN + GROUP BY + window ROW_NUMBER + PARTITION BY + NULL handling.
-         * Shows all employees with their order counts, numbered within department.
-         * <p>
-         * Pipeline: LEFT JOIN → GROUP BY → WINDOW (ROW_NUMBER partitioned by dept) → ORDER BY → SELECT
-         * <p>
-         * Features: LEFT JOIN, COUNT aggregate, GROUP BY, window ROW_NUMBER OVER PARTITION BY ORDER BY,
-         * NULL from unmatched join
+         * LEFT JOIN + GROUP BY + window ROW_NUMBER + PARTITION BY + NULL handling. Shows all employees with their order
+         * counts, numbered within department.
+         *
+         * <p>Pipeline: LEFT JOIN → GROUP BY → WINDOW (ROW_NUMBER partitioned by dept) → ORDER BY → SELECT
+         *
+         * <p>Features: LEFT JOIN, COUNT aggregate, GROUP BY, window ROW_NUMBER OVER PARTITION BY ORDER BY, NULL from
+         * unmatched join
          */
         @Test
         void leftJoin_window_rowNumber_nullHandling() {
@@ -1449,8 +1377,7 @@ class IntegrationTest {
                     GROUP BY e.name, e.dept
                     ORDER BY dept, dept_rank""";
 
-            JsonValue result = SQL4Json.queryAsJsonValue(sql,
-                    Map.of("employees", EMPLOYEES, "orders", ORDERS));
+            JsonValue result = SQL4Json.queryAsJsonValue(sql, Map.of("employees", EMPLOYEES, "orders", ORDERS));
 
             // All 10 employees appear (LEFT JOIN). Order counts:
             //   Alice:2, Bob:1, Charlie:0, Diana:1, Eve:0, Frank:2, Grace:2, Hank:0, Ivy:0, Jack:1
@@ -1460,17 +1387,17 @@ class IntegrationTest {
             // Engineering dept_rank=1 should have highest order count (Alice with 2)
             var engFirst = rows.stream()
                     .filter(r -> "Engineering".equals(str(r, "dept")) && num(r, "dept_rank") == 1)
-                    .findFirst().orElseThrow();
+                    .findFirst()
+                    .orElseThrow();
             assertEquals("Alice", str(engFirst, "name"));
             assertEquals(2, num(engFirst, "order_count"));
         }
 
         /**
-         * Three-way chained JOIN + window DENSE_RANK + WHERE + ORDER BY.
-         * Joins employees → orders → departments, ranks by order amount within location.
-         * <p>
-         * Features: chained JOIN (3 tables), WHERE, window DENSE_RANK,
-         * PARTITION BY, ORDER BY
+         * Three-way chained JOIN + window DENSE_RANK + WHERE + ORDER BY. Joins employees → orders → departments, ranks
+         * by order amount within location.
+         *
+         * <p>Features: chained JOIN (3 tables), WHERE, window DENSE_RANK, PARTITION BY, ORDER BY
          */
         @Test
         void chainedJoin_window_denseRank() {
@@ -1483,8 +1410,8 @@ class IntegrationTest {
                     WHERE o.status = 'completed'
                     ORDER BY location, loc_rank""";
 
-            JsonValue result = SQL4Json.queryAsJsonValue(sql,
-                    Map.of("employees", EMPLOYEES, "orders", ORDERS, "departments", DEPARTMENTS));
+            JsonValue result = SQL4Json.queryAsJsonValue(
+                    sql, Map.of("employees", EMPLOYEES, "orders", ORDERS, "departments", DEPARTMENTS));
 
             var rows = arr(result);
             assertTrue(rows.size() > 0);
@@ -1494,16 +1421,16 @@ class IntegrationTest {
             // Building C (Sales): Frank 6300, Grace 5500, Frank 2100, Jack 1800 → ranks 1,2,3,4
             var buildingAFirst = rows.stream()
                     .filter(r -> "Building A".equals(str(r, "location")) && num(r, "loc_rank") == 1)
-                    .findFirst().orElseThrow();
+                    .findFirst()
+                    .orElseThrow();
             assertEquals(5000.0, dbl(buildingAFirst, "amount"));
         }
 
         /**
-         * Window LAG/LEAD + scalar functions + WHERE + ORDER BY.
-         * Shows salary progression — previous and next salary by hire date.
-         * <p>
-         * Features: window LAG, window LEAD, UPPER scalar function,
-         * WHERE, ORDER BY
+         * Window LAG/LEAD + scalar functions + WHERE + ORDER BY. Shows salary progression — previous and next salary by
+         * hire date.
+         *
+         * <p>Features: window LAG, window LEAD, UPPER scalar function, WHERE, ORDER BY
          */
         @Test
         void window_lag_lead_scalarFunctions_where() {
@@ -1536,10 +1463,10 @@ class IntegrationTest {
         }
 
         /**
-         * Window NTILE + DISTINCT + subquery + LIMIT.
-         * Divides active employees into salary quartiles, then selects distinct quartiles.
-         * <p>
-         * Features: window NTILE, DISTINCT, subquery, ORDER BY, LIMIT
+         * Window NTILE + DISTINCT + subquery + LIMIT. Divides active employees into salary quartiles, then selects
+         * distinct quartiles.
+         *
+         * <p>Features: window NTILE, DISTINCT, subquery, ORDER BY, LIMIT
          */
         @Test
         void window_ntile_distinct_subquery() {
@@ -1566,11 +1493,10 @@ class IntegrationTest {
         }
 
         /**
-         * Multiple window functions with different specs + JOIN + WHERE.
-         * Ranks employees globally and within department, shows department average.
-         * <p>
-         * Features: multiple window functions (3 different OVER specs),
-         * INNER JOIN, WHERE, ORDER BY, LIMIT
+         * Multiple window functions with different specs + JOIN + WHERE. Ranks employees globally and within
+         * department, shows department average.
+         *
+         * <p>Features: multiple window functions (3 different OVER specs), INNER JOIN, WHERE, ORDER BY, LIMIT
          */
         @Test
         void multipleWindowSpecs_join_where_orderBy() {
@@ -1585,8 +1511,8 @@ class IntegrationTest {
                     ORDER BY global_rank
                     LIMIT 5""";
 
-            JsonValue result = SQL4Json.queryAsJsonValue(sql,
-                    Map.of("employees", EMPLOYEES, "departments", DEPARTMENTS));
+            JsonValue result =
+                    SQL4Json.queryAsJsonValue(sql, Map.of("employees", EMPLOYEES, "departments", DEPARTMENTS));
 
             // Active employees sorted by salary DESC:
             //   Eve(105k,Eng), Alice(95k,Eng), Hank(92k,Eng), Bob(88k,Eng),
@@ -1608,13 +1534,12 @@ class IntegrationTest {
         }
 
         /**
-         * JOIN + GROUP BY + HAVING + window RANK on aggregated result + ORDER BY.
-         * Groups orders by employee, filters high-value sellers, ranks them.
-         * <p>
-         * Pipeline: JOIN → GROUP BY → HAVING → WINDOW (RANK on alias) → ORDER BY → SELECT
-         * <p>
-         * Features: INNER JOIN, GROUP BY, SUM/COUNT aggregates, HAVING,
-         * window RANK (references alias), ORDER BY
+         * JOIN + GROUP BY + HAVING + window RANK on aggregated result + ORDER BY. Groups orders by employee, filters
+         * high-value sellers, ranks them.
+         *
+         * <p>Pipeline: JOIN → GROUP BY → HAVING → WINDOW (RANK on alias) → ORDER BY → SELECT
+         *
+         * <p>Features: INNER JOIN, GROUP BY, SUM/COUNT aggregates, HAVING, window RANK (references alias), ORDER BY
          */
         @Test
         void join_groupBy_having_windowRank() {
@@ -1629,8 +1554,7 @@ class IntegrationTest {
                     HAVING total_sales >= 4000
                     ORDER BY sales_rank""";
 
-            JsonValue result = SQL4Json.queryAsJsonValue(sql,
-                    Map.of("employees", EMPLOYEES, "orders", ORDERS));
+            JsonValue result = SQL4Json.queryAsJsonValue(sql, Map.of("employees", EMPLOYEES, "orders", ORDERS));
 
             // All orders per employee (no status filter):
             //   Alice: 5000+3200=8200 (2 orders), Bob: 4500 (1), Diana: 7800 (1),
@@ -1652,10 +1576,10 @@ class IntegrationTest {
         }
 
         /**
-         * Window MIN/MAX OVER + WHERE with IN + ORDER BY + OFFSET.
-         * Shows each employee's salary relative to department min/max.
-         * <p>
-         * Features: window MIN, window MAX, WHERE IN, ORDER BY, LIMIT, OFFSET
+         * Window MIN/MAX OVER + WHERE with IN + ORDER BY + OFFSET. Shows each employee's salary relative to department
+         * min/max.
+         *
+         * <p>Features: window MIN, window MAX, WHERE IN, ORDER BY, LIMIT, OFFSET
          */
         @Test
         void window_minMax_whereIn_orderBy_offset() {
@@ -1673,7 +1597,8 @@ class IntegrationTest {
 
             // Engineering: Alice(95k), Bob(88k), Eve(105k), Hank(92k) → min=88k, max=105k
             // Sales: Frank(78k), Grace(82k), Jack(75k) → min=75k, max=82k
-            // All 7 sorted by salary DESC: Eve(105k), Alice(95k), Hank(92k), Bob(88k), Grace(82k), Frank(78k), Jack(75k)
+            // All 7 sorted by salary DESC: Eve(105k), Alice(95k), Hank(92k), Bob(88k), Grace(82k), Frank(78k),
+            // Jack(75k)
             // OFFSET 1 LIMIT 3 → Alice, Hank, Bob
             var rows = arr(result);
             assertEquals(3, rows.size());
@@ -1687,10 +1612,10 @@ class IntegrationTest {
         }
 
         /**
-         * Window function + LAG with custom offset + BETWEEN filter.
-         * Shows salary 2 positions back in the hire-date ordering.
-         * <p>
-         * Features: window LAG with offset=2, WHERE BETWEEN, ORDER BY
+         * Window function + LAG with custom offset + BETWEEN filter. Shows salary 2 positions back in the hire-date
+         * ordering.
+         *
+         * <p>Features: window LAG with offset=2, WHERE BETWEEN, ORDER BY
          */
         @Test
         void window_lagCustomOffset_between() {
@@ -1724,11 +1649,11 @@ class IntegrationTest {
         }
 
         /**
-         * Engine API + PreparedQuery with window functions and JOINs.
-         * Validates that window functions work through all public API surfaces.
-         * <p>
-         * Features: Engine API with named sources, JOIN, GROUP BY, window RANK,
-         * WHERE, ORDER BY, LIMIT, PreparedQuery with window functions
+         * Engine API + PreparedQuery with window functions and JOINs. Validates that window functions work through all
+         * public API surfaces.
+         *
+         * <p>Features: Engine API with named sources, JOIN, GROUP BY, window RANK, WHERE, ORDER BY, LIMIT,
+         * PreparedQuery with window functions
          */
         @Test
         void engine_and_preparedQuery_with_window_and_join() {
@@ -1773,16 +1698,16 @@ class IntegrationTest {
         }
 
         /**
-         * The kitchen sink: 3-table chained JOIN + WHERE + GROUP BY + HAVING +
-         * window RANK + ROUND scalar + ORDER BY + LIMIT — all in one query level.
-         * <p>
-         * Scenario: Find departments where total completed sales exceed 5000,
-         * rank them, show location from departments table.
-         * <p>
-         * Pipeline: 3-way JOIN → WHERE → GROUP BY → HAVING → WINDOW (RANK on alias) → ORDER BY → LIMIT → SELECT
-         * <p>
-         * Features: 3-table chained JOIN, WHERE, GROUP BY, SUM/COUNT/AVG aggregates,
-         * HAVING, window RANK (references alias), ROUND scalar wrapping aggregate, ORDER BY, LIMIT
+         * The kitchen sink: 3-table chained JOIN + WHERE + GROUP BY + HAVING + window RANK + ROUND scalar + ORDER BY +
+         * LIMIT — all in one query level.
+         *
+         * <p>Scenario: Find departments where total completed sales exceed 5000, rank them, show location from
+         * departments table.
+         *
+         * <p>Pipeline: 3-way JOIN → WHERE → GROUP BY → HAVING → WINDOW (RANK on alias) → ORDER BY → LIMIT → SELECT
+         *
+         * <p>Features: 3-table chained JOIN, WHERE, GROUP BY, SUM/COUNT/AVG aggregates, HAVING, window RANK (references
+         * alias), ROUND scalar wrapping aggregate, ORDER BY, LIMIT
          */
         @Test
         void kitchenSink_chainedJoin_groupBy_having_window_scalar_orderBy_limit() {
@@ -1800,8 +1725,8 @@ class IntegrationTest {
                     HAVING total_sales > 5000
                     ORDER BY dept_rank""";
 
-            JsonValue result = SQL4Json.queryAsJsonValue(sql,
-                    Map.of("employees", EMPLOYEES, "orders", ORDERS, "departments", DEPARTMENTS));
+            JsonValue result = SQL4Json.queryAsJsonValue(
+                    sql, Map.of("employees", EMPLOYEES, "orders", ORDERS, "departments", DEPARTMENTS));
 
             // Completed orders by dept:
             //   Engineering (Building A): Alice(5000+3200)=8200 → total=8200, cnt=2, avg=4100
@@ -1843,8 +1768,15 @@ class IntegrationTest {
         }
 
         private JsonValue first(String sql) {
-            return query(sql).asArray().orElseThrow().getFirst()
-                    .asObject().orElseThrow().values().iterator().next();
+            return query(sql)
+                    .asArray()
+                    .orElseThrow()
+                    .getFirst()
+                    .asObject()
+                    .orElseThrow()
+                    .values()
+                    .iterator()
+                    .next();
         }
 
         // ── String Functions ────────────────────────────────────────────
@@ -2020,7 +1952,12 @@ class IntegrationTest {
         void lower_with_locale() {
             String data = "[{\"name\":\"ISTANBUL\"}]";
             var r = SQL4Json.queryAsJsonValue("SELECT LOWER(name, 'tr-TR') AS v FROM $r", data)
-                    .asArray().orElseThrow().getFirst().asObject().orElseThrow().get("v");
+                    .asArray()
+                    .orElseThrow()
+                    .getFirst()
+                    .asObject()
+                    .orElseThrow()
+                    .get("v");
             // Turkish lowercase of I is \u0131 (dotless i)
             assertTrue(r.asString().orElseThrow().contains("\u0131"));
         }
@@ -2029,7 +1966,12 @@ class IntegrationTest {
         void upper_with_locale() {
             String data = "[{\"name\":\"istanbul\"}]";
             var r = SQL4Json.queryAsJsonValue("SELECT UPPER(name, 'tr-TR') AS v FROM $r", data)
-                    .asArray().orElseThrow().getFirst().asObject().orElseThrow().get("v");
+                    .asArray()
+                    .orElseThrow()
+                    .getFirst()
+                    .asObject()
+                    .orElseThrow()
+                    .get("v");
             // Turkish uppercase of i is \u0130 (dotted I)
             assertTrue(r.asString().orElseThrow().contains("\u0130"));
         }
@@ -2052,8 +1994,8 @@ class IntegrationTest {
                 ]""";
 
         /**
-         * Helper: run a query via tree path (parse to JsonValue first) and via the
-         * default string-in API (now streaming). Results must match.
+         * Helper: run a query via tree path (parse to JsonValue first) and via the default string-in API (now
+         * streaming). Results must match.
          */
         private void assertStreamingMatchesTree(String sql, String json) {
             // Tree path: parse -> execute -> serialize
@@ -2064,8 +2006,7 @@ class IntegrationTest {
             // Streaming path (default API)
             String streamString = SQL4Json.query(sql, json);
 
-            assertEquals(treeString, streamString,
-                    "Streaming result differs from tree result for query: " + sql);
+            assertEquals(treeString, streamString, "Streaming result differs from tree result for query: " + sql);
         }
 
         @Test
@@ -2113,8 +2054,7 @@ class IntegrationTest {
         @Test
         void group_by_having() {
             assertStreamingMatchesTree(
-                    "SELECT dept, AVG(salary) AS avg_sal FROM $r GROUP BY dept HAVING avg_sal > 70000",
-                    EMPLOYEES);
+                    "SELECT dept, AVG(salary) AS avg_sal FROM $r GROUP BY dept HAVING avg_sal > 70000", EMPLOYEES);
         }
 
         @Test
@@ -2124,9 +2064,7 @@ class IntegrationTest {
 
         @Test
         void subquery() {
-            assertStreamingMatchesTree(
-                    "SELECT name FROM (SELECT * FROM $r WHERE age > 30)",
-                    EMPLOYEES);
+            assertStreamingMatchesTree("SELECT name FROM (SELECT * FROM $r WHERE age > 30)", EMPLOYEES);
         }
 
         @Test
@@ -2137,9 +2075,7 @@ class IntegrationTest {
 
         @Test
         void scalar_functions() {
-            assertStreamingMatchesTree(
-                    "SELECT UPPER(name) AS upper_name, LENGTH(name) AS name_len FROM $r",
-                    EMPLOYEES);
+            assertStreamingMatchesTree("SELECT UPPER(name) AS upper_name, LENGTH(name) AS name_len FROM $r", EMPLOYEES);
         }
 
         @Test
@@ -2149,16 +2085,12 @@ class IntegrationTest {
 
         @Test
         void in_filter() {
-            assertStreamingMatchesTree(
-                    "SELECT * FROM $r WHERE dept IN ('Engineering')",
-                    EMPLOYEES);
+            assertStreamingMatchesTree("SELECT * FROM $r WHERE dept IN ('Engineering')", EMPLOYEES);
         }
 
         @Test
         void between_filter() {
-            assertStreamingMatchesTree(
-                    "SELECT * FROM $r WHERE age BETWEEN 28 AND 35",
-                    EMPLOYEES);
+            assertStreamingMatchesTree("SELECT * FROM $r WHERE age BETWEEN 28 AND 35", EMPLOYEES);
         }
 
         @Test
@@ -2234,11 +2166,12 @@ class IntegrationTest {
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {
-                "SELECT * FROM $r LIMIT 1",
-                "SELECT * FROM $r WHERE age > 0 LIMIT 2",
-                "SELECT * FROM $r LIMIT 3 OFFSET 1"
-        })
+        @ValueSource(
+                strings = {
+                    "SELECT * FROM $r LIMIT 1",
+                    "SELECT * FROM $r WHERE age > 0 LIMIT 2",
+                    "SELECT * FROM $r LIMIT 3 OFFSET 1"
+                })
         void early_termination_queries(String sql) {
             assertStreamingMatchesTree(sql, EMPLOYEES);
         }

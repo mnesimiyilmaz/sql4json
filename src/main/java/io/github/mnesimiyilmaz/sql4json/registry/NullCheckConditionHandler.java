@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.registry;
 
 import io.github.mnesimiyilmaz.sql4json.engine.Expression;
@@ -5,14 +6,11 @@ import io.github.mnesimiyilmaz.sql4json.engine.ExpressionEvaluator;
 import io.github.mnesimiyilmaz.sql4json.types.SqlValue;
 
 /**
- * Handles IS NULL and IS NOT NULL conditions by evaluating whether the left-hand
- * expression resolves to a null value.
+ * Handles IS NULL and IS NOT NULL conditions by evaluating whether the left-hand expression resolves to a null value.
  */
 public final class NullCheckConditionHandler implements ConditionHandler {
 
-    /**
-     * Creates a new {@code NullCheckConditionHandler}.
-     */
+    /** Creates a new {@code NullCheckConditionHandler}. */
     public NullCheckConditionHandler() {
         // Stateless handler; behaviour is provided by canHandle/handle.
     }
@@ -24,9 +22,7 @@ public final class NullCheckConditionHandler implements ConditionHandler {
     }
 
     @Override
-    public CriteriaNode handle(ConditionContext ctx,
-                               OperatorRegistry operators,
-                               FunctionRegistry functions) {
+    public CriteriaNode handle(ConditionContext ctx, OperatorRegistry operators, FunctionRegistry functions) {
         Expression lhs = ctx.lhsExpression();
         boolean checkNull = ctx.type() == ConditionContext.ConditionType.IS_NULL;
         return row -> {

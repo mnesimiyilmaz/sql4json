@@ -1,14 +1,12 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.engine.stage;
 
 import io.github.mnesimiyilmaz.sql4json.engine.LazyPipelineStage;
 import io.github.mnesimiyilmaz.sql4json.engine.RowAccessor;
 import io.github.mnesimiyilmaz.sql4json.registry.CriteriaNode;
-
 import java.util.stream.Stream;
 
-/**
- * Lazy pipeline stage that filters rows by a WHERE condition.
- */
+/** Lazy pipeline stage that filters rows by a WHERE condition. */
 public final class WhereStage implements LazyPipelineStage {
 
     private final CriteriaNode criteria;

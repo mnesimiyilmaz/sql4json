@@ -1,18 +1,18 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonBindException;
-
 import java.util.*;
 
 /**
- * Immutable carrier of parameter bindings for {@link PreparedQuery} and
- * {@link SQL4JsonEngine} parameterised execution.
+ * Immutable carrier of parameter bindings for {@link PreparedQuery} and {@link SQL4JsonEngine} parameterised execution.
  *
- * <p>Modes are mutually exclusive: an instance is either <b>named</b> (binds by {@code :name})
- * or <b>positional</b> (binds by {@code 0,1,...} for {@code ?}). Attempting to mix produces
- * {@link SQL4JsonBindException}. Every {@code bind(...)} returns a new instance — thread-safe.
+ * <p>Modes are mutually exclusive: an instance is either <b>named</b> (binds by {@code :name}) or <b>positional</b>
+ * (binds by {@code 0,1,...} for {@code ?}). Attempting to mix produces {@link SQL4JsonBindException}. Every
+ * {@code bind(...)} returns a new instance — thread-safe.
  *
  * <p>Usage:
+ *
  * <pre>{@code
  * // Named
  * BoundParameters p = BoundParameters.named()
@@ -37,15 +37,13 @@ public final class BoundParameters {
         POSITIONAL
     }
 
-    /**
-     * Shared empty instance. Neither named nor positional — compatible with parameterless queries.
-     */
+    /** Shared empty instance. Neither named nor positional — compatible with parameterless queries. */
     public static final BoundParameters EMPTY =
             new BoundParameters(Mode.EMPTY, Collections.emptyMap(), Collections.emptyList());
 
-    private final Mode                mode;
+    private final Mode mode;
     private final Map<String, Object> named;
-    private final List<Object>        positional;
+    private final List<Object> positional;
 
     private BoundParameters(Mode mode, Map<String, Object> named, List<Object> positional) {
         this.mode = mode;
@@ -86,8 +84,7 @@ public final class BoundParameters {
     /**
      * Returns a named instance holding the entries from {@code values}.
      *
-     * @param values the named parameter map; iteration order is preserved when a
-     *               {@link LinkedHashMap} is supplied
+     * @param values the named parameter map; iteration order is preserved when a {@link LinkedHashMap} is supplied
      * @return a named {@code BoundParameters} containing {@code values}
      */
     public static BoundParameters of(Map<String, ?> values) {
@@ -98,15 +95,14 @@ public final class BoundParameters {
     /**
      * Returns a new instance with {@code name} bound to {@code value}.
      *
-     * @param name  the parameter name (without the leading {@code :})
+     * @param name the parameter name (without the leading {@code :})
      * @param value the parameter value (may be {@code null})
      * @return a new {@code BoundParameters} with the additional binding
      * @throws SQL4JsonBindException if this instance is in positional mode
      */
     public BoundParameters bind(String name, Object value) {
         if (mode == Mode.POSITIONAL) {
-            throw new SQL4JsonBindException(
-                    "Cannot mix named and positional bindings on the same BoundParameters");
+            throw new SQL4JsonBindException("Cannot mix named and positional bindings on the same BoundParameters");
         }
         Map<String, Object> copy = new LinkedHashMap<>(named);
         copy.put(name, value);
@@ -114,8 +110,8 @@ public final class BoundParameters {
     }
 
     /**
-     * Returns a new instance with position {@code index} bound to {@code value}.
-     * The internal list grows as needed to accommodate the index.
+     * Returns a new instance with position {@code index} bound to {@code value}. The internal list grows as needed to
+     * accommodate the index.
      *
      * @param index the zero-based parameter index
      * @param value the parameter value (may be {@code null})
@@ -124,8 +120,7 @@ public final class BoundParameters {
      */
     public BoundParameters bind(int index, Object value) {
         if (mode == Mode.NAMED) {
-            throw new SQL4JsonBindException(
-                    "Cannot mix named and positional bindings on the same BoundParameters");
+            throw new SQL4JsonBindException("Cannot mix named and positional bindings on the same BoundParameters");
         }
         if (index < 0) {
             throw new SQL4JsonBindException("Parameter index must be non-negative, got " + index);
@@ -147,8 +142,7 @@ public final class BoundParameters {
      */
     public BoundParameters bindAll(Object... values) {
         if (mode == Mode.NAMED) {
-            throw new SQL4JsonBindException(
-                    "Cannot mix named and positional bindings on the same BoundParameters");
+            throw new SQL4JsonBindException("Cannot mix named and positional bindings on the same BoundParameters");
         }
         List<Object> copy = new ArrayList<>(positional);
         Collections.addAll(copy, values);

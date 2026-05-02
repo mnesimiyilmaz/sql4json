@@ -1,47 +1,37 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonParseException;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Stream;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * @author mnesimiyilmaz
- */
+/** @author mnesimiyilmaz */
 class SQL4JsonQueryTests {
 
-    /**
-     * Helper: get array elements from a JsonValue.
-     */
+    /** Helper: get array elements from a JsonValue. */
     private static List<JsonValue> arr(JsonValue v) {
         return v.asArray().orElseThrow();
     }
 
-    /**
-     * Helper: get object field map from a JsonValue.
-     */
+    /** Helper: get object field map from a JsonValue. */
     private static Map<String, JsonValue> obj(JsonValue v) {
         return v.asObject().orElseThrow();
     }
 
-    /**
-     * Helper: get string value.
-     */
+    /** Helper: get string value. */
     private static String str(JsonValue v) {
         return v.asString().orElseThrow();
     }
 
-    /**
-     * Helper: get int value.
-     */
+    /** Helper: get int value. */
     private static int num(JsonValue v) {
         return v.asNumber().orElseThrow().intValue();
     }
@@ -57,8 +47,7 @@ class SQL4JsonQueryTests {
         assertAll(
                 () -> assertEquals("M\u00fccahit", str(obj(result).get("name"))),
                 () -> assertEquals("YILMAZ", str(obj(result).get("surname"))),
-                () -> assertEquals(26, num(obj(result).get("age")))
-        );
+                () -> assertEquals(26, num(obj(result).get("age"))));
     }
 
     @Test
@@ -72,8 +61,7 @@ class SQL4JsonQueryTests {
         assertAll(
                 () -> assertEquals("M\u00fccahit", str(obj(result).get("name"))),
                 () -> assertEquals("YILMAZ", str(obj(result).get("surname"))),
-                () -> assertEquals(26, num(obj(result).get("age")))
-        );
+                () -> assertEquals(26, num(obj(result).get("age"))));
     }
 
     @Test
@@ -81,19 +69,14 @@ class SQL4JsonQueryTests {
         String data = """
                 {"name":"M\u00fccahit","surname":"YILMAZ","age":26,"account":null,"lastLoginDateTime":null,"dateOfBirth":null}""";
 
-        String jql = "SELECT " +
-                "name AS user.name, " +
-                "surname AS user.surname, " +
-                "age AS user.age " +
-                "FROM $r";
+        String jql = "SELECT " + "name AS user.name, " + "surname AS user.surname, " + "age AS user.age " + "FROM $r";
         JsonValue result = arr(SQL4Json.queryAsJsonValue(jql, data)).getFirst();
 
         Map<String, JsonValue> user = obj(obj(result).get("user"));
         assertAll(
                 () -> assertEquals("M\u00fccahit", str(user.get("name"))),
                 () -> assertEquals("YILMAZ", str(user.get("surname"))),
-                () -> assertEquals(26, num(user.get("age")))
-        );
+                () -> assertEquals(26, num(user.get("age"))));
     }
 
     @Test
@@ -101,34 +84,33 @@ class SQL4JsonQueryTests {
         String data = """
                 {"name":"M\u00fccahit","surname":"YILMAZ","age":26,"account":{"username":"test","nicknames":["nick","name"],"active":true,"loginHistoryList":null},"lastLoginDateTime":null,"dateOfBirth":null}""";
 
-        String jql = "SELECT " +
-                "name AS xyz.name, " +
-                "account as user.acc, " +
-                "account.username AS accUsername " +
-                "FROM $r";
+        String jql = "SELECT " + "name AS xyz.name, "
+                + "account as user.acc, "
+                + "account.username AS accUsername "
+                + "FROM $r";
         JsonValue result = arr(SQL4Json.queryAsJsonValue(jql, data)).getFirst();
 
         assertAll(
-                () -> assertEquals("M\u00fccahit", str(obj(obj(result).get("xyz")).get("name"))),
-                () -> assertEquals("test", str(obj(obj(obj(result).get("user")).get("acc")).get("username"))),
-                () -> assertEquals("test", str(obj(result).get("accUsername")))
-        );
+                () -> assertEquals(
+                        "M\u00fccahit", str(obj(obj(result).get("xyz")).get("name"))),
+                () -> assertEquals(
+                        "test", str(obj(obj(obj(result).get("user")).get("acc")).get("username"))),
+                () -> assertEquals("test", str(obj(result).get("accUsername"))));
     }
 
     static Stream<Arguments> scalarFunctionCases() {
         return Stream.of(
                 Arguments.of("LOWER(name,'tr-TR')", "M\u00fccahit", "m\u00fccahit"),
                 Arguments.of("UPPER(name,'tr-TR')", "M\u00fccahit", "M\u00dcCAH\u0130T"),
-                Arguments.of("COALESCE(name,'Nesimi')", null, "Nesimi")
-        );
+                Arguments.of("COALESCE(name,'Nesimi')", null, "Nesimi"));
     }
 
     @ParameterizedTest(name = "scalar function {0} on single person -> {2}")
     @MethodSource("scalarFunctionCases")
-    void when_use_scalar_func_in_select_then_expect_correct_value(String funcExpr, String inputName,
-                                                                  String expected) {
+    void when_use_scalar_func_in_select_then_expect_correct_value(String funcExpr, String inputName, String expected) {
         String nameValue = inputName == null ? "null" : "\"" + inputName + "\"";
-        String data = "{\"name\":" + nameValue + ",\"surname\":null,\"age\":null,\"account\":null,\"lastLoginDateTime\":null,\"dateOfBirth\":null}";
+        String data = "{\"name\":" + nameValue
+                + ",\"surname\":null,\"age\":null,\"account\":null,\"lastLoginDateTime\":null,\"dateOfBirth\":null}";
 
         String jql = "SELECT " + funcExpr + " AS name FROM $r";
         JsonValue result = arr(SQL4Json.queryAsJsonValue(jql, data)).getFirst();
@@ -142,15 +124,12 @@ class SQL4JsonQueryTests {
                 [{"name":"M\u00fccahit","surname":null,"age":null,"account":null,"lastLoginDateTime":null,"dateOfBirth":null},\
                 {"name":null,"surname":null,"age":null,"account":null,"lastLoginDateTime":null,"dateOfBirth":null}]""";
 
-        String jql = "SELECT " +
-                "LOWER(name,'tr-TR') AS name " +
-                "FROM $r";
+        String jql = "SELECT " + "LOWER(name,'tr-TR') AS name " + "FROM $r";
         JsonValue result = SQL4Json.queryAsJsonValue(jql, data);
 
         assertAll(
                 () -> assertEquals("m\u00fccahit", str(obj(arr(result).get(0)).get("name"))),
-                () -> assertTrue(obj(arr(result).get(1)).get("name").isNull())
-        );
+                () -> assertTrue(obj(arr(result).get(1)).get("name").isNull()));
     }
 
     @Test
@@ -159,15 +138,13 @@ class SQL4JsonQueryTests {
                 [{"name":"M\u00fccahit","surname":null,"age":null,"account":null,"lastLoginDateTime":null,"dateOfBirth":null},\
                 {"name":null,"surname":null,"age":null,"account":null,"lastLoginDateTime":null,"dateOfBirth":null}]""";
 
-        String jql = "SELECT " +
-                "UPPER(name,'tr-TR') AS name " +
-                "FROM $r";
+        String jql = "SELECT " + "UPPER(name,'tr-TR') AS name " + "FROM $r";
         JsonValue result = SQL4Json.queryAsJsonValue(jql, data);
 
         assertAll(
-                () -> assertEquals("M\u00dcCAH\u0130T", str(obj(arr(result).get(0)).get("name"))),
-                () -> assertTrue(obj(arr(result).get(1)).get("name").isNull())
-        );
+                () -> assertEquals(
+                        "M\u00dcCAH\u0130T", str(obj(arr(result).get(0)).get("name"))),
+                () -> assertTrue(obj(arr(result).get(1)).get("name").isNull()));
     }
 
     @Test
@@ -175,14 +152,11 @@ class SQL4JsonQueryTests {
         String data = """
                 {"data":{"name":"M\u00fccahit","surname":"YILMAZ","age":26,"account":null,"lastLoginDateTime":null,"dateOfBirth":null}}""";
 
-        String jql = "SELECT " +
-                "user.name AS username " +
-                "FROM (SELECT name AS user.name, surname AS user.surname, age AS user.age FROM $r.data)";
+        String jql = "SELECT " + "user.name AS username "
+                + "FROM (SELECT name AS user.name, surname AS user.surname, age AS user.age FROM $r.data)";
         JsonValue result = arr(SQL4Json.queryAsJsonValue(jql, data)).getFirst();
 
-        assertAll(
-                () -> assertEquals("M\u00fccahit", str(obj(result).get("username")))
-        );
+        assertAll(() -> assertEquals("M\u00fccahit", str(obj(result).get("username"))));
     }
 
     @Test
@@ -195,20 +169,18 @@ class SQL4JsonQueryTests {
                 {"name":"Nesimi","surname":null,"age":null,"account":null,"lastLoginDateTime":null,"dateOfBirth":null},\
                 {"name":null,"surname":null,"age":null,"account":null,"lastLoginDateTime":null,"dateOfBirth":null}]""";
 
-        String jql = "SELECT " +
-                "LOWER(name,'tr-TR') AS name, " +
-                "COUNT(*) AS cnt " +
-                "FROM $r " +
-                "WHERE LOWER(name,'tr-TR') = 'm\u00fccahit' OR LOWER(name,'tr-TR') = 'nesimi' " +
-                "GROUP BY LOWER(name,'tr-TR') " +
-                "HAVING cnt > 1 " +
-                "ORDER BY cnt DESC, LOWER(name,'tr-TR') ASC";
+        String jql = "SELECT " + "LOWER(name,'tr-TR') AS name, "
+                + "COUNT(*) AS cnt "
+                + "FROM $r "
+                + "WHERE LOWER(name,'tr-TR') = 'm\u00fccahit' OR LOWER(name,'tr-TR') = 'nesimi' "
+                + "GROUP BY LOWER(name,'tr-TR') "
+                + "HAVING cnt > 1 "
+                + "ORDER BY cnt DESC, LOWER(name,'tr-TR') ASC";
         JsonValue result = SQL4Json.queryAsJsonValue(jql, data);
 
         assertAll(
                 () -> assertEquals(3, num(obj(arr(result).get(0)).get("cnt"))),
-                () -> assertEquals(2, num(obj(arr(result).get(1)).get("cnt")))
-        );
+                () -> assertEquals(2, num(obj(arr(result).get(1)).get("cnt"))));
     }
 
     @Test
@@ -216,11 +188,10 @@ class SQL4JsonQueryTests {
         String data = """
                 {"name":"M\u00fccahit","surname":null,"age":null,"account":null,"lastLoginDateTime":"2023-10-23T21:00:00","dateOfBirth":"1997-06-01"}""";
 
-        String jql = "SELECT " +
-                "name " +
-                "FROM $r " +
-                "WHERE TO_DATE(dateOfBirth) = TO_DATE('1997-06-01') " +
-                "AND TO_DATE(lastLoginDateTime) > TO_DATE('2023-10-23 20:00:00','yyyy-MM-dd HH:mm:ss')";
+        String jql = "SELECT " + "name "
+                + "FROM $r "
+                + "WHERE TO_DATE(dateOfBirth) = TO_DATE('1997-06-01') "
+                + "AND TO_DATE(lastLoginDateTime) > TO_DATE('2023-10-23 20:00:00','yyyy-MM-dd HH:mm:ss')";
         JsonValue result = SQL4Json.queryAsJsonValue(jql, data);
 
         assertEquals("M\u00fccahit", str(obj(arr(result).getFirst()).get("name")));
@@ -231,10 +202,7 @@ class SQL4JsonQueryTests {
         String data = """
                 {"name":"M\u00fccahit","surname":null,"age":null,"account":null,"lastLoginDateTime":"2099-01-01T00:00:00","dateOfBirth":null}""";
 
-        String jql = "SELECT " +
-                "name " +
-                "FROM $r " +
-                "WHERE TO_DATE(lastLoginDateTime) > NOW()";
+        String jql = "SELECT " + "name " + "FROM $r " + "WHERE TO_DATE(lastLoginDateTime) > NOW()";
         JsonValue result = SQL4Json.queryAsJsonValue(jql, data);
 
         assertEquals("M\u00fccahit", str(obj(arr(result).getFirst()).get("name")));
@@ -245,11 +213,7 @@ class SQL4JsonQueryTests {
         String data = """
                 {"name":"M\u00fccahit","surname":null,"age":null,"account":null,"lastLoginDateTime":null,"dateOfBirth":null}""";
 
-        String jql = "SELECT " +
-                "name " +
-                "FROM $r " +
-                "WHERE name IS NOT NULL " +
-                "AND surname IS NULL";
+        String jql = "SELECT " + "name " + "FROM $r " + "WHERE name IS NOT NULL " + "AND surname IS NULL";
         JsonValue result = SQL4Json.queryAsJsonValue(jql, data);
 
         assertEquals("M\u00fccahit", str(obj(arr(result).getFirst()).get("name")));
@@ -262,19 +226,17 @@ class SQL4JsonQueryTests {
                 {"name":"Nesimi","surname":null,"age":null,"account":null,"lastLoginDateTime":null,"dateOfBirth":null},\
                 {"name":"Y\u0131lmaz","surname":null,"age":null,"account":null,"lastLoginDateTime":null,"dateOfBirth":null}]""";
 
-        String jql = "SELECT " +
-                "name " +
-                "FROM $r " +
-                "WHERE name LIKE '%cahit%' " +
-                "OR name LIKE 'Ne%' " +
-                "OR name LIKE '%maz'";
+        String jql = "SELECT " + "name "
+                + "FROM $r "
+                + "WHERE name LIKE '%cahit%' "
+                + "OR name LIKE 'Ne%' "
+                + "OR name LIKE '%maz'";
         JsonValue result = SQL4Json.queryAsJsonValue(jql, data);
 
         assertAll(
                 () -> assertEquals("M\u00fccahit", str(obj(arr(result).get(0)).get("name"))),
                 () -> assertEquals("Nesimi", str(obj(arr(result).get(1)).get("name"))),
-                () -> assertEquals("Y\u0131lmaz", str(obj(arr(result).get(2)).get("name")))
-        );
+                () -> assertEquals("Y\u0131lmaz", str(obj(arr(result).get(2)).get("name"))));
     }
 
     @Test
@@ -283,9 +245,7 @@ class SQL4JsonQueryTests {
                 [{"name":null,"surname":null,"age":null,"account":{"username":null,"nicknames":null,"active":true,"loginHistoryList":null},"lastLoginDateTime":null,"dateOfBirth":null},\
                 {"name":null,"surname":null,"age":null,"account":null,"lastLoginDateTime":null,"dateOfBirth":null}]""";
 
-        String jql = "SELECT * " +
-                "FROM $r " +
-                "WHERE account.active = true";
+        String jql = "SELECT * " + "FROM $r " + "WHERE account.active = true";
         JsonValue result = SQL4Json.queryAsJsonValue(jql, data);
 
         assertEquals(1, arr(result).size());
@@ -297,9 +257,7 @@ class SQL4JsonQueryTests {
                 [{"name":null,"surname":null,"age":25,"account":null,"lastLoginDateTime":null,"dateOfBirth":null},\
                 {"name":null,"surname":null,"age":null,"account":null,"lastLoginDateTime":null,"dateOfBirth":null}]""";
 
-        String jql = "SELECT * " +
-                "FROM $r " +
-                "WHERE age > 20";
+        String jql = "SELECT * " + "FROM $r " + "WHERE age > 20";
         JsonValue result = SQL4Json.queryAsJsonValue(jql, data);
 
         assertEquals(1, arr(result).size());
@@ -323,16 +281,15 @@ class SQL4JsonQueryTests {
                 {"field1":"a","field2":"a","field3":"b","value":2},\
                 {"field1":"a","field2":"a","field3":"c","value":3}]""";
 
-        String jql = "SELECT " +
-                "field1, " +
-                "field2, " +
-                "SUM(value) as total, " +
-                "COUNT(value) as cnt, " +
-                "MAX(value) as max_val, " +
-                "MIN(value) as min_val, " +
-                "AVG(value) as avg_val " +
-                "FROM $r " +
-                "GROUP BY field1, field2";
+        String jql = "SELECT " + "field1, "
+                + "field2, "
+                + "SUM(value) as total, "
+                + "COUNT(value) as cnt, "
+                + "MAX(value) as max_val, "
+                + "MIN(value) as min_val, "
+                + "AVG(value) as avg_val "
+                + "FROM $r "
+                + "GROUP BY field1, field2";
         JsonValue result = arr(SQL4Json.queryAsJsonValue(jql, data)).getFirst();
 
         assertAll(
@@ -342,8 +299,7 @@ class SQL4JsonQueryTests {
                 () -> assertEquals(3, num(obj(result).get("max_val"))),
                 () -> assertEquals(1, num(obj(result).get("min_val"))),
                 () -> assertEquals(2, num(obj(result).get("avg_val"))),
-                () -> assertEquals(3, num(obj(result).get("cnt")))
-        );
+                () -> assertEquals(3, num(obj(result).get("cnt"))));
     }
 
     @Test
@@ -351,14 +307,13 @@ class SQL4JsonQueryTests {
         String data = """
                 {"data":{"name":"M\u00fccahit","surname":"YILMAZ","age":26,"account":null,"lastLoginDateTime":null,"dateOfBirth":null}}""";
 
-        String jql = "SELECT " +
-                "user.name AS username " +
-                "FROM (" +
-                "SELECT " +
-                "name AS user.name, " +
-                "surname AS user.surname, " +
-                "age AS user.age " +
-                "FROM $r.data)";
+        String jql = "SELECT " + "user.name AS username "
+                + "FROM ("
+                + "SELECT "
+                + "name AS user.name, "
+                + "surname AS user.surname, "
+                + "age AS user.age "
+                + "FROM $r.data)";
         JsonValue result = arr(SQL4Json.queryAsJsonValue(jql, data)).getFirst();
 
         assertEquals("M\u00fccahit", str(obj(result).get("username")));
@@ -370,15 +325,14 @@ class SQL4JsonQueryTests {
                 [{"name":"M\u00fccahit","surname":"YILMAZ","age":26,"account":null,"lastLoginDateTime":null,"dateOfBirth":null},\
                 {"name":"Hayanesh","surname":"Kamalan","age":18,"account":null,"lastLoginDateTime":null,"dateOfBirth":null}]""";
 
-        String jql = "SELECT " +
-                "user.name AS username," +
-                "user.age AS age " +
-                "FROM (" +
-                "SELECT " +
-                "name AS user.name, " +
-                "surname AS user.surname, " +
-                "age AS user.age " +
-                "FROM $r WHERE age > 10) WHERE user.age > 16";
+        String jql = "SELECT " + "user.name AS username,"
+                + "user.age AS age "
+                + "FROM ("
+                + "SELECT "
+                + "name AS user.name, "
+                + "surname AS user.surname, "
+                + "age AS user.age "
+                + "FROM $r WHERE age > 10) WHERE user.age > 16";
         JsonValue result = SQL4Json.queryAsJsonValue(jql, data);
 
         assertEquals("M\u00fccahit", str(obj(arr(result).getFirst()).get("username")));
@@ -389,8 +343,6 @@ class SQL4JsonQueryTests {
         String data = """
                 {"name":"M\u00fccahit","surname":"YILMAZ","age":26,"account":null,"lastLoginDateTime":null,"dateOfBirth":null}""";
 
-        assertThrows(SQL4JsonParseException.class,
-                () -> SQL4Json.queryAsJsonValue("select from $r", data));
+        assertThrows(SQL4JsonParseException.class, () -> SQL4Json.queryAsJsonValue("select from $r", data));
     }
-
 }

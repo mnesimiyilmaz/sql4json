@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.types;
 
 import java.math.BigDecimal;
@@ -22,9 +23,8 @@ public record SqlLong(long value) implements SqlNumber {
     }
 
     /**
-     * Factory: returns a cached instance for {@code 0..255}, otherwise a fresh one.
-     * Hot-path JSON / aggregation code paths route through this to avoid
-     * per-row {@link SqlLong} allocations for small integers.
+     * Factory: returns a cached instance for {@code 0..255}, otherwise a fresh one. Hot-path JSON / aggregation code
+     * paths route through this to avoid per-row {@link SqlLong} allocations for small integers.
      *
      * @param value the long value
      * @return an {@link SqlLong} wrapping {@code value}

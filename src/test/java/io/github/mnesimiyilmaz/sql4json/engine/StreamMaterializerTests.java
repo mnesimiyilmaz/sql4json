@@ -1,13 +1,13 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.engine;
-
-import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException;
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
-import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException;
+import java.util.List;
+import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
 
 class StreamMaterializerTests {
 
@@ -25,7 +25,8 @@ class StreamMaterializerTests {
 
     @Test
     void throws_with_stage_name_on_overflow() {
-        var ex = assertThrows(SQL4JsonExecutionException.class,
+        var ex = assertThrows(
+                SQL4JsonExecutionException.class,
                 () -> StreamMaterializer.toList(Stream.of("a", "b", "c", "d"), 3, "ORDER BY"));
         assertEquals("ORDER BY row count exceeds configured maximum (3)", ex.getMessage());
     }

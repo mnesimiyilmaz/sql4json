@@ -1,17 +1,17 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonException;
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonParseException;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class GrammarTest {
 
@@ -96,8 +96,7 @@ class GrammarTest {
 
         @Test
         void validQuery_sumWithGroupByAndHaving() {
-            assertDoesNotThrow(() -> execute(
-                    "SELECT SUM(val) AS total FROM $r GROUP BY cat HAVING total > 10"));
+            assertDoesNotThrow(() -> execute("SELECT SUM(val) AS total FROM $r GROUP BY cat HAVING total > 10"));
         }
 
         // --- Invalid queries ---
@@ -139,7 +138,8 @@ class GrammarTest {
 
         @Test
         void when_and_has_higher_precedence_than_or_then_correct_rows_returned() {
-            String json = "[{\"a\":\"x\",\"b\":\"no\",\"c\":\"no\"},{\"a\":\"no\",\"b\":\"y\",\"c\":\"z\"},{\"a\":\"x\",\"b\":\"no\",\"c\":\"z\"}]";
+            String json =
+                    "[{\"a\":\"x\",\"b\":\"no\",\"c\":\"no\"},{\"a\":\"no\",\"b\":\"y\",\"c\":\"z\"},{\"a\":\"x\",\"b\":\"no\",\"c\":\"z\"}]";
             var result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE a = 'x' OR b = 'y' AND c = 'z'", json);
             assertEquals(3, arr(result).size());
         }
@@ -206,8 +206,7 @@ class GrammarTest {
 
         @Test
         void validQuery_betweenAndDisambiguation() {
-            assertDoesNotThrow(() -> execute(
-                    "SELECT * FROM $r WHERE age BETWEEN 10 AND 30 AND name = 'Alice'"));
+            assertDoesNotThrow(() -> execute("SELECT * FROM $r WHERE age BETWEEN 10 AND 30 AND name = 'Alice'"));
         }
 
         // --- NOT LIKE / CAST in WHERE ---
@@ -219,8 +218,7 @@ class GrammarTest {
 
         @Test
         void validQuery_castInWhere() {
-            assertDoesNotThrow(() -> execute(
-                    "SELECT * FROM $r WHERE CAST(age AS STRING) = '25'"));
+            assertDoesNotThrow(() -> execute("SELECT * FROM $r WHERE CAST(age AS STRING) = '25'"));
         }
     }
 
@@ -284,8 +282,7 @@ class GrammarTest {
 
         @Test
         void where_rhsCastLiteralToDate() {
-            JsonValue result = query(
-                    "SELECT name FROM $r WHERE TO_DATE(hire_date) > CAST('2020-01-01' AS DATE)");
+            JsonValue result = query("SELECT name FROM $r WHERE TO_DATE(hire_date) > CAST('2020-01-01' AS DATE)");
             assertEquals(1, arr(result).size());
             assertEquals("Alice", str(f(arr(result).get(0), "name")));
         }
@@ -327,24 +324,22 @@ class GrammarTest {
 
         @Test
         void having_countStar() {
-            JsonValue result = query(
-                    "SELECT dept, COUNT(*) AS cnt FROM $r GROUP BY dept HAVING COUNT(*) >= 2 ORDER BY dept ASC");
+            JsonValue result =
+                    query("SELECT dept, COUNT(*) AS cnt FROM $r GROUP BY dept HAVING COUNT(*) >= 2 ORDER BY dept ASC");
             assertEquals(1, arr(result).size());
             assertEquals("Engineering", str(f(arr(result).get(0), "dept")));
         }
 
         @Test
         void having_sumExpression() {
-            JsonValue result = query(
-                    "SELECT dept, SUM(age) AS total FROM $r GROUP BY dept HAVING SUM(age) > 50");
+            JsonValue result = query("SELECT dept, SUM(age) AS total FROM $r GROUP BY dept HAVING SUM(age) > 50");
             assertEquals(1, arr(result).size());
             assertEquals("Engineering", str(f(arr(result).get(0), "dept")));
         }
 
         @Test
         void having_avgExpression() {
-            JsonValue result = query(
-                    "SELECT dept, AVG(age) AS avg_age FROM $r GROUP BY dept HAVING AVG(age) < 25");
+            JsonValue result = query("SELECT dept, AVG(age) AS avg_age FROM $r GROUP BY dept HAVING AVG(age) < 25");
             assertEquals(1, arr(result).size());
             assertEquals("Sales", str(f(arr(result).get(0), "dept")));
         }
@@ -353,8 +348,7 @@ class GrammarTest {
 
         @Test
         void orderBy_countDesc() {
-            JsonValue result = query(
-                    "SELECT dept, COUNT(*) AS cnt FROM $r GROUP BY dept ORDER BY COUNT(*) DESC");
+            JsonValue result = query("SELECT dept, COUNT(*) AS cnt FROM $r GROUP BY dept ORDER BY COUNT(*) DESC");
             assertEquals(2, arr(result).size());
             assertEquals("Engineering", str(f(arr(result).get(0), "dept")));
             assertEquals("Sales", str(f(arr(result).get(1), "dept")));
@@ -362,8 +356,7 @@ class GrammarTest {
 
         @Test
         void orderBy_sumAsc() {
-            JsonValue result = query(
-                    "SELECT dept, SUM(age) AS total FROM $r GROUP BY dept ORDER BY SUM(age) ASC");
+            JsonValue result = query("SELECT dept, SUM(age) AS total FROM $r GROUP BY dept ORDER BY SUM(age) ASC");
             assertEquals(2, arr(result).size());
             assertEquals("Sales", str(f(arr(result).get(0), "dept")));
             assertEquals("Engineering", str(f(arr(result).get(1), "dept")));
@@ -371,8 +364,7 @@ class GrammarTest {
 
         @Test
         void orderBy_maxDesc() {
-            JsonValue result = query(
-                    "SELECT dept, MAX(age) AS oldest FROM $r GROUP BY dept ORDER BY MAX(age) DESC");
+            JsonValue result = query("SELECT dept, MAX(age) AS oldest FROM $r GROUP BY dept ORDER BY MAX(age) DESC");
             assertEquals(2, arr(result).size());
             assertEquals("Engineering", str(f(arr(result).get(0), "dept")));
         }
@@ -381,8 +373,7 @@ class GrammarTest {
 
         @Test
         void like_functionOnRhs() {
-            JsonValue result = query(
-                    "SELECT name FROM $r WHERE name LIKE UPPER('%li%') ORDER BY name ASC");
+            JsonValue result = query("SELECT name FROM $r WHERE name LIKE UPPER('%li%') ORDER BY name ASC");
             assertEquals(2, arr(result).size());
             assertEquals("Alice", str(f(arr(result).get(0), "name")));
             assertEquals("Charlie", str(f(arr(result).get(1), "name")));
@@ -399,17 +390,14 @@ class GrammarTest {
             String json = """
                     [{"name":"Alice","pat":"%z%"},{"name":"Bob","pat":"%ob"}]
                     """;
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT name FROM $r WHERE name LIKE pat",
-                    json);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT name FROM $r WHERE name LIKE pat", json);
             assertEquals(1, arr(result).size());
             assertEquals("Bob", str(f(arr(result).get(0), "name")));
         }
 
         @Test
         void notLike_functionOnRhs() {
-            JsonValue result = query(
-                    "SELECT name FROM $r WHERE name NOT LIKE UPPER('%li%')");
+            JsonValue result = query("SELECT name FROM $r WHERE name NOT LIKE UPPER('%li%')");
             assertEquals(1, arr(result).size());
             assertEquals("Bob", str(f(arr(result).get(0), "name")));
         }
@@ -419,9 +407,7 @@ class GrammarTest {
             String json = """
                     [{"name":"Alice","pat":"%z%"},{"name":"Bob","pat":"%ob"}]
                     """;
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT name FROM $r WHERE name NOT LIKE pat",
-                    json);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT name FROM $r WHERE name NOT LIKE pat", json);
             assertEquals(1, arr(result).size());
             assertEquals("Alice", str(f(arr(result).get(0), "name")));
         }
@@ -458,8 +444,7 @@ class GrammarTest {
         void emptyStringLiteral_inWhere() {
             String data = """
                     [{"name":"Alice"},{"name":""}]""";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE name = ''", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE name = ''", data);
             assertEquals(1, arr(result).size());
             assertEquals("", str(f(arr(result).getFirst(), "name")));
         }
@@ -467,8 +452,7 @@ class GrammarTest {
         @Test
         void emptyStringLiteral_inSelect() {
             String data = "[{\"x\":1}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT '' AS empty_val FROM $r", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT '' AS empty_val FROM $r", data);
             assertEquals(1, arr(result).size());
             assertEquals("", str(f(arr(result).getFirst(), "empty_val")));
         }
@@ -476,32 +460,28 @@ class GrammarTest {
         @Test
         void multipleConsecutiveEscapedQuotes() {
             String data = "[{\"val\":\"a'b'c\"}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE val = 'a''b''c'", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE val = 'a''b''c'", data);
             assertEquals(1, arr(result).size());
         }
 
         @Test
         void stringWithOnlyEscapedQuote() {
             String data = "[{\"val\":\"'\"}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE val = ''''", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE val = ''''", data);
             assertEquals(1, arr(result).size());
         }
 
         @Test
         void stringWithSpaces() {
             String data = "[{\"name\":\"  spaces  \"}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE name = '  spaces  '", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE name = '  spaces  '", data);
             assertEquals(1, arr(result).size());
         }
 
         @Test
         void stringWithSpecialCharacters() {
             String data = "[{\"val\":\"hello\\nworld\"}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE val IS NOT NULL", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE val IS NOT NULL", data);
             assertEquals(1, arr(result).size());
         }
 
@@ -509,8 +489,7 @@ class GrammarTest {
         void likeWithEmptyPattern() {
             String data = """
                     [{"name":"Alice"},{"name":""}]""";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE name LIKE ''", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE name LIKE ''", data);
             assertEquals(1, arr(result).size());
         }
 
@@ -518,8 +497,7 @@ class GrammarTest {
         void likeWithOnlyWildcard() {
             String data = """
                     [{"name":"Alice"},{"name":"Bob"},{"name":""}]""";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE name LIKE '%'", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE name LIKE '%'", data);
             assertEquals(3, arr(result).size());
         }
 
@@ -527,8 +505,7 @@ class GrammarTest {
         void likeWithUnderscoreWildcard() {
             String data = """
                     [{"code":"AB"},{"code":"A"},{"code":"ABC"}]""";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE code LIKE 'A_'", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE code LIKE 'A_'", data);
             assertEquals(1, arr(result).size());
             assertEquals("AB", str(f(arr(result).getFirst(), "code")));
         }
@@ -537,8 +514,7 @@ class GrammarTest {
         void inWithEmptyString() {
             String data = """
                     [{"name":"Alice"},{"name":""},{"name":"Bob"}]""";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE name IN ('', 'Bob')", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE name IN ('', 'Bob')", data);
             assertEquals(2, arr(result).size());
         }
     }
@@ -549,8 +525,7 @@ class GrammarTest {
         @Test
         void zeroInWhere() {
             String data = "[{\"val\":0},{\"val\":1},{\"val\":-1}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE val = 0", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE val = 0", data);
             assertEquals(1, arr(result).size());
             assertEquals(0, num(f(arr(result).getFirst(), "val")).intValue());
         }
@@ -558,8 +533,7 @@ class GrammarTest {
         @Test
         void decimalNumberInWhere() {
             String data = "[{\"price\":1.5},{\"price\":2.0},{\"price\":0.99}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE price > 0.99 AND price < 2.0", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE price > 0.99 AND price < 2.0", data);
             assertEquals(1, arr(result).size());
             assertEquals(1.5, num(f(arr(result).getFirst(), "price")).doubleValue(), 0.01);
         }
@@ -567,40 +541,35 @@ class GrammarTest {
         @Test
         void negativeDecimalInWhere() {
             String data = "[{\"temp\":-0.5},{\"temp\":0.5}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE temp = -0.5", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE temp = -0.5", data);
             assertEquals(1, arr(result).size());
         }
 
         @Test
         void largeNumberInWhere() {
             String data = "[{\"big\":999999999999}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE big > 999999999998", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE big > 999999999998", data);
             assertEquals(1, arr(result).size());
         }
 
         @Test
         void negativeInBetween() {
             String data = "[{\"val\":-5},{\"val\":0},{\"val\":5}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE val BETWEEN -10 AND 0", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE val BETWEEN -10 AND 0", data);
             assertEquals(2, arr(result).size());
         }
 
         @Test
         void zeroAsLimitReturnsEmpty() {
             String data = "[{\"a\":1},{\"a\":2}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r LIMIT 0", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r LIMIT 0", data);
             assertEquals(0, arr(result).size());
         }
 
         @Test
         void numberLiteralInSelect() {
             String data = "[{\"x\":1}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT 42 AS answer, -1 AS neg FROM $r", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT 42 AS answer, -1 AS neg FROM $r", data);
             assertEquals(1, arr(result).size());
             assertEquals(42, num(f(arr(result).getFirst(), "answer")).intValue());
             assertEquals(-1, num(f(arr(result).getFirst(), "neg")).intValue());
@@ -609,8 +578,7 @@ class GrammarTest {
         @Test
         void booleanLiteralInSelect() {
             String data = "[{\"x\":1}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT true AS flag FROM $r", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT true AS flag FROM $r", data);
             assertEquals(1, arr(result).size());
             assertTrue(f(arr(result).getFirst(), "flag").asBoolean().orElseThrow());
         }
@@ -622,8 +590,7 @@ class GrammarTest {
         @Test
         void identifierWithHyphen() {
             String data = "[{\"first-name\":\"Alice\",\"last-name\":\"Smith\"}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT first-name, last-name FROM $r", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT first-name, last-name FROM $r", data);
             assertEquals(1, arr(result).size());
             assertEquals("Alice", str(f(arr(result).getFirst(), "first-name")));
             assertEquals("Smith", str(f(arr(result).getFirst(), "last-name")));
@@ -632,8 +599,7 @@ class GrammarTest {
         @Test
         void identifierWithUnderscore() {
             String data = "[{\"_private\":1,\"__dunder\":2}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT _private, __dunder FROM $r", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT _private, __dunder FROM $r", data);
             assertEquals(1, arr(result).size());
             assertEquals(1, num(f(arr(result).getFirst(), "_private")).intValue());
             assertEquals(2, num(f(arr(result).getFirst(), "__dunder")).intValue());
@@ -642,8 +608,7 @@ class GrammarTest {
         @Test
         void singleCharIdentifier() {
             String data = "[{\"x\":1,\"y\":2,\"z\":3}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT x, y, z FROM $r WHERE x = 1", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT x, y, z FROM $r WHERE x = 1", data);
             assertEquals(1, arr(result).size());
         }
 
@@ -651,8 +616,7 @@ class GrammarTest {
         void keywordsAsFieldNames_extended() {
             String data = """
                     [{"inner":1,"left":2,"right":3,"join":4,"on":5,"over":6}]""";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT inner, left, right, join, on, over FROM $r", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT inner, left, right, join, on, over FROM $r", data);
             assertEquals(1, arr(result).size());
             assertEquals(1, num(f(arr(result).getFirst(), "inner")).intValue());
             assertEquals(4, num(f(arr(result).getFirst(), "join")).intValue());
@@ -662,16 +626,14 @@ class GrammarTest {
         void caseWhenKeywordsAsFieldNames() {
             String data = """
                     [{"case":10,"when":20,"then":30,"else":40,"end":50}]""";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT case, when, then, else, end FROM $r", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT case, when, then, else, end FROM $r", data);
             assertEquals(1, arr(result).size());
         }
 
         @Test
         void identifierWithDigits() {
             String data = "[{\"field1\":\"a\",\"field2b\":\"b\",\"f3ield\":\"c\"}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT field1, field2b, f3ield FROM $r", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT field1, field2b, f3ield FROM $r", data);
             assertEquals(1, arr(result).size());
             assertEquals("a", str(f(arr(result).getFirst(), "field1")));
         }
@@ -679,8 +641,8 @@ class GrammarTest {
         @Test
         void aliasContainingDots_createsNestedOutput() {
             String data = "[{\"name\":\"Alice\",\"age\":30}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT name AS person.info.name, age AS person.info.age FROM $r", data);
+            JsonValue result =
+                    SQL4Json.queryAsJsonValue("SELECT name AS person.info.name, age AS person.info.age FROM $r", data);
             var row = arr(result).getFirst();
             var person = obj(f(row, "person"));
             var info = obj(person.get("info"));
@@ -694,33 +656,30 @@ class GrammarTest {
         private final String data = "[{\"name\":\"Alice\",\"age\":25}]";
 
         @ParameterizedTest(name = "mixedCaseKeywords[{0}]")
-        @ValueSource(strings = {
-                "select * from $r",
-                "SELECT * FROM $r",
-                "Select * From $r",
-                "sElEcT * fRoM $r"
-        })
+        @ValueSource(strings = {"select * from $r", "SELECT * FROM $r", "Select * From $r", "sElEcT * fRoM $r"})
         void mixedCaseKeywords_allValid(String sql) {
             assertDoesNotThrow(() -> SQL4Json.queryAsJsonValue(sql, data));
         }
 
         @ParameterizedTest(name = "mixedCaseFunctions[{0}]")
-        @ValueSource(strings = {
-                "SELECT lower(name) AS n FROM $r",
-                "SELECT LOWER(name) AS n FROM $r",
-                "SELECT Lower(name) AS n FROM $r"
-        })
+        @ValueSource(
+                strings = {
+                    "SELECT lower(name) AS n FROM $r",
+                    "SELECT LOWER(name) AS n FROM $r",
+                    "SELECT Lower(name) AS n FROM $r"
+                })
         void mixedCaseFunctionNames_allValid(String sql) {
             JsonValue result = SQL4Json.queryAsJsonValue(sql, data);
             assertEquals("alice", str(f(arr(result).getFirst(), "n")));
         }
 
         @ParameterizedTest(name = "mixedCaseClauseKeywords[{0}]")
-        @ValueSource(strings = {
-                "SELECT * FROM $r where age > 10",
-                "SELECT * FROM $r WHERE age > 10",
-                "SELECT * FROM $r Where age > 10"
-        })
+        @ValueSource(
+                strings = {
+                    "SELECT * FROM $r where age > 10",
+                    "SELECT * FROM $r WHERE age > 10",
+                    "SELECT * FROM $r Where age > 10"
+                })
         void mixedCaseWhereKeyword(String sql) {
             JsonValue result = SQL4Json.queryAsJsonValue(sql, data);
             assertEquals(1, arr(result).size());
@@ -730,8 +689,7 @@ class GrammarTest {
         void mixedCaseAggFunctions() {
             String data = "[{\"g\":\"x\",\"a\":1},{\"g\":\"x\",\"a\":2},{\"g\":\"x\",\"a\":3}]";
             JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT count(*) AS cnt, sum(a) AS total, avg(a) AS average FROM $r GROUP BY g",
-                    data);
+                    "SELECT count(*) AS cnt, sum(a) AS total, avg(a) AS average FROM $r GROUP BY g", data);
             assertEquals(1, arr(result).size());
             assertEquals(3, num(f(arr(result).getFirst(), "cnt")).intValue());
         }
@@ -739,16 +697,15 @@ class GrammarTest {
         @Test
         void mixedCaseOrderDirection() {
             String data = "[{\"a\":1},{\"a\":2}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r ORDER BY a desc", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r ORDER BY a desc", data);
             assertEquals(2, num(f(arr(result).getFirst(), "a")).intValue());
         }
 
         @Test
         void mixedCaseDistinctLimitOffset() {
             String data = "[{\"a\":1},{\"a\":1},{\"a\":2}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "select distinct a from $r order by a asc limit 1 offset 0", data);
+            JsonValue result =
+                    SQL4Json.queryAsJsonValue("select distinct a from $r order by a asc limit 1 offset 0", data);
             assertEquals(1, arr(result).size());
             assertEquals(1, num(f(arr(result).getFirst(), "a")).intValue());
         }
@@ -756,10 +713,8 @@ class GrammarTest {
         @Test
         void mixedCaseIsNullIsNotNull() {
             String data = "[{\"a\":null},{\"a\":1}]";
-            JsonValue r1 = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE a is null", data);
-            JsonValue r2 = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE a Is Not Null", data);
+            JsonValue r1 = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE a is null", data);
+            JsonValue r2 = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE a Is Not Null", data);
             assertEquals(1, arr(r1).size());
             assertEquals(1, arr(r2).size());
         }
@@ -767,12 +722,9 @@ class GrammarTest {
         @Test
         void mixedCaseBetweenInLike() {
             String data = "[{\"a\":5,\"name\":\"Alice\"}]";
-            JsonValue r1 = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE a between 1 and 10", data);
-            JsonValue r2 = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE name like 'Ali%'", data);
-            JsonValue r3 = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE a in (5, 6)", data);
+            JsonValue r1 = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE a between 1 and 10", data);
+            JsonValue r2 = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE name like 'Ali%'", data);
+            JsonValue r3 = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE a in (5, 6)", data);
             assertEquals(1, arr(r1).size());
             assertEquals(1, arr(r2).size());
             assertEquals(1, arr(r3).size());
@@ -793,24 +745,22 @@ class GrammarTest {
 
         @Test
         void deeplyNestedParentheses() {
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE ((((a = 1))))", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE ((((a = 1))))", data);
             assertEquals(1, arr(result).size());
             assertEquals("Alice", str(f(arr(result).getFirst(), "name")));
         }
 
         @Test
         void multiLevelAndOrWithParentheses() {
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE (a = 1 OR a = 4) AND (b = 2 OR b = 5)", data);
+            JsonValue result =
+                    SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE (a = 1 OR a = 4) AND (b = 2 OR b = 5)", data);
             assertEquals(2, arr(result).size());
         }
 
         @Test
         void threeWayOrWithAndInside() {
             JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE (a = 1 AND b = 2) OR (a = 4 AND b = 5) OR (a = 7 AND c = 9)",
-                    data);
+                    "SELECT * FROM $r WHERE (a = 1 AND b = 2) OR (a = 4 AND b = 5) OR (a = 7 AND c = 9)", data);
             assertEquals(3, arr(result).size());
         }
 
@@ -826,8 +776,7 @@ class GrammarTest {
         @Test
         void notBetweenCombinedWithNotIn() {
             JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE a NOT BETWEEN 1 AND 6 AND name NOT IN ('Diana')",
-                    data);
+                    "SELECT * FROM $r WHERE a NOT BETWEEN 1 AND 6 AND name NOT IN ('Diana')", data);
             assertEquals(1, arr(result).size());
             assertEquals("Charlie", str(f(arr(result).getFirst(), "name")));
         }
@@ -835,22 +784,19 @@ class GrammarTest {
         @Test
         void notLikeCombinedWithNotIn() {
             JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE name NOT LIKE 'A%' AND name NOT IN ('Diana') AND status IS NOT NULL",
-                    data);
+                    "SELECT * FROM $r WHERE name NOT LIKE 'A%' AND name NOT IN ('Diana') AND status IS NOT NULL", data);
             assertEquals(2, arr(result).size());
         }
 
         @Test
         void andOrPrecedenceWithoutParens_threeTerms() {
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE a = 1 OR b = 5 AND c = 6", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE a = 1 OR b = 5 AND c = 6", data);
             assertEquals(2, arr(result).size());
         }
 
         @Test
         void parenthesesOverrideNaturalPrecedence() {
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE (a = 1 OR b = 5) AND c = 6", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE (a = 1 OR b = 5) AND c = 6", data);
             assertEquals(1, arr(result).size());
             assertEquals("Bob", str(f(arr(result).getFirst(), "name")));
         }
@@ -862,16 +808,14 @@ class GrammarTest {
         @Test
         void tripleNestedStringFunctions() {
             String data = "[{\"name\":\"  Alice  \"}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT UPPER(TRIM(LOWER(name))) AS processed FROM $r", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT UPPER(TRIM(LOWER(name))) AS processed FROM $r", data);
             assertEquals("ALICE", str(f(arr(result).getFirst(), "processed")));
         }
 
         @Test
         void functionInsideCastInsideFunction() {
             String data = "[{\"val\":\"42.7\"}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT ROUND(CAST(val AS NUMBER)) AS rounded FROM $r", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT ROUND(CAST(val AS NUMBER)) AS rounded FROM $r", data);
             assertEquals(43, num(f(arr(result).getFirst(), "rounded")).intValue());
         }
 
@@ -886,16 +830,14 @@ class GrammarTest {
         @Test
         void nestedFunctionInWhere() {
             String data = "[{\"name\":\"  Alice  \"},{\"name\":\"  Bob  \"}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE UPPER(TRIM(name)) = 'ALICE'", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE UPPER(TRIM(name)) = 'ALICE'", data);
             assertEquals(1, arr(result).size());
         }
 
         @Test
         void nestedFunctionInOrderBy() {
             String data = "[{\"name\":\"Bob\"},{\"name\":\"Alice\"}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r ORDER BY LOWER(name) ASC", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r ORDER BY LOWER(name) ASC", data);
             assertEquals("Alice", str(f(arr(result).getFirst(), "name")));
         }
 
@@ -912,8 +854,7 @@ class GrammarTest {
         @Test
         void lengthOfConcatResult() {
             String data = "[{\"a\":\"hello\",\"b\":\"world\"}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT LENGTH(CONCAT(a, b)) AS len FROM $r", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT LENGTH(CONCAT(a, b)) AS len FROM $r", data);
             assertEquals(10, num(f(arr(result).getFirst(), "len")).intValue());
         }
     }
@@ -963,8 +904,7 @@ class GrammarTest {
         @Test
         void castInOrderBy() {
             String data = "[{\"val\":\"100\"},{\"val\":\"20\"},{\"val\":\"3\"}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT val FROM $r ORDER BY CAST(val AS NUMBER) ASC", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT val FROM $r ORDER BY CAST(val AS NUMBER) ASC", data);
             assertEquals("3", str(f(arr(result).getFirst(), "val")));
             assertEquals("20", str(f(arr(result).get(1), "val")));
             assertEquals("100", str(f(arr(result).get(2), "val")));
@@ -983,15 +923,13 @@ class GrammarTest {
 
         @Test
         void betweenWithFunctionOnColumn() {
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE LENGTH(name) BETWEEN 3 AND 4", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE LENGTH(name) BETWEEN 3 AND 4", data);
             assertEquals(2, arr(result).size());
         }
 
         @Test
         void functionInBothSidesOfComparison() {
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE LOWER(name) = LOWER('ALICE')", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE LOWER(name) = LOWER('ALICE')", data);
             assertEquals(1, arr(result).size());
             assertEquals("Alice", str(f(arr(result).getFirst(), "name")));
         }
@@ -1028,8 +966,7 @@ class GrammarTest {
 
         @Test
         void orderByMultipleColumnsAndDirections() {
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r ORDER BY dept ASC, salary DESC", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r ORDER BY dept ASC, salary DESC", data);
             var rows = arr(result);
             assertEquals("Alice", str(f(rows.getFirst(), "name")));
             assertEquals("Bob", str(f(rows.get(1), "name")));
@@ -1043,14 +980,14 @@ class GrammarTest {
         void nestedSubquery_twoLevels() {
             String data = "[{\"name\":\"Alice\",\"age\":30},{\"name\":\"Bob\",\"age\":20}]";
             JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT n FROM (SELECT name AS n, age AS a FROM (SELECT * FROM $r WHERE age > 10))",
-                    data);
+                    "SELECT n FROM (SELECT name AS n, age AS a FROM (SELECT * FROM $r WHERE age > 10))", data);
             assertEquals(2, arr(result).size());
         }
 
         @Test
         void subqueryWithOrderByAndLimit() {
-            String data = "[{\"name\":\"Alice\",\"age\":30},{\"name\":\"Bob\",\"age\":20},{\"name\":\"Charlie\",\"age\":25}]";
+            String data =
+                    "[{\"name\":\"Alice\",\"age\":30},{\"name\":\"Bob\",\"age\":20},{\"name\":\"Charlie\",\"age\":25}]";
             JsonValue result = SQL4Json.queryAsJsonValue(
                     "SELECT * FROM (SELECT name, age FROM $r ORDER BY age ASC LIMIT 2)", data);
             assertEquals(2, arr(result).size());
@@ -1061,8 +998,7 @@ class GrammarTest {
             String data = """
                     [{"dept":"eng","salary":100},{"dept":"eng","salary":200},{"dept":"hr","salary":150}]""";
             JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM (SELECT dept, SUM(salary) AS total FROM $r GROUP BY dept) WHERE total > 150",
-                    data);
+                    "SELECT * FROM (SELECT dept, SUM(salary) AS total FROM $r GROUP BY dept) WHERE total > 150", data);
             assertEquals(1, arr(result).size());
             assertEquals("eng", str(f(arr(result).getFirst(), "dept")));
         }
@@ -1070,8 +1006,8 @@ class GrammarTest {
         @Test
         void subqueryWithWhereOnBothLevels() {
             String data = "[{\"a\":1,\"b\":10},{\"a\":2,\"b\":20},{\"a\":3,\"b\":30}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM (SELECT a, b FROM $r WHERE a > 1) WHERE b < 30", data);
+            JsonValue result =
+                    SQL4Json.queryAsJsonValue("SELECT * FROM (SELECT a, b FROM $r WHERE a > 1) WHERE b < 30", data);
             assertEquals(1, arr(result).size());
             assertEquals(2, num(f(arr(result).getFirst(), "a")).intValue());
         }
@@ -1083,8 +1019,7 @@ class GrammarTest {
         @Test
         void deepNestedJsonPath() {
             String data = "{\"a\":{\"b\":{\"c\":{\"d\":[{\"val\":1}]}}}}";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT val FROM $r.a.b.c.d", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT val FROM $r.a.b.c.d", data);
             assertEquals(1, arr(result).size());
             assertEquals(1, num(f(arr(result).getFirst(), "val")).intValue());
         }
@@ -1092,8 +1027,7 @@ class GrammarTest {
         @Test
         void rootOnSingleObject() {
             String data = "{\"name\":\"Alice\",\"age\":30}";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r", data);
             assertEquals(1, arr(result).size());
             assertEquals("Alice", str(f(arr(result).getFirst(), "name")));
         }
@@ -1101,8 +1035,7 @@ class GrammarTest {
         @Test
         void rootOnNestedSingleObject() {
             String data = "{\"data\":{\"name\":\"Alice\"}}";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT name FROM $r.data", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT name FROM $r.data", data);
             assertEquals(1, arr(result).size());
             assertEquals("Alice", str(f(arr(result).getFirst(), "name")));
         }
@@ -1115,29 +1048,25 @@ class GrammarTest {
 
         @Test
         void queryWithTrailingSemicolon() {
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r;", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r;", data);
             assertEquals(1, arr(result).size());
         }
 
         @Test
         void queryWithExtraWhitespace() {
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "  SELECT   *   FROM   $r  ", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("  SELECT   *   FROM   $r  ", data);
             assertEquals(1, arr(result).size());
         }
 
         @Test
         void queryWithTabs() {
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT\t*\tFROM\t$r", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT\t*\tFROM\t$r", data);
             assertEquals(1, arr(result).size());
         }
 
         @Test
         void queryWithNewlines() {
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT\n*\nFROM\n$r", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT\n*\nFROM\n$r", data);
             assertEquals(1, arr(result).size());
         }
 
@@ -1273,8 +1202,7 @@ class GrammarTest {
         @Test
         void windowFunctionWithNoPartitionNoOrder() {
             String data = "[{\"a\":1},{\"a\":2},{\"a\":3}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT a, SUM(a) OVER () AS total FROM $r", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT a, SUM(a) OVER () AS total FROM $r", data);
             assertEquals(3, arr(result).size());
             for (JsonValue row : arr(result)) {
                 assertEquals(6, num(f(row, "total")).intValue());
@@ -1325,80 +1253,74 @@ class GrammarTest {
 
         @Test
         void selectWithoutFrom() {
-            assertThrows(SQL4JsonParseException.class,
-                    () -> SQL4Json.queryAsJsonValue("SELECT *", data));
+            assertThrows(SQL4JsonParseException.class, () -> SQL4Json.queryAsJsonValue("SELECT *", data));
         }
 
         @Test
         void fromWithoutSelect() {
-            assertThrows(SQL4JsonParseException.class,
-                    () -> SQL4Json.queryAsJsonValue("FROM $r", data));
+            assertThrows(SQL4JsonParseException.class, () -> SQL4Json.queryAsJsonValue("FROM $r", data));
         }
 
         @Test
         void whereWithoutCondition() {
-            assertThrows(SQL4JsonParseException.class,
-                    () -> SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE", data));
+            assertThrows(SQL4JsonParseException.class, () -> SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE", data));
         }
 
         @Test
         void groupByWithoutColumn() {
-            assertThrows(SQL4JsonParseException.class,
-                    () -> SQL4Json.queryAsJsonValue("SELECT * FROM $r GROUP BY", data));
+            assertThrows(
+                    SQL4JsonParseException.class, () -> SQL4Json.queryAsJsonValue("SELECT * FROM $r GROUP BY", data));
         }
 
         @Test
         void orderByWithoutColumn() {
-            assertThrows(SQL4JsonParseException.class,
-                    () -> SQL4Json.queryAsJsonValue("SELECT * FROM $r ORDER BY", data));
+            assertThrows(
+                    SQL4JsonParseException.class, () -> SQL4Json.queryAsJsonValue("SELECT * FROM $r ORDER BY", data));
         }
 
         @Test
         void hangingAnd() {
-            assertThrows(SQL4JsonParseException.class,
+            assertThrows(
+                    SQL4JsonParseException.class,
                     () -> SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE a = 1 AND", data));
         }
 
         @Test
         void hangingOr() {
-            assertThrows(SQL4JsonParseException.class,
+            assertThrows(
+                    SQL4JsonParseException.class,
                     () -> SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE a = 1 OR", data));
         }
 
         @Test
         void unmatchedParenthesis() {
-            assertThrows(SQL4JsonException.class,
-                    () -> SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE (a = 1", data));
+            assertThrows(
+                    SQL4JsonException.class, () -> SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE (a = 1", data));
         }
 
         @Test
         void doubleCommaInSelect() {
-            assertThrows(SQL4JsonParseException.class,
-                    () -> SQL4Json.queryAsJsonValue("SELECT a,, b FROM $r", data));
+            assertThrows(SQL4JsonParseException.class, () -> SQL4Json.queryAsJsonValue("SELECT a,, b FROM $r", data));
         }
 
         @Test
         void whitespaceOnlyQuery() {
-            assertThrows(SQL4JsonException.class,
-                    () -> SQL4Json.queryAsJsonValue("   ", data));
+            assertThrows(SQL4JsonException.class, () -> SQL4Json.queryAsJsonValue("   ", data));
         }
 
         @Test
         void limitWithoutNumber() {
-            assertThrows(SQL4JsonParseException.class,
-                    () -> SQL4Json.queryAsJsonValue("SELECT * FROM $r LIMIT", data));
+            assertThrows(SQL4JsonParseException.class, () -> SQL4Json.queryAsJsonValue("SELECT * FROM $r LIMIT", data));
         }
 
         @Test
         void havingWithoutGroupBy_parsesSuccessfully() {
-            assertDoesNotThrow(
-                    () -> SQL4Json.queryAsJsonValue("SELECT * FROM $r HAVING a > 1", data));
+            assertDoesNotThrow(() -> SQL4Json.queryAsJsonValue("SELECT * FROM $r HAVING a > 1", data));
         }
 
         @Test
         void offsetWithoutLimit_parsesSuccessfully() {
-            assertDoesNotThrow(
-                    () -> SQL4Json.queryAsJsonValue("SELECT * FROM $r OFFSET 5", data));
+            assertDoesNotThrow(() -> SQL4Json.queryAsJsonValue("SELECT * FROM $r OFFSET 5", data));
         }
     }
 
@@ -1411,58 +1333,51 @@ class GrammarTest {
 
         @Test
         void nullComparison_neverMatches() {
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE a = null", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE a = null", data);
             assertEquals(0, arr(result).size());
         }
 
         @Test
         void nullInBetween_excluded() {
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE a BETWEEN 0 AND 10", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE a BETWEEN 0 AND 10", data);
             assertEquals(2, arr(result).size());
         }
 
         @Test
         void nullInNotBetween_excluded() {
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE a NOT BETWEEN 0 AND 2", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE a NOT BETWEEN 0 AND 2", data);
             assertEquals(1, arr(result).size());
         }
 
         @Test
         void nullInLike_excluded() {
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE b LIKE '%'", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE b LIKE '%'", data);
             assertEquals(2, arr(result).size());
         }
 
         @Test
         void nullInIn_excluded() {
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE a IN (1, 3)", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE a IN (1, 3)", data);
             assertEquals(2, arr(result).size());
         }
 
         @Test
         void nullInNotIn_excluded() {
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE a NOT IN (1)", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE a NOT IN (1)", data);
             assertEquals(1, arr(result).size());
         }
 
         @Test
         void coalesceHandlesNull() {
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT a, COALESCE(a, 0) AS val FROM $r ORDER BY val ASC", data);
+            JsonValue result =
+                    SQL4Json.queryAsJsonValue("SELECT a, COALESCE(a, 0) AS val FROM $r ORDER BY val ASC", data);
             var rows = arr(result);
             assertEquals(3, rows.size());
             boolean foundCoalescedZero = false;
             for (JsonValue row : rows) {
                 assertFalse(f(row, "val").isNull(), "COALESCE should never return null");
                 if (f(row, "a").isNull()) {
-                    assertEquals(0, num(f(row, "val")).intValue(),
-                            "COALESCE(null, 0) should produce 0");
+                    assertEquals(0, num(f(row, "val")).intValue(), "COALESCE(null, 0) should produce 0");
                     foundCoalescedZero = true;
                 }
             }
@@ -1471,8 +1386,7 @@ class GrammarTest {
 
         @Test
         void orderByWithNulls() {
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r ORDER BY a ASC", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r ORDER BY a ASC", data);
             assertEquals(3, arr(result).size());
         }
 
@@ -1488,8 +1402,7 @@ class GrammarTest {
         @Test
         void distinctOnNullableField() {
             String data = "[{\"a\":null},{\"a\":null},{\"a\":1}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT DISTINCT a FROM $r", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT DISTINCT a FROM $r", data);
             assertEquals(2, arr(result).size());
         }
     }
@@ -1577,8 +1490,7 @@ class GrammarTest {
         void queryOnMixedTypeArray() {
             String data = """
                     [{"val":"text"},{"val":42},{"val":true},{"val":null}]""";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE val IS NOT NULL", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE val IS NOT NULL", data);
             assertEquals(3, arr(result).size());
         }
 
@@ -1586,8 +1498,7 @@ class GrammarTest {
         void orderByOnMixedTypes() {
             String data = """
                     [{"name":"Alice","val":"text"},{"name":"Bob","val":42},{"name":"Charlie","val":null}]""";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r ORDER BY name ASC", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r ORDER BY name ASC", data);
             assertEquals(3, arr(result).size());
         }
 
@@ -1606,8 +1517,7 @@ class GrammarTest {
         void arrayFieldInData_selectStar() {
             String data = """
                     [{"name":"Alice","tags":["java","python"]},{"name":"Bob","tags":[]}]""";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r", data);
             assertEquals(2, arr(result).size());
         }
     }
@@ -1617,24 +1527,21 @@ class GrammarTest {
 
         @Test
         void countStarOnEmptyArray() {
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT COUNT(*) AS cnt FROM $r GROUP BY x", "[]");
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT COUNT(*) AS cnt FROM $r GROUP BY x", "[]");
             assertEquals(0, arr(result).size());
         }
 
         @Test
         void sumOnNullValues() {
             String data = "[{\"g\":\"x\",\"val\":null},{\"g\":\"x\",\"val\":null}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT SUM(val) AS total FROM $r GROUP BY g", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT SUM(val) AS total FROM $r GROUP BY g", data);
             assertEquals(1, arr(result).size());
         }
 
         @Test
         void avgOnSingleRow() {
             String data = "[{\"g\":\"x\",\"val\":42}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT AVG(val) AS average FROM $r GROUP BY g", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT AVG(val) AS average FROM $r GROUP BY g", data);
             assertEquals(1, arr(result).size());
             assertEquals(42.0, num(f(arr(result).getFirst(), "average")).doubleValue(), 0.01);
         }
@@ -1642,8 +1549,8 @@ class GrammarTest {
         @Test
         void minMaxOnSingleRow() {
             String data = "[{\"g\":\"x\",\"val\":42}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT MIN(val) AS low, MAX(val) AS high FROM $r GROUP BY g", data);
+            JsonValue result =
+                    SQL4Json.queryAsJsonValue("SELECT MIN(val) AS low, MAX(val) AS high FROM $r GROUP BY g", data);
             assertEquals(42, num(f(arr(result).getFirst(), "low")).intValue());
             assertEquals(42, num(f(arr(result).getFirst(), "high")).intValue());
         }
@@ -1651,8 +1558,8 @@ class GrammarTest {
         @Test
         void groupByWithSingleGroup() {
             String data = "[{\"g\":\"a\",\"v\":1},{\"g\":\"a\",\"v\":2},{\"g\":\"a\",\"v\":3}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT g, COUNT(*) AS cnt, SUM(v) AS total FROM $r GROUP BY g", data);
+            JsonValue result =
+                    SQL4Json.queryAsJsonValue("SELECT g, COUNT(*) AS cnt, SUM(v) AS total FROM $r GROUP BY g", data);
             assertEquals(1, arr(result).size());
             assertEquals(3, num(f(arr(result).getFirst(), "cnt")).intValue());
             assertEquals(6, num(f(arr(result).getFirst(), "total")).intValue());
@@ -1661,18 +1568,16 @@ class GrammarTest {
         @Test
         void groupByWhereAllRowsFiltered() {
             String data = "[{\"g\":\"a\",\"v\":1},{\"g\":\"b\",\"v\":2}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT g, COUNT(*) AS cnt FROM $r WHERE v > 100 GROUP BY g", data);
+            JsonValue result =
+                    SQL4Json.queryAsJsonValue("SELECT g, COUNT(*) AS cnt FROM $r WHERE v > 100 GROUP BY g", data);
             assertEquals(0, arr(result).size());
         }
 
         @Test
         void countStarVsCountColumn() {
             String data = "[{\"g\":\"x\",\"val\":1},{\"g\":\"x\",\"val\":null},{\"g\":\"x\",\"val\":3}]";
-            JsonValue r1 = SQL4Json.queryAsJsonValue(
-                    "SELECT COUNT(*) AS cnt FROM $r GROUP BY g", data);
-            JsonValue r2 = SQL4Json.queryAsJsonValue(
-                    "SELECT COUNT(val) AS cnt FROM $r GROUP BY g", data);
+            JsonValue r1 = SQL4Json.queryAsJsonValue("SELECT COUNT(*) AS cnt FROM $r GROUP BY g", data);
+            JsonValue r2 = SQL4Json.queryAsJsonValue("SELECT COUNT(val) AS cnt FROM $r GROUP BY g", data);
             assertEquals(3, num(f(arr(r1).getFirst(), "cnt")).intValue());
             assertEquals(2, num(f(arr(r2).getFirst(), "cnt")).intValue());
         }
@@ -1684,8 +1589,7 @@ class GrammarTest {
         @Test
         void nullifInWhere() {
             String data = "[{\"a\":0,\"name\":\"Alice\"},{\"a\":1,\"name\":\"Bob\"}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT * FROM $r WHERE NULLIF(a, 0) IS NULL", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT * FROM $r WHERE NULLIF(a, 0) IS NULL", data);
             assertEquals(1, arr(result).size());
             assertEquals("Alice", str(f(arr(result).getFirst(), "name")));
         }
@@ -1693,16 +1597,15 @@ class GrammarTest {
         @Test
         void coalesceChainedWithMultipleFallbacks() {
             String data = "[{\"a\":null,\"b\":null,\"c\":\"found\"}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT COALESCE(a, b, c) AS val FROM $r", data);
+            JsonValue result = SQL4Json.queryAsJsonValue("SELECT COALESCE(a, b, c) AS val FROM $r", data);
             assertEquals("found", str(f(arr(result).getFirst(), "val")));
         }
 
         @Test
         void nullifWithAggregateAvoidingZeroDivision() {
             String data = "[{\"g\":\"x\",\"val\":0},{\"g\":\"x\",\"val\":10},{\"g\":\"x\",\"val\":20}]";
-            JsonValue result = SQL4Json.queryAsJsonValue(
-                    "SELECT AVG(NULLIF(val, 0)) AS avg_nonzero FROM $r GROUP BY g", data);
+            JsonValue result =
+                    SQL4Json.queryAsJsonValue("SELECT AVG(NULLIF(val, 0)) AS avg_nonzero FROM $r GROUP BY g", data);
             assertEquals(1, arr(result).size());
             assertEquals(15.0, num(f(arr(result).getFirst(), "avg_nonzero")).doubleValue(), 0.01);
         }

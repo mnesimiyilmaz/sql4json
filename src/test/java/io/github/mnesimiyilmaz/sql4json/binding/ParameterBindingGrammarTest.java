@@ -1,4 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.binding;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.BoundParameters;
 import io.github.mnesimiyilmaz.sql4json.SQL4Json;
@@ -6,14 +9,12 @@ import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonParseException;
 import io.github.mnesimiyilmaz.sql4json.settings.Sql4jsonSettings;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
- * Grammar-coverage tests: confirm placeholders work in every value context the design
- * mentions, plus the error paths (mode mixing, {@code maxParameters}, invalid names).
+ * Grammar-coverage tests: confirm placeholders work in every value context the design mentions, plus the error paths
+ * (mode mixing, {@code maxParameters}, invalid names).
  *
- * <p>Distinct from {@code ParameterBindingIntegrationTest} which focuses on higher-level
- * API scenarios — this class is the parse-side coverage net.
+ * <p>Distinct from {@code ParameterBindingIntegrationTest} which focuses on higher-level API scenarios — this class is
+ * the parse-side coverage net.
  */
 class ParameterBindingGrammarTest {
 
@@ -26,7 +27,8 @@ class ParameterBindingGrammarTest {
     @Test
     void when_placeholder_in_equality() {
         assertTrue(SQL4Json.prepare("SELECT s FROM $r WHERE n = :n")
-                .execute(JSON, BoundParameters.named().bind("n", 2)).contains("Bob"));
+                .execute(JSON, BoundParameters.named().bind("n", 2))
+                .contains("Bob"));
     }
 
     @Test
@@ -48,8 +50,7 @@ class ParameterBindingGrammarTest {
 
     @Test
     void when_placeholder_in_in_list_multi() {
-        String r = SQL4Json.prepare("SELECT s FROM $r WHERE n IN (?, ?)")
-                .execute(JSON, 1, 3);
+        String r = SQL4Json.prepare("SELECT s FROM $r WHERE n IN (?, ?)").execute(JSON, 1, 3);
         assertTrue(r.contains("Alice"));
         assertTrue(r.contains("Carol"));
         assertFalse(r.contains("Bob"));
@@ -71,16 +72,16 @@ class ParameterBindingGrammarTest {
 
     @Test
     void when_mixed_positional_and_named_then_parse_exception() {
-        assertThrows(SQL4JsonParseException.class,
-                () -> SQL4Json.prepare("SELECT * FROM $r WHERE n = ? AND s = :s"));
+        assertThrows(SQL4JsonParseException.class, () -> SQL4Json.prepare("SELECT * FROM $r WHERE n = ? AND s = :s"));
     }
 
     @Test
     void when_maxParameters_exceeded_then_parse_exception() {
-        Sql4jsonSettings tight = Sql4jsonSettings.builder()
-                .limits(l -> l.maxParameters(2)).build();
-        assertThrows(SQL4JsonParseException.class, () -> SQL4Json.prepare(
-                "SELECT * FROM $r WHERE n = ? AND n = ? AND n = ?", tight));
+        Sql4jsonSettings tight =
+                Sql4jsonSettings.builder().limits(l -> l.maxParameters(2)).build();
+        assertThrows(
+                SQL4JsonParseException.class,
+                () -> SQL4Json.prepare("SELECT * FROM $r WHERE n = ? AND n = ? AND n = ?", tight));
     }
 
     @Test
@@ -93,8 +94,7 @@ class ParameterBindingGrammarTest {
 
     @Test
     void when_invalid_named_identifier_starts_with_digit_then_parse_exception() {
-        assertThrows(SQL4JsonParseException.class,
-                () -> SQL4Json.prepare("SELECT * FROM $r WHERE n = :1bad"));
+        assertThrows(SQL4JsonParseException.class, () -> SQL4Json.prepare("SELECT * FROM $r WHERE n = :1bad"));
     }
 
     @Test
@@ -111,8 +111,7 @@ class ParameterBindingGrammarTest {
         // Direction can't be parameterised (it's a keyword), but literals inside ORDER BY
         // expressions can. This one just confirms the query parses cleanly with a param
         // used later in WHERE + fixed ORDER BY direction.
-        String r = SQL4Json.prepare(
-                        "SELECT s FROM $r WHERE n >= :min ORDER BY n DESC")
+        String r = SQL4Json.prepare("SELECT s FROM $r WHERE n >= :min ORDER BY n DESC")
                 .execute(JSON, BoundParameters.named().bind("min", 2));
         // Both Bob (n=2) and Carol (n=3) qualify; ORDER BY DESC puts Carol first.
         int carolIdx = r.indexOf("Carol");

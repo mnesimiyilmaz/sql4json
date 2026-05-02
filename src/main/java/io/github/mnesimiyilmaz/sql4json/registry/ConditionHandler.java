@@ -1,10 +1,11 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.registry;
 
 /**
  * Strategy interface for converting a ConditionContext into a CriteriaNode.
- * <p>
- * Implementations are registered in ConditionHandlerRegistry.
- * Each handler declares which condition types it can handle via canHandle().
+ *
+ * <p>Implementations are registered in ConditionHandlerRegistry. Each handler declares which condition types it can
+ * handle via canHandle().
  */
 public interface ConditionHandler {
     /**
@@ -18,7 +19,7 @@ public interface ConditionHandler {
     /**
      * Converts the given condition context into an executable criteria node.
      *
-     * @param ctx       the condition context with all parameters
+     * @param ctx the condition context with all parameters
      * @param operators operator registry for comparison predicates
      * @param functions function registry for expression evaluation
      * @return a criteria node that evaluates this condition against rows

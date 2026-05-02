@@ -1,7 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.engine;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -14,30 +14,32 @@ import java.util.OptionalInt;
 import java.util.Set;
 
 /**
- * Immutable column-ordinal map. Each {@link FlatRow} carries a reference to a
- * shared {@code RowSchema}; values are stored in an {@code Object[]} keyed by
- * column ordinal.
+ * Immutable column-ordinal map. Each {@link FlatRow} carries a reference to a shared {@code RowSchema}; values are
+ * stored in an {@code Object[]} keyed by column ordinal.
  *
  * <p>Provides three indexes built at construction:
+ *
  * <ul>
- *   <li>{@code FieldKey} → ordinal for field-key lookups</li>
- *   <li>family-name → ordinal[] for nested-array reconstruction in the unflattener</li>
- *   <li>{@link Expression.WindowFnCall} → ordinal for window-result lookups (lazy; built only when {@link #withWindowSlots(List, Map)} is called)</li>
+ *   <li>{@code FieldKey} → ordinal for field-key lookups
+ *   <li>family-name → ordinal[] for nested-array reconstruction in the unflattener
+ *   <li>{@link Expression.WindowFnCall} → ordinal for window-result lookups (lazy; built only when
+ *       {@link #withWindowSlots(List, Map)} is called)
  * </ul>
  *
  * @since 1.2.0
  */
 public final class RowSchema {
 
-    private final FieldKey[]                            columns;
-    private final Map<FieldKey, Integer>                index;
-    private final Map<String, int[]>                    familyIndex;
+    private final FieldKey[] columns;
+    private final Map<FieldKey, Integer> index;
+    private final Map<String, int[]> familyIndex;
     private final Map<Expression.WindowFnCall, Integer> windowSlots;
 
-    private RowSchema(FieldKey[] columns,
-                      Map<FieldKey, Integer> index,
-                      Map<String, int[]> familyIndex,
-                      Map<Expression.WindowFnCall, Integer> windowSlots) {
+    private RowSchema(
+            FieldKey[] columns,
+            Map<FieldKey, Integer> index,
+            Map<String, int[]> familyIndex,
+            Map<Expression.WindowFnCall, Integer> windowSlots) {
         this.columns = columns;
         this.index = index;
         this.familyIndex = familyIndex;
@@ -56,12 +58,10 @@ public final class RowSchema {
         Map<FieldKey, Integer> idx = HashMap.newHashMap(cols.length);
         for (int i = 0; i < cols.length; i++) {
             if (idx.putIfAbsent(cols[i], i) != null) {
-                throw new SQL4JsonExecutionException(
-                        "Duplicate column in RowSchema: " + cols[i].getKey());
+                throw new SQL4JsonExecutionException("Duplicate column in RowSchema: " + cols[i].getKey());
             }
         }
-        return new RowSchema(cols, Collections.unmodifiableMap(idx),
-                buildFamilyIndex(cols), null);
+        return new RowSchema(cols, Collections.unmodifiableMap(idx), buildFamilyIndex(cols), null);
     }
 
     private static Map<String, int[]> buildFamilyIndex(FieldKey[] columns) {
@@ -109,8 +109,8 @@ public final class RowSchema {
     }
 
     /**
-     * Returns the ordinals belonging to a family (e.g. all members of a
-     * nested-array group), or an empty array if no match.
+     * Returns the ordinals belonging to a family (e.g. all members of a nested-array group), or an empty array if no
+     * match.
      *
      * @param family the family path (array-index-stripped)
      * @return the column ordinals in source order
@@ -120,8 +120,8 @@ public final class RowSchema {
     }
 
     /**
-     * Returns the slot ordinal for a window function call, when this schema was
-     * built with {@link #withWindowSlots(List, Map)}.
+     * Returns the slot ordinal for a window function call, when this schema was built with
+     * {@link #withWindowSlots(List, Map)}.
      *
      * @param call the window function call
      * @return the slot ordinal, or empty
@@ -142,9 +142,8 @@ public final class RowSchema {
     }
 
     /**
-     * Returns a new schema retaining only the given columns, in the iteration
-     * order of {@code keep} (use {@link LinkedHashSet} when a deterministic
-     * column order is required).
+     * Returns a new schema retaining only the given columns, in the iteration order of {@code keep} (use
+     * {@link LinkedHashSet} when a deterministic column order is required).
      *
      * @param keep columns to retain (must be a subset of this schema)
      * @return the projected schema
@@ -154,8 +153,8 @@ public final class RowSchema {
     }
 
     /**
-     * Returns a new schema concatenating this schema with {@code other}. Used by
-     * JOIN. Throws if the two schemas share a column key.
+     * Returns a new schema concatenating this schema with {@code other}. Used by JOIN. Throws if the two schemas share
+     * a column key.
      *
      * @param other the schema to append
      * @return the concatenated schema
@@ -166,8 +165,7 @@ public final class RowSchema {
         Collections.addAll(merged, columns);
         for (FieldKey k : other.columns) {
             if (index.containsKey(k)) {
-                throw new SQL4JsonExecutionException(
-                        "JOIN schema collision on column: " + k.getKey());
+                throw new SQL4JsonExecutionException("JOIN schema collision on column: " + k.getKey());
             }
             merged.add(k);
         }
@@ -175,19 +173,17 @@ public final class RowSchema {
     }
 
     /**
-     * Returns a new schema with window-result slots appended after the existing
-     * columns. The returned schema knows the slot ordinal for each call. When a
-     * call appears in {@code aliasesByCall}, the alias is used as the column
-     * key for the slot — so callers reading {@code row.get(aliasKey)} resolve
-     * to the slot value via the regular index. Calls without an alias get a
-     * synthetic column key.
+     * Returns a new schema with window-result slots appended after the existing columns. The returned schema knows the
+     * slot ordinal for each call. When a call appears in {@code aliasesByCall}, the alias is used as the column key for
+     * the slot — so callers reading {@code row.get(aliasKey)} resolve to the slot value via the regular index. Calls
+     * without an alias get a synthetic column key.
      *
-     * @param calls         window function calls in source order
+     * @param calls window function calls in source order
      * @param aliasesByCall optional map of WindowFnCall → SELECT alias FieldKey
      * @return the schema with window slots
      */
-    public RowSchema withWindowSlots(List<Expression.WindowFnCall> calls,
-                                     Map<Expression.WindowFnCall, FieldKey> aliasesByCall) {
+    public RowSchema withWindowSlots(
+            List<Expression.WindowFnCall> calls, Map<Expression.WindowFnCall, FieldKey> aliasesByCall) {
         if (calls.isEmpty()) {
             return new RowSchema(columns, index, familyIndex, Map.of());
         }
@@ -205,14 +201,16 @@ public final class RowSchema {
             slots.put(call, next);
             next++;
         }
-        return new RowSchema(grown, Collections.unmodifiableMap(grownIndex),
-                buildFamilyIndex(grown), Collections.unmodifiableMap(slots));
+        return new RowSchema(
+                grown,
+                Collections.unmodifiableMap(grownIndex),
+                buildFamilyIndex(grown),
+                Collections.unmodifiableMap(slots));
     }
 
     /**
-     * Convenience overload: equivalent to
-     * {@code withWindowSlots(calls, Map.of())} — every slot gets a synthetic
-     * column key.
+     * Convenience overload: equivalent to {@code withWindowSlots(calls, Map.of())} — every slot gets a synthetic column
+     * key.
      *
      * @param calls window function calls in source order
      * @return the schema with window slots
@@ -230,17 +228,12 @@ public final class RowSchema {
         return List.of(columns);
     }
 
-    /**
-     * Builder for incremental schema construction (used during inline collection
-     * for {@code SELECT *}).
-     */
+    /** Builder for incremental schema construction (used during inline collection for {@code SELECT *}). */
     public static final class Builder {
 
         private final LinkedHashMap<FieldKey, Integer> seen = new LinkedHashMap<>();
 
-        /**
-         * Creates an empty builder.
-         */
+        /** Creates an empty builder. */
         public Builder() {
             // Intentionally empty — the seen map is initialized via field initializer.
         }

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.grouping;
 
 import io.github.mnesimiyilmaz.sql4json.engine.ExpressionEvaluator;
@@ -9,36 +10,36 @@ import io.github.mnesimiyilmaz.sql4json.parser.SelectColumnDef;
 import io.github.mnesimiyilmaz.sql4json.registry.FunctionRegistry;
 import io.github.mnesimiyilmaz.sql4json.types.SqlNull;
 import io.github.mnesimiyilmaz.sql4json.types.SqlValue;
-
 import java.util.List;
 
 /**
  * Applies SELECT column definitions to a group of rows, returning one aggregated {@link FlatRow}.
  *
  * <p>Key convention (must match JsonUnflattener.reconstructFromAggregatedRow):
+ *
  * <ul>
- *   <li>Aggregate results are stored under {@code FieldKey.of(col.aliasOrName())} — so HAVING
- *       can reference them by alias.</li>
- *   <li>Non-aggregate results are stored under {@code FieldKey.of(col.columnName())} — consistent
- *       with the cherry-pick path in JsonUnflattener.</li>
+ *   <li>Aggregate results are stored under {@code FieldKey.of(col.aliasOrName())} — so HAVING can reference them by
+ *       alias.
+ *   <li>Non-aggregate results are stored under {@code FieldKey.of(col.columnName())} — consistent with the cherry-pick
+ *       path in JsonUnflattener.
  * </ul>
  */
 public final class GroupAggregator {
 
-    private GroupAggregator() {
-    }
+    private GroupAggregator() {}
 
     /**
      * Aggregates a group of rows according to the given SELECT column definitions.
      *
-     * @param group            the rows in one GROUP BY group (lazy or flat)
-     * @param selectedColumns  SELECT column definitions (aggregates and group-by keys)
+     * @param group the rows in one GROUP BY group (lazy or flat)
+     * @param selectedColumns SELECT column definitions (aggregates and group-by keys)
      * @param functionRegistry function registry for expression evaluation
      * @return a single aggregated {@link FlatRow}
      */
-    public static FlatRow aggregate(List<? extends RowAccessor> group,
-                                    List<SelectColumnDef> selectedColumns,
-                                    FunctionRegistry functionRegistry) {
+    public static FlatRow aggregate(
+            List<? extends RowAccessor> group,
+            List<SelectColumnDef> selectedColumns,
+            FunctionRegistry functionRegistry) {
         RowSchema schema = buildSchema(selectedColumns, group);
         Object[] values = new Object[schema.size()];
         populateValues(schema, values, selectedColumns, group, functionRegistry);
@@ -47,8 +48,7 @@ public final class GroupAggregator {
 
     // Schema: one column per non-window SELECT entry; SELECT * expands to the
     // representative row's keys (same convention as the legacy Row.eager path).
-    private static RowSchema buildSchema(List<SelectColumnDef> selectedColumns,
-                                         List<? extends RowAccessor> group) {
+    private static RowSchema buildSchema(List<SelectColumnDef> selectedColumns, List<? extends RowAccessor> group) {
         var schemaBuilder = new RowSchema.Builder();
         for (SelectColumnDef col : selectedColumns) {
             if (col.containsWindow()) continue;
@@ -61,10 +61,12 @@ public final class GroupAggregator {
         return schemaBuilder.build();
     }
 
-    private static void populateValues(RowSchema schema, Object[] values,
-                                       List<SelectColumnDef> selectedColumns,
-                                       List<? extends RowAccessor> group,
-                                       FunctionRegistry functionRegistry) {
+    private static void populateValues(
+            RowSchema schema,
+            Object[] values,
+            List<SelectColumnDef> selectedColumns,
+            List<? extends RowAccessor> group,
+            FunctionRegistry functionRegistry) {
         for (SelectColumnDef col : selectedColumns) {
             if (col.containsWindow()) continue; // computed later by WindowStage
             if (col.isAsterisk()) {
@@ -87,8 +89,7 @@ public final class GroupAggregator {
         return FieldKey.of(colPath != null ? colPath : col.aliasOrName());
     }
 
-    private static void populateAsterisk(RowSchema schema, Object[] values,
-                                         List<? extends RowAccessor> group) {
+    private static void populateAsterisk(RowSchema schema, Object[] values, List<? extends RowAccessor> group) {
         group.getFirst().entries().forEach(e -> {
             int ord = schema.indexOf(e.getKey());
             if (ord >= 0 && !(e.getValue() instanceof SqlNull)) {
@@ -97,20 +98,24 @@ public final class GroupAggregator {
         });
     }
 
-    private static void populateAggregate(RowSchema schema, Object[] values, SelectColumnDef col,
-                                          List<? extends RowAccessor> group,
-                                          FunctionRegistry functionRegistry) {
-        SqlValue agg = ExpressionEvaluator.evaluateAggregate(
-                col.expression(), group, functionRegistry);
+    private static void populateAggregate(
+            RowSchema schema,
+            Object[] values,
+            SelectColumnDef col,
+            List<? extends RowAccessor> group,
+            FunctionRegistry functionRegistry) {
+        SqlValue agg = ExpressionEvaluator.evaluateAggregate(col.expression(), group, functionRegistry);
         int ord = schema.indexOf(FieldKey.of(col.aliasOrName()));
         if (!(agg instanceof SqlNull)) values[ord] = agg;
     }
 
-    private static void populateGroupKey(RowSchema schema, Object[] values, SelectColumnDef col,
-                                         List<? extends RowAccessor> group,
-                                         FunctionRegistry functionRegistry) {
-        SqlValue v = ExpressionEvaluator.evaluate(
-                col.expression(), group.getFirst(), functionRegistry);
+    private static void populateGroupKey(
+            RowSchema schema,
+            Object[] values,
+            SelectColumnDef col,
+            List<? extends RowAccessor> group,
+            FunctionRegistry functionRegistry) {
+        SqlValue v = ExpressionEvaluator.evaluate(col.expression(), group.getFirst(), functionRegistry);
         int ord = schema.indexOf(columnKey(col));
         if (!(v instanceof SqlNull)) values[ord] = v;
     }

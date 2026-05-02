@@ -32,10 +32,11 @@ SQL4Json is a Java library that enables SQL-like querying of JSON data. It parse
 # Each scenario runs N times; -Dprofiling.runs=N (default 3, median is the official number).
 ./mvnw test -Plarge-tests -Dtest=ProfilingTest -Dprofiling.runs=3
 
-# Dry-run the full release profile without publishing or signing —
+# Dry-run the full release profile without publishing, signing, or hitting the NVD —
 # builds sources + javadoc jars and exercises the release pipeline so
-# release-only failures surface before tagging.
-./mvnw clean deploy -Prelease -DskipPublishing=true -Dgpg.skip=true
+# release-only failures surface before tagging. Skip OWASP locally (the release profile
+# binds it to verify; without NVD_API_KEY it falls back to the public feed and is slow).
+./mvnw clean deploy -Prelease -DskipPublishing=true -Dgpg.skip=true -Ddependency-check.skip=true
 ```
 
 Tests use JUnit 5 covering unit tests, integration tests, edge cases, and performance. **Gotcha:** Default `./mvnw test` excludes tests tagged `@Tag("large")` — run `./mvnw test -Plarge-tests` to execute only those. CI runs `spotless:check` then `clean verify` via GitHub Actions (`ci.yml`).

@@ -1,11 +1,12 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.settings;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.SQL4Json;
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException;
 import io.github.mnesimiyilmaz.sql4json.json.DefaultJsonCodec;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class DefaultJsonCodecSettingsTests {
 
@@ -50,15 +51,16 @@ class DefaultJsonCodecSettingsTests {
 
     @Test
     void compact_constructor_rejects_null_duplicate_key_policy() {
-        assertThrows(NullPointerException.class,
-                () -> new DefaultJsonCodecSettings(1, 1, 1, 1, 1, 1, null));
+        assertThrows(NullPointerException.class, () -> new DefaultJsonCodecSettings(1, 1, 1, 1, 1, 1, null));
     }
 
     @Test
     void compact_constructor_rejects_non_positive_limits() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> new DefaultJsonCodecSettings(0, 1, 1, 1, 1, 1, DuplicateKeyPolicy.REJECT));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> new DefaultJsonCodecSettings(1, 1, 1, 1, 1, -5, DuplicateKeyPolicy.REJECT));
     }
 
@@ -74,7 +76,8 @@ class DefaultJsonCodecSettingsTests {
     @Test
     void parse_accepts_input_at_exactly_maxInputLength() {
         String json = "{\"a\":1}";
-        var limits = DefaultJsonCodecSettings.builder().maxInputLength(json.length()).build();
+        var limits =
+                DefaultJsonCodecSettings.builder().maxInputLength(json.length()).build();
         var codec = new DefaultJsonCodec(limits);
         assertDoesNotThrow(() -> codec.parse(json));
     }
@@ -83,8 +86,7 @@ class DefaultJsonCodecSettingsTests {
     void parse_rejects_array_above_maxArrayElements() {
         var limits = DefaultJsonCodecSettings.builder().maxArrayElements(3).build();
         var codec = new DefaultJsonCodec(limits);
-        var ex = assertThrows(SQL4JsonExecutionException.class,
-                () -> codec.parse("[1,2,3,4]"));
+        var ex = assertThrows(SQL4JsonExecutionException.class, () -> codec.parse("[1,2,3,4]"));
         assertTrue(ex.getMessage().contains("exceeds configured maximum"));
     }
 
@@ -97,16 +99,16 @@ class DefaultJsonCodecSettingsTests {
 
     @Test
     void parse_rejects_duplicate_keys_by_default() {
-        var codec = new DefaultJsonCodec();  // defaults: REJECT
-        var ex = assertThrows(SQL4JsonExecutionException.class,
-                () -> codec.parse("{\"a\":1,\"a\":2}"));
+        var codec = new DefaultJsonCodec(); // defaults: REJECT
+        var ex = assertThrows(SQL4JsonExecutionException.class, () -> codec.parse("{\"a\":1,\"a\":2}"));
         assertTrue(ex.getMessage().toLowerCase().contains("duplicate"));
     }
 
     @Test
     void parse_last_wins_policy() {
         var limits = DefaultJsonCodecSettings.builder()
-                .duplicateKeyPolicy(DuplicateKeyPolicy.LAST_WINS).build();
+                .duplicateKeyPolicy(DuplicateKeyPolicy.LAST_WINS)
+                .build();
         var codec = new DefaultJsonCodec(limits);
         var result = codec.parse("{\"a\":1,\"a\":2}");
         // verify 'a' = 2 (LAST_WINS)
@@ -116,7 +118,8 @@ class DefaultJsonCodecSettingsTests {
     @Test
     void parse_first_wins_policy() {
         var limits = DefaultJsonCodecSettings.builder()
-                .duplicateKeyPolicy(DuplicateKeyPolicy.FIRST_WINS).build();
+                .duplicateKeyPolicy(DuplicateKeyPolicy.FIRST_WINS)
+                .build();
         var codec = new DefaultJsonCodec(limits);
         var result = codec.parse("{\"a\":1,\"a\":2}");
         assertEquals("1", extractFieldAsString(result, "a"));
@@ -130,14 +133,21 @@ class DefaultJsonCodecSettingsTests {
         // This array is well beyond 16 characters.
         String largeJson = "[{\"id\":1,\"name\":\"Alice\"},{\"id\":2,\"name\":\"Bob\"}]";
         var settings = Sql4jsonSettings.builder().codec(codec).build();
-        var ex = assertThrows(SQL4JsonExecutionException.class,
-                () -> SQL4Json.query("SELECT id FROM $r", largeJson, settings));
-        assertTrue(ex.getMessage().contains("input length exceeds configured maximum"),
+        var ex = assertThrows(
+                SQL4JsonExecutionException.class, () -> SQL4Json.query("SELECT id FROM $r", largeJson, settings));
+        assertTrue(
+                ex.getMessage().contains("input length exceeds configured maximum"),
                 "Expected limit message but got: " + ex.getMessage());
     }
 
     // Helper: read a top-level numeric field from a JsonValue as string
     private static String extractFieldAsString(io.github.mnesimiyilmaz.sql4json.types.JsonValue v, String field) {
-        return v.asObject().orElseThrow().get(field).asNumber().orElseThrow().toString().replaceAll("\\..*", "");
+        return v.asObject()
+                .orElseThrow()
+                .get(field)
+                .asNumber()
+                .orElseThrow()
+                .toString()
+                .replaceAll("\\..*", "");
     }
 }

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.engine;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException;
@@ -10,7 +11,6 @@ import io.github.mnesimiyilmaz.sql4json.parser.JoinEquality;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
 import io.github.mnesimiyilmaz.sql4json.types.SqlNull;
 import io.github.mnesimiyilmaz.sql4json.types.SqlValue;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -18,15 +18,12 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Hash JOIN executor for INNER, LEFT, and RIGHT joins.
- * Builds a hash map from one side, probes from the other.
+ * Hash JOIN executor for INNER, LEFT, and RIGHT joins. Builds a hash map from one side, probes from the other.
  *
- * <p>As of 1.2.0 the executor operates on {@link FlatRow} end-to-end. Inputs and
- * outputs are {@code List<FlatRow>} sharing a {@link RowSchema} computed once
- * per join step by the caller via {@link RowSchema#concat(RowSchema)}. The
- * merged schema is always {@code leftSchema.concat(rightSchema)} regardless of
- * join direction; for RIGHT joins the inputs are swapped internally but the
- * resulting columns retain the original left-then-right ordering.</p>
+ * <p>As of 1.2.0 the executor operates on {@link FlatRow} end-to-end. Inputs and outputs are {@code List<FlatRow>}
+ * sharing a {@link RowSchema} computed once per join step by the caller via {@link RowSchema#concat(RowSchema)}. The
+ * merged schema is always {@code leftSchema.concat(rightSchema)} regardless of join direction; for RIGHT joins the
+ * inputs are swapped internally but the resulting columns retain the original left-then-right ordering.
  */
 final class JoinExecutor {
 
@@ -37,18 +34,16 @@ final class JoinExecutor {
     /**
      * Execute a single JOIN step.
      *
-     * @param left         rows from the left (accumulated) side
-     * @param right        rows from the right (joined) side
-     * @param mergedSchema the combined output schema, computed by the caller as
-     *                     {@code leftSchema.concat(rightSchema)} so column
-     *                     ordering matches the user's expectation across all
-     *                     join types
-     * @param joinDef      the join definition (type, ON conditions)
-     * @param maxRows      the row-count cap from the active settings
+     * @param left rows from the left (accumulated) side
+     * @param right rows from the right (joined) side
+     * @param mergedSchema the combined output schema, computed by the caller as {@code leftSchema.concat(rightSchema)}
+     *     so column ordering matches the user's expectation across all join types
+     * @param joinDef the join definition (type, ON conditions)
+     * @param maxRows the row-count cap from the active settings
      * @return merged rows
      */
-    static List<FlatRow> execute(List<FlatRow> left, List<FlatRow> right,
-                                 RowSchema mergedSchema, JoinDef joinDef, int maxRows) {
+    static List<FlatRow> execute(
+            List<FlatRow> left, List<FlatRow> right, RowSchema mergedSchema, JoinDef joinDef, int maxRows) {
         return switch (joinDef.joinType()) {
             case INNER -> innerJoin(left, right, joinDef.onConditions(), mergedSchema, maxRows);
             case LEFT -> leftJoin(left, right, joinDef.onConditions(), mergedSchema, maxRows);
@@ -59,9 +54,12 @@ final class JoinExecutor {
         };
     }
 
-    private static List<FlatRow> innerJoin(List<FlatRow> left, List<FlatRow> right,
-                                           List<JoinEquality> conditions,
-                                           RowSchema mergedSchema, int maxRows) {
+    private static List<FlatRow> innerJoin(
+            List<FlatRow> left,
+            List<FlatRow> right,
+            List<JoinEquality> conditions,
+            RowSchema mergedSchema,
+            int maxRows) {
         boolean buildFromRight = right.size() <= left.size();
         List<FlatRow> buildSide = buildFromRight ? right : left;
         List<FlatRow> probeSide = buildFromRight ? left : right;
@@ -82,9 +80,12 @@ final class JoinExecutor {
         return result;
     }
 
-    private static List<FlatRow> leftJoin(List<FlatRow> left, List<FlatRow> right,
-                                          List<JoinEquality> conditions,
-                                          RowSchema mergedSchema, int maxRows) {
+    private static List<FlatRow> leftJoin(
+            List<FlatRow> left,
+            List<FlatRow> right,
+            List<JoinEquality> conditions,
+            RowSchema mergedSchema,
+            int maxRows) {
         Map<JoinKey, List<FlatRow>> rightMap = buildHashMap(right, conditions, true);
 
         var result = new ArrayList<FlatRow>();
@@ -106,14 +107,12 @@ final class JoinExecutor {
 
     private static void checkRowLimit(int currentSize, int maxRows) {
         if (currentSize >= maxRows) {
-            throw new SQL4JsonExecutionException(
-                    "JOIN row count exceeds configured maximum (" + maxRows + ")");
+            throw new SQL4JsonExecutionException("JOIN row count exceeds configured maximum (" + maxRows + ")");
         }
     }
 
-    private static Map<JoinKey, List<FlatRow>> buildHashMap(List<FlatRow> rows,
-                                                            List<JoinEquality> conditions,
-                                                            boolean useRightPaths) {
+    private static Map<JoinKey, List<FlatRow>> buildHashMap(
+            List<FlatRow> rows, List<JoinEquality> conditions, boolean useRightPaths) {
         var map = new HashMap<JoinKey, List<FlatRow>>();
         for (FlatRow row : rows) {
             JoinKey key = extractKey(row, conditions, useRightPaths);
@@ -125,13 +124,12 @@ final class JoinExecutor {
     /**
      * Extract key values from a row for the given conditions.
      *
-     * @param row            the row to extract values from
-     * @param conditions     the equality conditions
-     * @param useRightPaths  {@code true} → use rightPath from each equality; {@code false} → use leftPath
+     * @param row the row to extract values from
+     * @param conditions the equality conditions
+     * @param useRightPaths {@code true} → use rightPath from each equality; {@code false} → use leftPath
      * @return the composite key
      */
-    private static JoinKey extractKey(FlatRow row, List<JoinEquality> conditions,
-                                      boolean useRightPaths) {
+    private static JoinKey extractKey(FlatRow row, List<JoinEquality> conditions, boolean useRightPaths) {
         var values = new ArrayList<SqlValue>(conditions.size());
         for (JoinEquality eq : conditions) {
             String path = useRightPaths ? eq.rightPath() : eq.leftPath();
@@ -174,12 +172,11 @@ final class JoinExecutor {
     }
 
     /**
-     * Flatten a JSON array source into alias-prefixed {@link FlatRow}s sharing a
-     * single {@link RowSchema} that captures every field key seen across the
-     * batch.
+     * Flatten a JSON array source into alias-prefixed {@link FlatRow}s sharing a single {@link RowSchema} that captures
+     * every field key seen across the batch.
      *
-     * @param data     the JSON value to flatten (array or single object)
-     * @param alias    the table alias used as a column prefix
+     * @param data the JSON value to flatten (array or single object)
+     * @param alias the table alias used as a column prefix
      * @param interner the field-key interner for deduplication
      * @return the flattened rows together with the unified schema
      */
@@ -200,10 +197,9 @@ final class JoinExecutor {
     }
 
     /**
-     * Hint for {@link HashMap#newHashMap(int)} — keeps the per-row hash table
-     * from resizing 3-4 times during full flatten on typical 13-field rows.
-     * Falls back to a small default for non-object inputs (rare — primitive
-     * bound as a table source).
+     * Hint for {@link HashMap#newHashMap(int)} — keeps the per-row hash table from resizing 3-4 times during full
+     * flatten on typical 13-field rows. Falls back to a small default for non-object inputs (rare — primitive bound as
+     * a table source).
      */
     @SkipCoverageGenerated
     private static int estimateFlatSize(JsonValue v) {
@@ -233,9 +229,8 @@ final class JoinExecutor {
     /**
      * Container for the output of {@link #flattenSource(JsonValue, String, FieldKey.Interner)}.
      *
-     * @param rows   the flattened rows in source order
+     * @param rows the flattened rows in source order
      * @param schema the unified schema covering every field key in {@code rows}
      */
-    record FlattenedSource(List<FlatRow> rows, RowSchema schema) {
-    }
+    record FlattenedSource(List<FlatRow> rows, RowSchema schema) {}
 }

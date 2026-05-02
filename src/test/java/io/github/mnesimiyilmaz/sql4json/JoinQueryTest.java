@@ -1,4 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.engine.QueryExecutor;
 import io.github.mnesimiyilmaz.sql4json.json.DefaultJsonCodec;
@@ -6,13 +9,10 @@ import io.github.mnesimiyilmaz.sql4json.json.JsonParser;
 import io.github.mnesimiyilmaz.sql4json.parser.QueryParser;
 import io.github.mnesimiyilmaz.sql4json.settings.Sql4jsonSettings;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 
 class JoinQueryTest {
 
@@ -38,8 +38,7 @@ class JoinQueryTest {
         String sql = """
                 SELECT u.name AS name, o.amount AS amount
                 FROM users u JOIN orders o ON u.id = o.user_id""";
-        JsonValue result = SQL4Json.queryAsJsonValue(sql,
-                Map.of("users", USERS, "orders", ORDERS));
+        JsonValue result = SQL4Json.queryAsJsonValue(sql, Map.of("users", USERS, "orders", ORDERS));
 
         var arr = result.asArray().orElseThrow();
         assertEquals(3, arr.size()); // Alice has 2 orders, Bob has 1
@@ -50,18 +49,20 @@ class JoinQueryTest {
         String sql = """
                 SELECT u.name AS name, o.amount AS amount
                 FROM users u LEFT JOIN orders o ON u.id = o.user_id""";
-        JsonValue result = SQL4Json.queryAsJsonValue(sql,
-                Map.of("users", USERS, "orders", ORDERS));
+        JsonValue result = SQL4Json.queryAsJsonValue(sql, Map.of("users", USERS, "orders", ORDERS));
 
         var arr = result.asArray().orElseThrow();
         assertEquals(4, arr.size()); // Alice(2) + Bob(1) + Charlie(1 with null)
 
         // Charlie has no orders — amount should be null
         var charlie = arr.stream()
-                .filter(v -> v.asObject().map(m -> m.get("name"))
+                .filter(v -> v.asObject()
+                        .map(m -> m.get("name"))
                         .flatMap(JsonValue::asString)
-                        .map("Charlie"::equals).orElse(false))
-                .findFirst().orElseThrow();
+                        .map("Charlie"::equals)
+                        .orElse(false))
+                .findFirst()
+                .orElseThrow();
         assertTrue(charlie.asObject().orElseThrow().get("amount").isNull());
     }
 
@@ -70,19 +71,28 @@ class JoinQueryTest {
         String sql = """
                 SELECT u.name AS name, o.amount AS amount
                 FROM users u RIGHT JOIN orders o ON u.id = o.user_id""";
-        JsonValue result = SQL4Json.queryAsJsonValue(sql,
-                Map.of("users", USERS, "orders", ORDERS));
+        JsonValue result = SQL4Json.queryAsJsonValue(sql, Map.of("users", USERS, "orders", ORDERS));
 
         var arr = result.asArray().orElseThrow();
         assertEquals(4, arr.size()); // 3 matched + 1 unmatched order (user_id=999)
 
         // Unmatched order should have null name
         var unmatched = arr.stream()
-                .filter(v -> v.asObject().map(m -> m.get("name"))
-                        .map(JsonValue::isNull).orElse(false))
-                .findFirst().orElseThrow();
-        assertEquals(50.0, unmatched.asObject().orElseThrow().get("amount")
-                .asNumber().orElseThrow().doubleValue());
+                .filter(v -> v.asObject()
+                        .map(m -> m.get("name"))
+                        .map(JsonValue::isNull)
+                        .orElse(false))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(
+                50.0,
+                unmatched
+                        .asObject()
+                        .orElseThrow()
+                        .get("amount")
+                        .asNumber()
+                        .orElseThrow()
+                        .doubleValue());
     }
 
     @Test
@@ -91,8 +101,7 @@ class JoinQueryTest {
                 SELECT u.name AS name, o.amount AS amount
                 FROM users u JOIN orders o ON u.id = o.user_id
                 WHERE o.status = 'completed'""";
-        JsonValue result = SQL4Json.queryAsJsonValue(sql,
-                Map.of("users", USERS, "orders", ORDERS));
+        JsonValue result = SQL4Json.queryAsJsonValue(sql, Map.of("users", USERS, "orders", ORDERS));
 
         var arr = result.asArray().orElseThrow();
         assertEquals(2, arr.size()); // Alice(250) + Bob(350)
@@ -106,8 +115,7 @@ class JoinQueryTest {
                 WHERE o.status = 'completed'
                 GROUP BY u.dept
                 ORDER BY total DESC""";
-        JsonValue result = SQL4Json.queryAsJsonValue(sql,
-                Map.of("users", USERS, "orders", ORDERS));
+        JsonValue result = SQL4Json.queryAsJsonValue(sql, Map.of("users", USERS, "orders", ORDERS));
 
         var arr = result.asArray().orElseThrow();
         assertEquals(2, arr.size());
@@ -120,8 +128,7 @@ class JoinQueryTest {
     @Test
     void static_api_query_returns_string() {
         String sql = "SELECT u.name AS name FROM users u JOIN orders o ON u.id = o.user_id";
-        String result = SQL4Json.query(sql,
-                Map.of("users", USERS, "orders", ORDERS));
+        String result = SQL4Json.query(sql, Map.of("users", USERS, "orders", ORDERS));
         assertNotNull(result);
         assertTrue(result.contains("Alice"));
     }
@@ -131,8 +138,7 @@ class JoinQueryTest {
     @Test
     void non_aliased_columns_produce_flat_dotted_keys() {
         String sql = "SELECT u.name, o.amount FROM users u JOIN orders o ON u.id = o.user_id";
-        JsonValue result = SQL4Json.queryAsJsonValue(sql,
-                Map.of("users", USERS, "orders", ORDERS));
+        JsonValue result = SQL4Json.queryAsJsonValue(sql, Map.of("users", USERS, "orders", ORDERS));
 
         var first = result.asArray().orElseThrow().getFirst().asObject().orElseThrow();
         // Non-aliased dotted columns are output as flat keys (e.g. "u.name")
@@ -144,10 +150,8 @@ class JoinQueryTest {
 
     @Test
     void engine_api_named_sources() {
-        SQL4JsonEngine engine = SQL4Json.engine()
-                .data("users", USERS)
-                .data("orders", ORDERS)
-                .build();
+        SQL4JsonEngine engine =
+                SQL4Json.engine().data("users", USERS).data("orders", ORDERS).build();
 
         JsonValue result = engine.queryAsJsonValue(
                 "SELECT u.name AS name, o.amount AS amount FROM users u JOIN orders o ON u.id = o.user_id");
@@ -165,15 +169,15 @@ class JoinQueryTest {
                 .data("orders", ordersData)
                 .build();
 
-        JsonValue result = engine.queryAsJsonValue(
-                "SELECT u.name AS name FROM users u JOIN orders o ON u.id = o.user_id");
+        JsonValue result =
+                engine.queryAsJsonValue("SELECT u.name AS name FROM users u JOIN orders o ON u.id = o.user_id");
         assertEquals(3, result.asArray().orElseThrow().size());
     }
 
     @Test
     void engine_api_mixed_named_and_unnamed() {
         SQL4JsonEngine engine = SQL4Json.engine()
-                .data(USERS)  // unnamed — for $r queries
+                .data(USERS) // unnamed — for $r queries
                 .data("users", USERS)
                 .data("orders", ORDERS)
                 .build();
@@ -183,8 +187,7 @@ class JoinQueryTest {
         assertEquals(3, r1.asArray().orElseThrow().size());
 
         // JOIN query uses named sources
-        JsonValue r2 = engine.queryAsJsonValue(
-                "SELECT u.name AS name FROM users u JOIN orders o ON u.id = o.user_id");
+        JsonValue r2 = engine.queryAsJsonValue("SELECT u.name AS name FROM users u JOIN orders o ON u.id = o.user_id");
         assertEquals(3, r2.asArray().orElseThrow().size());
     }
 
@@ -192,25 +195,29 @@ class JoinQueryTest {
 
     @Test
     void unknown_table_throws() {
-        var ex = assertThrows(Exception.class, () ->
-                SQL4Json.queryAsJsonValue(
-                        "SELECT * FROM users u JOIN orders o ON u.id = o.user_id",
-                        Map.of("users", USERS)));
-        assertEquals("Unknown table", ex.getMessage());
+        // default settings have redactErrorDetails=false, so the message includes the missing key + available set
+        var ex = assertThrows(
+                Exception.class,
+                () -> SQL4Json.queryAsJsonValue(
+                        "SELECT * FROM users u JOIN orders o ON u.id = o.user_id", Map.of("users", USERS)));
+        assertTrue(ex.getMessage().contains("orders"), "message must include the missing table name");
+        assertTrue(ex.getMessage().contains("users"), "message must include available keys");
     }
 
     @Test
     void engine_join_without_named_sources_throws() {
         SQL4JsonEngine engine = SQL4Json.engine().data(USERS).build();
-        assertThrows(Exception.class, () -> engine.queryAsJsonValue(
-                "SELECT u.name AS name FROM users u JOIN orders o ON u.id = o.user_id"));
+        assertThrows(
+                Exception.class,
+                () -> engine.queryAsJsonValue("SELECT u.name AS name FROM users u JOIN orders o ON u.id = o.user_id"));
     }
 
     // ── Backward compatibility ──────────────────────────────────────
 
     @Test
     void existing_single_source_api_unchanged() {
-        String result = SQL4Json.query("SELECT name FROM $r WHERE age > 25",
+        String result = SQL4Json.query(
+                "SELECT name FROM $r WHERE age > 25",
                 "[{\"name\":\"Alice\",\"age\":30},{\"name\":\"Bob\",\"age\":20}]");
         assertTrue(result.contains("Alice"));
         assertFalse(result.contains("Bob"));
@@ -220,10 +227,10 @@ class JoinQueryTest {
 
     @Test
     void on_condition_non_equality_operator_throws_parse_exception() {
-        assertThrows(io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonParseException.class,
+        assertThrows(
+                io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonParseException.class,
                 () -> SQL4Json.queryAsJsonValue(
-                        "SELECT * FROM a a1 JOIN b b1 ON a1.x > b1.x",
-                        Map.of("a", "[]", "b", "[]")));
+                        "SELECT * FROM a a1 JOIN b b1 ON a1.x > b1.x", Map.of("a", "[]", "b", "[]")));
     }
 
     @Test
@@ -234,7 +241,8 @@ class JoinQueryTest {
         var executor = new QueryExecutor();
         var qd = QueryParser.parse("SELECT * FROM missing m JOIN orders o ON m.id = o.user_id");
         Map<String, JsonValue> sources = Map.of("orders", JsonParser.parse("[]"));
-        var ex = assertThrows(io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException.class,
+        var ex = assertThrows(
+                io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException.class,
                 () -> executor.execute(qd, sources, settings));
         assertTrue(ex.getMessage().contains("missing"));
         assertTrue(ex.getMessage().contains("Available"));
@@ -248,7 +256,8 @@ class JoinQueryTest {
         var executor = new QueryExecutor();
         var qd = QueryParser.parse("SELECT * FROM users u JOIN missing m ON u.id = m.id");
         Map<String, JsonValue> sources = Map.of("users", JsonParser.parse("[]"));
-        var ex = assertThrows(io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException.class,
+        var ex = assertThrows(
+                io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException.class,
                 () -> executor.execute(qd, sources, settings));
         assertTrue(ex.getMessage().contains("missing"));
     }
@@ -296,8 +305,7 @@ class JoinQueryTest {
     @Test
     void join_with_select_asterisk() {
         JsonValue result = SQL4Json.queryAsJsonValue(
-                "SELECT * FROM users u JOIN orders o ON u.id = o.user_id",
-                Map.of("users", USERS, "orders", ORDERS));
+                "SELECT * FROM users u JOIN orders o ON u.id = o.user_id", Map.of("users", USERS, "orders", ORDERS));
         var arr = result.asArray().orElseThrow();
         assertEquals(3, arr.size());
         var first = arr.getFirst().asObject().orElseThrow();
@@ -313,16 +321,14 @@ class JoinQueryTest {
                 FROM users u JOIN orders o ON u.id = o.user_id
                 ORDER BY o.amount DESC
                 LIMIT 2 OFFSET 1""";
-        JsonValue result = SQL4Json.queryAsJsonValue(sql,
-                Map.of("users", USERS, "orders", ORDERS));
+        JsonValue result = SQL4Json.queryAsJsonValue(sql, Map.of("users", USERS, "orders", ORDERS));
         assertEquals(2, result.asArray().orElseThrow().size());
     }
 
     @Test
     void join_with_distinct() {
         String sql = "SELECT DISTINCT u.dept AS dept FROM users u JOIN orders o ON u.id = o.user_id";
-        JsonValue result = SQL4Json.queryAsJsonValue(sql,
-                Map.of("users", USERS, "orders", ORDERS));
+        JsonValue result = SQL4Json.queryAsJsonValue(sql, Map.of("users", USERS, "orders", ORDERS));
         var arr = result.asArray().orElseThrow();
         // Join produces 3 rows (Alice×2 orders + Bob×1 order); each row retains all
         // merged fields so DISTINCT sees 3 unique combinations (orders 101 and 102 differ).
@@ -345,9 +351,8 @@ class JoinQueryTest {
                 JOIN order_items oi ON o.order_id = oi.order_id
                 JOIN products p ON oi.product_id = p.id""";
 
-        JsonValue result = SQL4Json.queryAsJsonValue(sql, Map.of(
-                "users", USERS, "orders", ORDERS,
-                "order_items", orderItems, "products", products));
+        JsonValue result = SQL4Json.queryAsJsonValue(
+                sql, Map.of("users", USERS, "orders", ORDERS, "order_items", orderItems, "products", products));
 
         var arr = result.asArray().orElseThrow();
         assertEquals(2, arr.size()); // order 101 → Widget, order 103 → Gadget
@@ -429,7 +434,8 @@ class JoinQueryTest {
             // Alice (TR) has orders 101 and 103 → 2 rows
             assertEquals(2, arr.size());
             for (JsonValue row : arr) {
-                assertEquals("Alice",
+                assertEquals(
+                        "Alice",
                         row.asObject().orElseThrow().get("name").asString().orElseThrow());
             }
         }
@@ -456,12 +462,30 @@ class JoinQueryTest {
             List<JsonValue> arr = result.asArray().orElseThrow();
             assertEquals(3, arr.size());
             // Alphabetical by shipping city: Ankara (order 103), Berlin (order 102), Istanbul (order 101)
-            assertEquals("Ankara",
-                    arr.get(0).asObject().orElseThrow().get("ship_city").asString().orElseThrow());
-            assertEquals("Berlin",
-                    arr.get(1).asObject().orElseThrow().get("ship_city").asString().orElseThrow());
-            assertEquals("Istanbul",
-                    arr.get(2).asObject().orElseThrow().get("ship_city").asString().orElseThrow());
+            assertEquals(
+                    "Ankara",
+                    arr.get(0)
+                            .asObject()
+                            .orElseThrow()
+                            .get("ship_city")
+                            .asString()
+                            .orElseThrow());
+            assertEquals(
+                    "Berlin",
+                    arr.get(1)
+                            .asObject()
+                            .orElseThrow()
+                            .get("ship_city")
+                            .asString()
+                            .orElseThrow());
+            assertEquals(
+                    "Istanbul",
+                    arr.get(2)
+                            .asObject()
+                            .orElseThrow()
+                            .get("ship_city")
+                            .asString()
+                            .orElseThrow());
         }
 
         @Test
@@ -476,10 +500,13 @@ class JoinQueryTest {
 
             // Carol appears with null order_id
             JsonValue carolRow = arr.stream()
-                    .filter(v -> v.asObject().map(m -> m.get("name"))
+                    .filter(v -> v.asObject()
+                            .map(m -> m.get("name"))
                             .flatMap(JsonValue::asString)
-                            .map("Carol"::equals).orElse(false))
-                    .findFirst().orElseThrow();
+                            .map("Carol"::equals)
+                            .orElse(false))
+                    .findFirst()
+                    .orElseThrow();
             assertTrue(carolRow.asObject().orElseThrow().get("order_id").isNull());
         }
 
@@ -495,10 +522,13 @@ class JoinQueryTest {
 
             // Dave appears with null city and null order_id
             JsonValue daveRow = arr.stream()
-                    .filter(v -> v.asObject().map(m -> m.get("name"))
+                    .filter(v -> v.asObject()
+                            .map(m -> m.get("name"))
                             .flatMap(JsonValue::asString)
-                            .map("Dave"::equals).orElse(false))
-                    .findFirst().orElseThrow();
+                            .map("Dave"::equals)
+                            .orElse(false))
+                    .findFirst()
+                    .orElseThrow();
             Map<String, JsonValue> daveObj = daveRow.asObject().orElseThrow();
             assertTrue(daveObj.get("order_id").isNull());
             assertTrue(daveObj.get("city").isNull());
@@ -516,14 +546,16 @@ class JoinQueryTest {
 
             // Unmatched order 104 should have null name
             JsonValue unmatched = arr.stream()
-                    .filter(v -> v.asObject().map(m -> m.get("name"))
-                            .map(JsonValue::isNull).orElse(false))
-                    .findFirst().orElseThrow();
+                    .filter(v -> v.asObject()
+                            .map(m -> m.get("name"))
+                            .map(JsonValue::isNull)
+                            .orElse(false))
+                    .findFirst()
+                    .orElseThrow();
             Map<String, JsonValue> unmatchedObj = unmatched.asObject().orElseThrow();
-            assertEquals(104,
-                    unmatchedObj.get("order_id").asNumber().orElseThrow().intValue());
-            assertEquals("Paris",
-                    unmatchedObj.get("ship_city").asString().orElseThrow());
+            assertEquals(
+                    104, unmatchedObj.get("order_id").asNumber().orElseThrow().intValue());
+            assertEquals("Paris", unmatchedObj.get("ship_city").asString().orElseThrow());
         }
 
         @Test
@@ -538,12 +570,18 @@ class JoinQueryTest {
 
             // Alice's lat should be 41.0
             double aliceLat = arr.stream()
-                    .filter(v -> v.asObject().map(m -> m.get("name"))
+                    .filter(v -> v.asObject()
+                            .map(m -> m.get("name"))
                             .flatMap(JsonValue::asString)
-                            .map("Alice"::equals).orElse(false))
-                    .findFirst().orElseThrow()
-                    .asObject().orElseThrow()
-                    .get("lat").asNumber().orElseThrow()
+                            .map("Alice"::equals)
+                            .orElse(false))
+                    .findFirst()
+                    .orElseThrow()
+                    .asObject()
+                    .orElseThrow()
+                    .get("lat")
+                    .asNumber()
+                    .orElseThrow()
                     .doubleValue();
             assertEquals(41.0, aliceLat, 0.001);
         }

@@ -1,16 +1,17 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.json;
 
 import java.util.*;
 
 /**
- * A compact, immutable, insertion-ordered {@code Map<String, V>} backed by parallel arrays.
- * Designed for JSON objects where field counts are small (typically 5-20 keys).
+ * A compact, immutable, insertion-ordered {@code Map<String, V>} backed by parallel arrays. Designed for JSON objects
+ * where field counts are small (typically 5-20 keys).
  *
- * <p>Memory overhead is ~3x less than {@link LinkedHashMap} because there are no
- * Entry/Node objects, no linked-list pointers, and no hash-table backing array.
+ * <p>Memory overhead is ~3x less than {@link LinkedHashMap} because there are no Entry/Node objects, no linked-list
+ * pointers, and no hash-table backing array.
  *
- * <p>Lookup is O(n) via linear scan, but for small maps this is faster than HashMap
- * due to cache-line locality — all keys are contiguous in memory.
+ * <p>Lookup is O(n) via linear scan, but for small maps this is faster than HashMap due to cache-line locality — all
+ * keys are contiguous in memory.
  *
  * <p>This map is unmodifiable: all mutation methods throw {@link UnsupportedOperationException}.
  */
@@ -21,9 +22,11 @@ import java.util.*;
 final class CompactStringMap<V> extends AbstractMap<String, V> {
 
     private final String[] keys;
+
     @SuppressWarnings("java:S2387")
     private final Object[] values;
-    private final int      size;
+
+    private final int size;
 
     CompactStringMap(LinkedHashMap<String, V> source) {
         int n = source.size();
@@ -39,14 +42,13 @@ final class CompactStringMap<V> extends AbstractMap<String, V> {
     }
 
     /**
-     * Wraps {@code keys} and {@code values} arrays directly. Caller transfers
-     * ownership — the arrays must not be mutated after construction. Used by
-     * {@link JsonParser} to skip the intermediate {@link LinkedHashMap} that
-     * the legacy constructor required.
+     * Wraps {@code keys} and {@code values} arrays directly. Caller transfers ownership — the arrays must not be
+     * mutated after construction. Used by {@link JsonParser} to skip the intermediate {@link LinkedHashMap} that the
+     * legacy constructor required.
      *
-     * <p>Uses {@code keys.length} as the size — the arrays must be exact-fit.</p>
+     * <p>Uses {@code keys.length} as the size — the arrays must be exact-fit.
      *
-     * @param keys   the key array; length must match {@code values.length}
+     * @param keys the key array; length must match {@code values.length}
      * @param values the value array
      */
     CompactStringMap(String[] keys, Object[] values) {
@@ -54,13 +56,12 @@ final class CompactStringMap<V> extends AbstractMap<String, V> {
     }
 
     /**
-     * Wraps {@code keys} and {@code values} arrays with an explicit size when
-     * the arrays may have trailing unused slots (e.g. parser builders that
-     * skip trim allocations for nearly-full buffers).
+     * Wraps {@code keys} and {@code values} arrays with an explicit size when the arrays may have trailing unused slots
+     * (e.g. parser builders that skip trim allocations for nearly-full buffers).
      *
-     * @param keys   the key array (capacity ≥ {@code size})
+     * @param keys the key array (capacity ≥ {@code size})
      * @param values the value array (capacity ≥ {@code size})
-     * @param size   logical entry count
+     * @param size logical entry count
      */
     CompactStringMap(String[] keys, Object[] values, int size) {
         this.keys = keys;

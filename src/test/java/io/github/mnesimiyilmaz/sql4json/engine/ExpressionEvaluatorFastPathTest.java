@@ -1,20 +1,19 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.engine;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.mnesimiyilmaz.sql4json.sorting.SqlValueComparator;
 import io.github.mnesimiyilmaz.sql4json.types.SqlNull;
 import io.github.mnesimiyilmaz.sql4json.types.SqlNumber;
 import io.github.mnesimiyilmaz.sql4json.types.SqlValue;
+import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
 
-import java.math.BigDecimal;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 /**
- * Verifies the typed numeric fast paths added to {@link SqlValueComparator} —
- * Long/Long, Long/Double, Double/Long, Double/Double avoid the {@code doubleValue()}
- * boxing fallback. Decimal involvement still routes via the generic
+ * Verifies the typed numeric fast paths added to {@link SqlValueComparator} — Long/Long, Long/Double, Double/Long,
+ * Double/Double avoid the {@code doubleValue()} boxing fallback. Decimal involvement still routes via the generic
  * {@code Double.compare(doubleValue, doubleValue)} branch.
  *
  * @since 1.2.0

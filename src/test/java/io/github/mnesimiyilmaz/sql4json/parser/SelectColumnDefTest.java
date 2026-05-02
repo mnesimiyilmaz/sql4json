@@ -1,4 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.parser;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.engine.Expression;
 import io.github.mnesimiyilmaz.sql4json.engine.Expression.*;
@@ -6,12 +9,9 @@ import io.github.mnesimiyilmaz.sql4json.engine.WindowSpec;
 import io.github.mnesimiyilmaz.sql4json.registry.CriteriaNode;
 import io.github.mnesimiyilmaz.sql4json.types.SqlNumber;
 import io.github.mnesimiyilmaz.sql4json.types.SqlString;
-import org.junit.jupiter.api.Test;
-
 import java.util.List;
 import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class SelectColumnDefTest {
 
@@ -24,9 +24,8 @@ class SelectColumnDefTest {
     @Test
     void aggFunction_aggregateNestedInScalar() {
         // ROUND(AVG(salary), 2) — aggregate nested inside scalar
-        Expression expr = new ScalarFnCall("round", List.of(
-                new AggregateFnCall("AVG", new ColumnRef("salary")),
-                new LiteralVal(SqlNumber.of(2))));
+        Expression expr = new ScalarFnCall(
+                "round", List.of(new AggregateFnCall("AVG", new ColumnRef("salary")), new LiteralVal(SqlNumber.of(2))));
         var col = SelectColumnDef.of(expr, "avg_sal");
         assertEquals("AVG", col.aggFunction());
     }
@@ -52,8 +51,7 @@ class SelectColumnDefTest {
 
     @Test
     void scalar_factoryMethod() {
-        var col = SelectColumnDef.scalar("lower", "name", "lname",
-                List.of(new SqlString("en-US")));
+        var col = SelectColumnDef.scalar("lower", "name", "lname", List.of(new SqlString("en-US")));
         assertEquals("name", col.columnName());
         assertEquals("lname", col.alias());
         assertTrue(col.expression() instanceof ScalarFnCall);
@@ -105,8 +103,7 @@ class SelectColumnDefTest {
 
     @Test
     void containsWindow_true_for_window_function() {
-        var winExpr = new WindowFnCall("ROW_NUMBER", List.of(),
-                new WindowSpec(List.of(), List.of()));
+        var winExpr = new WindowFnCall("ROW_NUMBER", List.of(), new WindowSpec(List.of(), List.of()));
         var col = SelectColumnDef.of(winExpr, "row_num");
 
         assertTrue(col.containsWindow());
@@ -143,10 +140,8 @@ class SelectColumnDefTest {
     void aggFunction_simpleCaseWhen_inClauseValue() {
         // findAggregate: SimpleCaseWhen → clause value has aggregate
         Expression subject = new ColumnRef("dept");
-        var clauses = List.of(
-                new WhenClause.ValueWhen(
-                        new AggregateFnCall("SUM", new ColumnRef("salary")),
-                        new LiteralVal(new SqlString("match"))));
+        var clauses = List.of(new WhenClause.ValueWhen(
+                new AggregateFnCall("SUM", new ColumnRef("salary")), new LiteralVal(new SqlString("match"))));
         Expression expr = new SimpleCaseWhen(subject, clauses, null);
         var col = SelectColumnDef.of(expr, "x");
         assertEquals("SUM", col.aggFunction());
@@ -156,10 +151,8 @@ class SelectColumnDefTest {
     void aggFunction_simpleCaseWhen_inClauseResult() {
         // findAggregate: SimpleCaseWhen → clause result has aggregate
         Expression subject = new ColumnRef("dept");
-        var clauses = List.of(
-                new WhenClause.ValueWhen(
-                        new LiteralVal(new SqlString("eng")),
-                        new AggregateFnCall("AVG", new ColumnRef("salary"))));
+        var clauses = List.of(new WhenClause.ValueWhen(
+                new LiteralVal(new SqlString("eng")), new AggregateFnCall("AVG", new ColumnRef("salary"))));
         Expression expr = new SimpleCaseWhen(subject, clauses, null);
         var col = SelectColumnDef.of(expr, "x");
         assertEquals("AVG", col.aggFunction());
@@ -170,9 +163,7 @@ class SelectColumnDefTest {
         // findAggregate: SimpleCaseWhen → else has aggregate
         Expression subject = new ColumnRef("dept");
         var clauses = List.of(
-                new WhenClause.ValueWhen(
-                        new LiteralVal(new SqlString("eng")),
-                        new LiteralVal(SqlNumber.of(0))));
+                new WhenClause.ValueWhen(new LiteralVal(new SqlString("eng")), new LiteralVal(SqlNumber.of(0))));
         Expression elseExpr = new AggregateFnCall("MAX", new ColumnRef("salary"));
         Expression expr = new SimpleCaseWhen(subject, clauses, elseExpr);
         var col = SelectColumnDef.of(expr, "x");
@@ -183,10 +174,8 @@ class SelectColumnDefTest {
     void aggFunction_simpleCaseWhen_noAggregate() {
         // findAggregate: SimpleCaseWhen → no aggregate anywhere → null
         Expression subject = new ColumnRef("dept");
-        var clauses = List.of(
-                new WhenClause.ValueWhen(
-                        new LiteralVal(new SqlString("eng")),
-                        new LiteralVal(new SqlString("Engineering"))));
+        var clauses = List.of(new WhenClause.ValueWhen(
+                new LiteralVal(new SqlString("eng")), new LiteralVal(new SqlString("Engineering"))));
         Expression expr = new SimpleCaseWhen(subject, clauses, new LiteralVal(new SqlString("Other")));
         var col = SelectColumnDef.of(expr, "x");
         assertNull(col.aggFunction());
@@ -196,10 +185,8 @@ class SelectColumnDefTest {
     void aggFunction_simpleCaseWhen_nullElse() {
         // findAggregate: SimpleCaseWhen → elseExpr is null → null
         Expression subject = new ColumnRef("dept");
-        var clauses = List.of(
-                new WhenClause.ValueWhen(
-                        new LiteralVal(new SqlString("eng")),
-                        new LiteralVal(new SqlString("Engineering"))));
+        var clauses = List.of(new WhenClause.ValueWhen(
+                new LiteralVal(new SqlString("eng")), new LiteralVal(new SqlString("Engineering"))));
         Expression expr = new SimpleCaseWhen(subject, clauses, null);
         var col = SelectColumnDef.of(expr, "x");
         assertNull(col.aggFunction());
@@ -209,9 +196,8 @@ class SelectColumnDefTest {
     void aggFunction_searchedCaseWhen_inResult() {
         // findAggregate: SearchedCaseWhen → clause result has aggregate
         CriteriaNode dummyCondition = row -> true;
-        var clauses = List.of(
-                new WhenClause.SearchWhen(dummyCondition, Set.of(),
-                        new AggregateFnCall("SUM", new ColumnRef("salary"))));
+        var clauses = List.of(new WhenClause.SearchWhen(
+                dummyCondition, Set.of(), new AggregateFnCall("SUM", new ColumnRef("salary"))));
         Expression expr = new SearchedCaseWhen(clauses, null);
         var col = SelectColumnDef.of(expr, "x");
         assertEquals("SUM", col.aggFunction());
@@ -221,9 +207,7 @@ class SelectColumnDefTest {
     void aggFunction_searchedCaseWhen_inElse() {
         // findAggregate: SearchedCaseWhen → else has aggregate
         CriteriaNode dummyCondition = row -> true;
-        var clauses = List.of(
-                new WhenClause.SearchWhen(dummyCondition, Set.of(),
-                        new LiteralVal(SqlNumber.of(0))));
+        var clauses = List.of(new WhenClause.SearchWhen(dummyCondition, Set.of(), new LiteralVal(SqlNumber.of(0))));
         Expression elseExpr = new AggregateFnCall("MIN", new ColumnRef("salary"));
         Expression expr = new SearchedCaseWhen(clauses, elseExpr);
         var col = SelectColumnDef.of(expr, "x");
@@ -234,9 +218,8 @@ class SelectColumnDefTest {
     void aggFunction_searchedCaseWhen_noAggregate() {
         // findAggregate: SearchedCaseWhen → no aggregate → null
         CriteriaNode dummyCondition = row -> true;
-        var clauses = List.of(
-                new WhenClause.SearchWhen(dummyCondition, Set.of(),
-                        new LiteralVal(new SqlString("match"))));
+        var clauses =
+                List.of(new WhenClause.SearchWhen(dummyCondition, Set.of(), new LiteralVal(new SqlString("match"))));
         Expression expr = new SearchedCaseWhen(clauses, new LiteralVal(new SqlString("no match")));
         var col = SelectColumnDef.of(expr, "x");
         assertNull(col.aggFunction());
@@ -246,9 +229,8 @@ class SelectColumnDefTest {
     void aggFunction_searchedCaseWhen_nullElse() {
         // findAggregate: SearchedCaseWhen → elseExpr null, no aggregate in clause → null
         CriteriaNode dummyCondition = row -> true;
-        var clauses = List.of(
-                new WhenClause.SearchWhen(dummyCondition, Set.of(),
-                        new LiteralVal(new SqlString("match"))));
+        var clauses =
+                List.of(new WhenClause.SearchWhen(dummyCondition, Set.of(), new LiteralVal(new SqlString("match"))));
         Expression expr = new SearchedCaseWhen(clauses, null);
         var col = SelectColumnDef.of(expr, "x");
         assertNull(col.aggFunction());
@@ -257,8 +239,7 @@ class SelectColumnDefTest {
     @Test
     void aggFunction_windowFnCall_returnsNull() {
         // findAggregate: WindowFnCall → null (not aggregate)
-        var winExpr = new WindowFnCall("ROW_NUMBER", List.of(),
-                new WindowSpec(List.of(), List.of()));
+        var winExpr = new WindowFnCall("ROW_NUMBER", List.of(), new WindowSpec(List.of(), List.of()));
         var col = SelectColumnDef.of(winExpr, "rn");
         assertNull(col.aggFunction());
     }
@@ -291,10 +272,8 @@ class SelectColumnDefTest {
     @Test
     void containsAggregate_simpleCaseWhen_inClause() {
         Expression subject = new ColumnRef("x");
-        var clauses = List.of(
-                new WhenClause.ValueWhen(
-                        new LiteralVal(new SqlString("a")),
-                        new AggregateFnCall("SUM", new ColumnRef("y"))));
+        var clauses = List.of(new WhenClause.ValueWhen(
+                new LiteralVal(new SqlString("a")), new AggregateFnCall("SUM", new ColumnRef("y"))));
         var col = SelectColumnDef.of(new SimpleCaseWhen(subject, clauses, null), null);
         assertTrue(col.containsAggregate());
     }
@@ -302,8 +281,8 @@ class SelectColumnDefTest {
     @Test
     void containsAggregate_simpleCaseWhen_inElse() {
         Expression subject = new ColumnRef("x");
-        var clauses = List.of(
-                new WhenClause.ValueWhen(new LiteralVal(new SqlString("a")), new LiteralVal(SqlNumber.of(0))));
+        var clauses =
+                List.of(new WhenClause.ValueWhen(new LiteralVal(new SqlString("a")), new LiteralVal(SqlNumber.of(0))));
         var col = SelectColumnDef.of(
                 new SimpleCaseWhen(subject, clauses, new AggregateFnCall("MAX", new ColumnRef("y"))), null);
         assertTrue(col.containsAggregate());
@@ -313,8 +292,7 @@ class SelectColumnDefTest {
     void containsAggregate_searchedCaseWhen_inResult() {
         CriteriaNode dummyCondition = row -> true;
         var clauses = List.of(
-                new WhenClause.SearchWhen(dummyCondition, Set.of(),
-                        new AggregateFnCall("SUM", new ColumnRef("y"))));
+                new WhenClause.SearchWhen(dummyCondition, Set.of(), new AggregateFnCall("SUM", new ColumnRef("y"))));
         var col = SelectColumnDef.of(new SearchedCaseWhen(clauses, null), null);
         assertTrue(col.containsAggregate());
     }
@@ -322,10 +300,9 @@ class SelectColumnDefTest {
     @Test
     void containsAggregate_searchedCaseWhen_inElse() {
         CriteriaNode dummyCondition = row -> true;
-        var clauses = List.of(
-                new WhenClause.SearchWhen(dummyCondition, Set.of(), new LiteralVal(SqlNumber.of(0))));
-        var col = SelectColumnDef.of(
-                new SearchedCaseWhen(clauses, new AggregateFnCall("MIN", new ColumnRef("y"))), null);
+        var clauses = List.of(new WhenClause.SearchWhen(dummyCondition, Set.of(), new LiteralVal(SqlNumber.of(0))));
+        var col =
+                SelectColumnDef.of(new SearchedCaseWhen(clauses, new AggregateFnCall("MIN", new ColumnRef("y"))), null);
         assertTrue(col.containsAggregate());
     }
 
@@ -341,8 +318,7 @@ class SelectColumnDefTest {
     @Test
     void containsWindow_simpleCaseWhen_clauseValue() {
         var winExpr = new WindowFnCall("ROW_NUMBER", List.of(), new WindowSpec(List.of(), List.of()));
-        var clauses = List.of(
-                new WhenClause.ValueWhen(winExpr, new LiteralVal(new SqlString("one"))));
+        var clauses = List.of(new WhenClause.ValueWhen(winExpr, new LiteralVal(new SqlString("one"))));
         var col = SelectColumnDef.of(new SimpleCaseWhen(new ColumnRef("x"), clauses, null), null);
         assertTrue(col.containsWindow());
     }
@@ -350,8 +326,7 @@ class SelectColumnDefTest {
     @Test
     void containsWindow_simpleCaseWhen_clauseResult() {
         var winExpr = new WindowFnCall("ROW_NUMBER", List.of(), new WindowSpec(List.of(), List.of()));
-        var clauses = List.of(
-                new WhenClause.ValueWhen(new LiteralVal(SqlNumber.of(1)), winExpr));
+        var clauses = List.of(new WhenClause.ValueWhen(new LiteralVal(SqlNumber.of(1)), winExpr));
         var col = SelectColumnDef.of(new SimpleCaseWhen(new ColumnRef("x"), clauses, null), null);
         assertTrue(col.containsWindow());
     }
@@ -378,8 +353,7 @@ class SelectColumnDefTest {
     void containsWindow_searchedCaseWhen_else() {
         var winExpr = new WindowFnCall("ROW_NUMBER", List.of(), new WindowSpec(List.of(), List.of()));
         CriteriaNode dummyCondition = row -> true;
-        var clauses = List.of(
-                new WhenClause.SearchWhen(dummyCondition, Set.of(), new LiteralVal(SqlNumber.of(0))));
+        var clauses = List.of(new WhenClause.SearchWhen(dummyCondition, Set.of(), new LiteralVal(SqlNumber.of(0))));
         var col = SelectColumnDef.of(new SearchedCaseWhen(clauses, winExpr), null);
         assertTrue(col.containsWindow());
     }

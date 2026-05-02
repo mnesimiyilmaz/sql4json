@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.registry;
 
 import io.github.mnesimiyilmaz.sql4json.engine.Expression;
@@ -9,20 +10,18 @@ import io.github.mnesimiyilmaz.sql4json.json.JsonToSqlConverter;
 import io.github.mnesimiyilmaz.sql4json.sorting.SqlValueComparator;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
 import io.github.mnesimiyilmaz.sql4json.types.SqlValue;
-
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
 /**
- * Handles {@code CONTAINS} (scalar-membership) and the array-set operators
- * {@code @>}, {@code <@}, {@code &&}, {@code ARRAY_EQUALS}, {@code ARRAY_NOT_EQUALS}.
+ * Handles {@code CONTAINS} (scalar-membership) and the array-set operators {@code @>}, {@code <@}, {@code &&},
+ * {@code ARRAY_EQUALS}, {@code ARRAY_NOT_EQUALS}.
  *
- * <p>Arrays are read directly from a {@link RowAccessor}'s original {@code JsonValue}
- * (or via flat-key reassembly for post-JOIN rows) — see {@link ArrayPathNavigator}.
- * No {@code SqlArray} type exists; equality is delegated to {@link SqlValueComparator}
- * — same as {@code IN}.
+ * <p>Arrays are read directly from a {@link RowAccessor}'s original {@code JsonValue} (or via flat-key reassembly for
+ * post-JOIN rows) — see {@link ArrayPathNavigator}. No {@code SqlArray} type exists; equality is delegated to
+ * {@link SqlValueComparator} — same as {@code IN}.
  *
  * @since 1.2.0
  */
@@ -53,9 +52,12 @@ final class ArrayPredicateConditionHandler implements ConditionHandler {
         return row -> evaluateArraySetPredicate(ctx, lhsPath, type, row, functions);
     }
 
-    private boolean evaluateArraySetPredicate(ConditionContext ctx, String lhsPath,
-                                              ConditionContext.ConditionType type,
-                                              RowAccessor row, FunctionRegistry functions) {
+    private boolean evaluateArraySetPredicate(
+            ConditionContext ctx,
+            String lhsPath,
+            ConditionContext.ConditionType type,
+            RowAccessor row,
+            FunctionRegistry functions) {
         JsonArrayValue lhsArr = ArrayPathNavigator.navigateToArray(row, lhsPath);
         if (lhsArr == null) {
             return false;
@@ -76,7 +78,8 @@ final class ArrayPredicateConditionHandler implements ConditionHandler {
         };
     }
 
-    private Optional<List<SqlValue>> resolveRhsArray(ConditionContext ctx, RowAccessor row, FunctionRegistry functions) {
+    private Optional<List<SqlValue>> resolveRhsArray(
+            ConditionContext ctx, RowAccessor row, FunctionRegistry functions) {
         // Branch 1 — array literal: valueExpressions is non-null, evaluate each element.
         if (ctx.valueExpressions() != null) {
             return Optional.of(ctx.valueExpressions().stream()
@@ -85,11 +88,13 @@ final class ArrayPredicateConditionHandler implements ConditionHandler {
         }
         // Branches 2-3 — column-ref or bare parameter: rhsExpression carries the source.
         return switch (ctx.rhsExpression()) {
-            case null -> throw new SQL4JsonExecutionException(
-                    "array predicate has no RHS expression — listener bug for type " + ctx.type());
+            case null ->
+                throw new SQL4JsonExecutionException(
+                        "array predicate has no RHS expression — listener bug for type " + ctx.type());
             case Expression.ColumnRef colRef -> resolveColumnRefArray(row, colRef);
-            case Expression.ParameterRef ignored -> throw new SQL4JsonExecutionException(
-                    "ParameterRef in array RHS reached handler — ParameterSubstitutor should have replaced it");
+            case Expression.ParameterRef ignored ->
+                throw new SQL4JsonExecutionException(
+                        "ParameterRef in array RHS reached handler — ParameterSubstitutor should have replaced it");
             // Fallback: evaluate as scalar, wrap into single-element array.
             default -> resolveScalarFallback(ctx.rhsExpression(), row, functions);
         };
@@ -100,13 +105,12 @@ final class ArrayPredicateConditionHandler implements ConditionHandler {
         if (arr == null) {
             return Optional.empty();
         }
-        return Optional.of(arr.elements().stream()
-                .map(JsonToSqlConverter::toSqlValueSafe)
-                .toList());
+        return Optional.of(
+                arr.elements().stream().map(JsonToSqlConverter::toSqlValueSafe).toList());
     }
 
-    private static Optional<List<SqlValue>> resolveScalarFallback(Expression rhs, RowAccessor row,
-                                                                  FunctionRegistry functions) {
+    private static Optional<List<SqlValue>> resolveScalarFallback(
+            Expression rhs, RowAccessor row, FunctionRegistry functions) {
         SqlValue scalar = ExpressionEvaluator.evaluate(rhs, row, functions);
         return scalar.isNull() ? Optional.empty() : Optional.of(List.of(scalar));
     }
@@ -122,9 +126,8 @@ final class ArrayPredicateConditionHandler implements ConditionHandler {
             if (needle.isNull()) {
                 return false;
             }
-            boolean found = hay.stream()
-                    .filter(v -> !v.isNull())
-                    .anyMatch(v -> SqlValueComparator.compare(v, needle) == 0);
+            boolean found =
+                    hay.stream().filter(v -> !v.isNull()).anyMatch(v -> SqlValueComparator.compare(v, needle) == 0);
             if (!found) {
                 return false;
             }
@@ -141,9 +144,7 @@ final class ArrayPredicateConditionHandler implements ConditionHandler {
             if (ev.isNull()) {
                 return false;
             }
-            boolean found = rhs.stream()
-                    .filter(v -> !v.isNull())
-                    .anyMatch(v -> SqlValueComparator.compare(ev, v) == 0);
+            boolean found = rhs.stream().filter(v -> !v.isNull()).anyMatch(v -> SqlValueComparator.compare(ev, v) == 0);
             if (!found) {
                 return false;
             }
@@ -179,9 +180,7 @@ final class ArrayPredicateConditionHandler implements ConditionHandler {
             if (r.isNull()) {
                 continue;
             }
-            boolean any = hay.stream()
-                    .filter(v -> !v.isNull())
-                    .anyMatch(v -> SqlValueComparator.compare(v, r) == 0);
+            boolean any = hay.stream().filter(v -> !v.isNull()).anyMatch(v -> SqlValueComparator.compare(v, r) == 0);
             if (any) {
                 return true;
             }
@@ -189,8 +188,8 @@ final class ArrayPredicateConditionHandler implements ConditionHandler {
         return false;
     }
 
-    private boolean evaluateContains(ConditionContext ctx, String lhsPath, RowAccessor row,
-                                     FunctionRegistry functions) {
+    private boolean evaluateContains(
+            ConditionContext ctx, String lhsPath, RowAccessor row, FunctionRegistry functions) {
         JsonArrayValue arr = ArrayPathNavigator.navigateToArray(row, lhsPath);
         if (arr == null) {
             return false;
@@ -218,7 +217,6 @@ final class ArrayPredicateConditionHandler implements ConditionHandler {
         if (ctx.rhsExpression() != null) {
             return ExpressionEvaluator.evaluate(ctx.rhsExpression(), row, functions);
         }
-        throw new SQL4JsonExecutionException(
-                "CONTAINS condition has no scalar RHS — listener bug");
+        throw new SQL4JsonExecutionException("CONTAINS condition has no scalar RHS — listener bug");
     }
 }

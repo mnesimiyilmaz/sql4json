@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json;
 
 import io.github.mnesimiyilmaz.sql4json.engine.QueryExecutor;
@@ -10,7 +11,6 @@ import io.github.mnesimiyilmaz.sql4json.parser.QueryParser;
 import io.github.mnesimiyilmaz.sql4json.settings.Sql4jsonSettings;
 import io.github.mnesimiyilmaz.sql4json.types.JsonCodec;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
-
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +19,8 @@ import java.util.Objects;
 /**
  * Main entry point for SQL4Json
  *
- * <p>Usage patterns:</p>
+ * <p>Usage patterns:
+ *
  * <pre>{@code
  * // One-off query with defaults
  * String result = SQL4Json.query("SELECT name FROM $r WHERE age > 25", jsonString);
@@ -49,9 +50,8 @@ import java.util.Objects;
  *     .execute(jsonString, BoundParameters.named().bind("min", 25));
  * }</pre>
  *
- * <p>Parameter binding ({@code ?} / {@code :name} placeholders) is only exposed on
- * {@link PreparedQuery} and {@link SQL4JsonEngine} — there is no
- * {@code SQL4Json.query(..., BoundParameters)} overload. For one-off parameterised
+ * <p>Parameter binding ({@code ?} / {@code :name} placeholders) is only exposed on {@link PreparedQuery} and
+ * {@link SQL4JsonEngine} — there is no {@code SQL4Json.query(..., BoundParameters)} overload. For one-off parameterised
  * execution, use {@code SQL4Json.prepare(sql).execute(json, params)}.
  *
  * @see PreparedQuery
@@ -60,47 +60,42 @@ import java.util.Objects;
  */
 public final class SQL4Json {
 
-    private static final QueryExecutor EXECUTOR       = new QueryExecutor();
-    private static final String        SETTINGS_PARAM = "settings";
+    private static final QueryExecutor EXECUTOR = new QueryExecutor();
+    private static final String SETTINGS_PARAM = "settings";
 
-    private SQL4Json() {
-    }
+    private SQL4Json() {}
 
     /**
-     * Execute a SQL query against JSON data, returning the result as a JSON string.
-     * Parsing and execution limits are governed by {@link Sql4jsonSettings#defaults()}.
-     * Equivalent to {@link #query(String, String, Sql4jsonSettings) query(sql, jsonData, Sql4jsonSettings.defaults())}.
+     * Execute a SQL query against JSON data, returning the result as a JSON string. Parsing and execution limits are
+     * governed by {@link Sql4jsonSettings#defaults()}. Equivalent to {@link #query(String, String, Sql4jsonSettings)
+     * query(sql, jsonData, Sql4jsonSettings.defaults())}.
      *
-     * @param sql      SQL SELECT query
+     * @param sql SQL SELECT query
      * @param jsonData JSON string to query against
      * @return result serialized as a JSON string
-     * @throws SQL4JsonParseException     if the SQL has syntax errors or exceeds the configured
-     *                                    SQL length limit (see {@link Sql4jsonSettings})
-     * @throws SQL4JsonExecutionException if an error occurs during parsing or execution, including
-     *                                    when a configured limit from {@link Sql4jsonSettings} is
-     *                                    exceeded (IN list size and LIKE wildcard count at parse
-     *                                    time; subquery depth, materialized row count, and JSON
-     *                                    codec limits at execution time)
+     * @throws SQL4JsonParseException if the SQL has syntax errors or exceeds the configured SQL length limit (see
+     *     {@link Sql4jsonSettings})
+     * @throws SQL4JsonExecutionException if an error occurs during parsing or execution, including when a configured
+     *     limit from {@link Sql4jsonSettings} is exceeded (IN list size and LIKE wildcard count at parse time; subquery
+     *     depth, materialized row count, and JSON codec limits at execution time)
      */
     public static String query(String sql, String jsonData) {
         return query(sql, jsonData, Sql4jsonSettings.defaults());
     }
 
     /**
-     * Execute a SQL query against JSON data with explicit settings, returning the result as a JSON string.
-     * Parsing and execution limits are governed by the supplied {@link Sql4jsonSettings}.
+     * Execute a SQL query against JSON data with explicit settings, returning the result as a JSON string. Parsing and
+     * execution limits are governed by the supplied {@link Sql4jsonSettings}.
      *
-     * @param sql      SQL SELECT query
+     * @param sql SQL SELECT query
      * @param jsonData JSON string to query against
      * @param settings settings controlling limits, codec, cache, and security behaviour
      * @return result serialized as a JSON string
-     * @throws SQL4JsonParseException     if the SQL has syntax errors or exceeds the configured
-     *                                    SQL length limit (see {@link Sql4jsonSettings})
-     * @throws SQL4JsonExecutionException if an error occurs during parsing or execution, including
-     *                                    when a configured limit from {@link Sql4jsonSettings} is
-     *                                    exceeded (IN list size and LIKE wildcard count at parse
-     *                                    time; subquery depth, materialized row count, and JSON
-     *                                    codec limits at execution time)
+     * @throws SQL4JsonParseException if the SQL has syntax errors or exceeds the configured SQL length limit (see
+     *     {@link Sql4jsonSettings})
+     * @throws SQL4JsonExecutionException if an error occurs during parsing or execution, including when a configured
+     *     limit from {@link Sql4jsonSettings} is exceeded (IN list size and LIKE wildcard count at parse time; subquery
+     *     depth, materialized row count, and JSON codec limits at execution time)
      */
     public static String query(String sql, String jsonData, Sql4jsonSettings settings) {
         validateQuery(sql);
@@ -116,21 +111,18 @@ public final class SQL4Json {
     }
 
     /**
-     * Execute a SQL query against JSON data, returning the result as a {@link JsonValue}.
-     * Parsing and execution limits are governed by {@link Sql4jsonSettings#defaults()}.
-     * Equivalent to {@link #queryAsJsonValue(String, String, Sql4jsonSettings)
-     * queryAsJsonValue(sql, jsonData, Sql4jsonSettings.defaults())}.
+     * Execute a SQL query against JSON data, returning the result as a {@link JsonValue}. Parsing and execution limits
+     * are governed by {@link Sql4jsonSettings#defaults()}. Equivalent to {@link #queryAsJsonValue(String, String,
+     * Sql4jsonSettings) queryAsJsonValue(sql, jsonData, Sql4jsonSettings.defaults())}.
      *
-     * @param sql      SQL SELECT query
+     * @param sql SQL SELECT query
      * @param jsonData JSON string to query against
      * @return result as a {@code JsonValue}
-     * @throws SQL4JsonParseException     if the SQL has syntax errors or exceeds the configured
-     *                                    SQL length limit (see {@link Sql4jsonSettings})
-     * @throws SQL4JsonExecutionException if an error occurs during parsing or execution, including
-     *                                    when a configured limit from {@link Sql4jsonSettings} is
-     *                                    exceeded (IN list size and LIKE wildcard count at parse
-     *                                    time; subquery depth, materialized row count, and JSON
-     *                                    codec limits at execution time)
+     * @throws SQL4JsonParseException if the SQL has syntax errors or exceeds the configured SQL length limit (see
+     *     {@link Sql4jsonSettings})
+     * @throws SQL4JsonExecutionException if an error occurs during parsing or execution, including when a configured
+     *     limit from {@link Sql4jsonSettings} is exceeded (IN list size and LIKE wildcard count at parse time; subquery
+     *     depth, materialized row count, and JSON codec limits at execution time)
      */
     public static JsonValue queryAsJsonValue(String sql, String jsonData) {
         return queryAsJsonValue(sql, jsonData, Sql4jsonSettings.defaults());
@@ -140,17 +132,15 @@ public final class SQL4Json {
      * Execute a SQL query against JSON data with explicit settings, returning the result as a {@link JsonValue}.
      * Parsing and execution limits are governed by the supplied {@link Sql4jsonSettings}.
      *
-     * @param sql      SQL SELECT query
+     * @param sql SQL SELECT query
      * @param jsonData JSON string to query against
      * @param settings settings controlling limits, codec, cache, and security behaviour
      * @return result as a {@code JsonValue}
-     * @throws SQL4JsonParseException     if the SQL has syntax errors or exceeds the configured
-     *                                    SQL length limit (see {@link Sql4jsonSettings})
-     * @throws SQL4JsonExecutionException if an error occurs during parsing or execution, including
-     *                                    when a configured limit from {@link Sql4jsonSettings} is
-     *                                    exceeded (IN list size and LIKE wildcard count at parse
-     *                                    time; subquery depth, materialized row count, and JSON
-     *                                    codec limits at execution time)
+     * @throws SQL4JsonParseException if the SQL has syntax errors or exceeds the configured SQL length limit (see
+     *     {@link Sql4jsonSettings})
+     * @throws SQL4JsonExecutionException if an error occurs during parsing or execution, including when a configured
+     *     limit from {@link Sql4jsonSettings} is exceeded (IN list size and LIKE wildcard count at parse time; subquery
+     *     depth, materialized row count, and JSON codec limits at execution time)
      */
     public static JsonValue queryAsJsonValue(String sql, String jsonData, Sql4jsonSettings settings) {
         validateQuery(sql);
@@ -165,21 +155,18 @@ public final class SQL4Json {
     }
 
     /**
-     * Execute a SQL query against a {@link JsonValue}, returning the result as a JsonValue.
-     * Parsing and execution limits are governed by {@link Sql4jsonSettings#defaults()}.
-     * Equivalent to {@link #queryAsJsonValue(String, JsonValue, Sql4jsonSettings)
-     * queryAsJsonValue(sql, data, Sql4jsonSettings.defaults())}.
+     * Execute a SQL query against a {@link JsonValue}, returning the result as a JsonValue. Parsing and execution
+     * limits are governed by {@link Sql4jsonSettings#defaults()}. Equivalent to {@link #queryAsJsonValue(String,
+     * JsonValue, Sql4jsonSettings) queryAsJsonValue(sql, data, Sql4jsonSettings.defaults())}.
      *
-     * @param sql  SQL SELECT query
+     * @param sql SQL SELECT query
      * @param data pre-parsed JSON data to query against
      * @return result as a {@code JsonValue}
-     * @throws SQL4JsonParseException     if the SQL has syntax errors or exceeds the configured
-     *                                    SQL length limit (see {@link Sql4jsonSettings})
-     * @throws SQL4JsonExecutionException if an error occurs during parsing or execution, including
-     *                                    when a configured limit from {@link Sql4jsonSettings} is
-     *                                    exceeded (IN list size and LIKE wildcard count at parse
-     *                                    time; subquery depth and materialized row count at
-     *                                    execution time)
+     * @throws SQL4JsonParseException if the SQL has syntax errors or exceeds the configured SQL length limit (see
+     *     {@link Sql4jsonSettings})
+     * @throws SQL4JsonExecutionException if an error occurs during parsing or execution, including when a configured
+     *     limit from {@link Sql4jsonSettings} is exceeded (IN list size and LIKE wildcard count at parse time; subquery
+     *     depth and materialized row count at execution time)
      */
     public static JsonValue queryAsJsonValue(String sql, JsonValue data) {
         return queryAsJsonValue(sql, data, Sql4jsonSettings.defaults());
@@ -189,17 +176,15 @@ public final class SQL4Json {
      * Execute a SQL query against a {@link JsonValue} with explicit settings, returning the result as a JsonValue.
      * Parsing and execution limits are governed by the supplied {@link Sql4jsonSettings}.
      *
-     * @param sql      SQL SELECT query
-     * @param data     pre-parsed JSON data to query against
+     * @param sql SQL SELECT query
+     * @param data pre-parsed JSON data to query against
      * @param settings settings controlling limits, codec, cache, and security behaviour
      * @return result as a {@code JsonValue}
-     * @throws SQL4JsonParseException     if the SQL has syntax errors or exceeds the configured
-     *                                    SQL length limit (see {@link Sql4jsonSettings})
-     * @throws SQL4JsonExecutionException if an error occurs during parsing or execution, including
-     *                                    when a configured limit from {@link Sql4jsonSettings} is
-     *                                    exceeded (IN list size and LIKE wildcard count at parse
-     *                                    time; subquery depth and materialized row count at
-     *                                    execution time)
+     * @throws SQL4JsonParseException if the SQL has syntax errors or exceeds the configured SQL length limit (see
+     *     {@link Sql4jsonSettings})
+     * @throws SQL4JsonExecutionException if an error occurs during parsing or execution, including when a configured
+     *     limit from {@link Sql4jsonSettings} is exceeded (IN list size and LIKE wildcard count at parse time; subquery
+     *     depth and materialized row count at execution time)
      */
     public static JsonValue queryAsJsonValue(String sql, JsonValue data, Sql4jsonSettings settings) {
         validateQuery(sql);
@@ -211,40 +196,36 @@ public final class SQL4Json {
     }
 
     /**
-     * Execute a JOIN query against multiple named JSON data sources.
-     * Parsing and execution limits are governed by {@link Sql4jsonSettings#defaults()}.
-     * Equivalent to {@link #query(String, Map, Sql4jsonSettings) query(sql, dataSources, Sql4jsonSettings.defaults())}.
+     * Execute a JOIN query against multiple named JSON data sources. Parsing and execution limits are governed by
+     * {@link Sql4jsonSettings#defaults()}. Equivalent to {@link #query(String, Map, Sql4jsonSettings) query(sql,
+     * dataSources, Sql4jsonSettings.defaults())}.
      *
-     * @param sql         SQL SELECT query with JOIN clauses
+     * @param sql SQL SELECT query with JOIN clauses
      * @param dataSources map of table name to JSON string
      * @return result as JSON string
-     * @throws SQL4JsonParseException     if the SQL has syntax errors or exceeds the configured
-     *                                    SQL length limit (see {@link Sql4jsonSettings})
-     * @throws SQL4JsonExecutionException if an error occurs during parsing or execution, including
-     *                                    when a configured limit from {@link Sql4jsonSettings} is
-     *                                    exceeded (IN list size and LIKE wildcard count at parse
-     *                                    time; subquery depth, materialized row count, and JSON
-     *                                    codec limits at execution time)
+     * @throws SQL4JsonParseException if the SQL has syntax errors or exceeds the configured SQL length limit (see
+     *     {@link Sql4jsonSettings})
+     * @throws SQL4JsonExecutionException if an error occurs during parsing or execution, including when a configured
+     *     limit from {@link Sql4jsonSettings} is exceeded (IN list size and LIKE wildcard count at parse time; subquery
+     *     depth, materialized row count, and JSON codec limits at execution time)
      */
     public static String query(String sql, Map<String, String> dataSources) {
         return query(sql, dataSources, Sql4jsonSettings.defaults());
     }
 
     /**
-     * Execute a JOIN query against multiple named JSON data sources with explicit settings.
-     * Parsing and execution limits are governed by the supplied {@link Sql4jsonSettings}.
+     * Execute a JOIN query against multiple named JSON data sources with explicit settings. Parsing and execution
+     * limits are governed by the supplied {@link Sql4jsonSettings}.
      *
-     * @param sql         SQL SELECT query with JOIN clauses
+     * @param sql SQL SELECT query with JOIN clauses
      * @param dataSources map of table name to JSON string
-     * @param settings    settings controlling limits, codec, and other behaviour
+     * @param settings settings controlling limits, codec, and other behaviour
      * @return result as JSON string
-     * @throws SQL4JsonParseException     if the SQL has syntax errors or exceeds the configured
-     *                                    SQL length limit (see {@link Sql4jsonSettings})
-     * @throws SQL4JsonExecutionException if an error occurs during parsing or execution, including
-     *                                    when a configured limit from {@link Sql4jsonSettings} is
-     *                                    exceeded (IN list size and LIKE wildcard count at parse
-     *                                    time; subquery depth, materialized row count, and JSON
-     *                                    codec limits at execution time)
+     * @throws SQL4JsonParseException if the SQL has syntax errors or exceeds the configured SQL length limit (see
+     *     {@link Sql4jsonSettings})
+     * @throws SQL4JsonExecutionException if an error occurs during parsing or execution, including when a configured
+     *     limit from {@link Sql4jsonSettings} is exceeded (IN list size and LIKE wildcard count at parse time; subquery
+     *     depth, materialized row count, and JSON codec limits at execution time)
      */
     public static String query(String sql, Map<String, String> dataSources, Sql4jsonSettings settings) {
         validateQuery(sql);
@@ -257,44 +238,38 @@ public final class SQL4Json {
     }
 
     /**
-     * Execute a JOIN query against multiple named JSON data sources.
-     * Parsing and execution limits are governed by {@link Sql4jsonSettings#defaults()}.
-     * Equivalent to {@link #queryAsJsonValue(String, Map, Sql4jsonSettings)
+     * Execute a JOIN query against multiple named JSON data sources. Parsing and execution limits are governed by
+     * {@link Sql4jsonSettings#defaults()}. Equivalent to {@link #queryAsJsonValue(String, Map, Sql4jsonSettings)
      * queryAsJsonValue(sql, dataSources, Sql4jsonSettings.defaults())}.
      *
-     * @param sql         SQL SELECT query with JOIN clauses
+     * @param sql SQL SELECT query with JOIN clauses
      * @param dataSources map of table name to JSON string
      * @return result as JsonValue
-     * @throws SQL4JsonParseException     if the SQL has syntax errors or exceeds the configured
-     *                                    SQL length limit (see {@link Sql4jsonSettings})
-     * @throws SQL4JsonExecutionException if an error occurs during parsing or execution, including
-     *                                    when a configured limit from {@link Sql4jsonSettings} is
-     *                                    exceeded (IN list size and LIKE wildcard count at parse
-     *                                    time; subquery depth, materialized row count, and JSON
-     *                                    codec limits at execution time)
+     * @throws SQL4JsonParseException if the SQL has syntax errors or exceeds the configured SQL length limit (see
+     *     {@link Sql4jsonSettings})
+     * @throws SQL4JsonExecutionException if an error occurs during parsing or execution, including when a configured
+     *     limit from {@link Sql4jsonSettings} is exceeded (IN list size and LIKE wildcard count at parse time; subquery
+     *     depth, materialized row count, and JSON codec limits at execution time)
      */
     public static JsonValue queryAsJsonValue(String sql, Map<String, String> dataSources) {
         return queryAsJsonValue(sql, dataSources, Sql4jsonSettings.defaults());
     }
 
     /**
-     * Execute a JOIN query against multiple named JSON data sources with explicit settings.
-     * Parsing and execution limits are governed by the supplied {@link Sql4jsonSettings}.
+     * Execute a JOIN query against multiple named JSON data sources with explicit settings. Parsing and execution
+     * limits are governed by the supplied {@link Sql4jsonSettings}.
      *
-     * @param sql         SQL SELECT query with JOIN clauses
+     * @param sql SQL SELECT query with JOIN clauses
      * @param dataSources map of table name to JSON string
-     * @param settings    settings controlling limits, codec, and other behaviour
+     * @param settings settings controlling limits, codec, and other behaviour
      * @return result as JsonValue
-     * @throws SQL4JsonParseException     if the SQL has syntax errors or exceeds the configured
-     *                                    SQL length limit (see {@link Sql4jsonSettings})
-     * @throws SQL4JsonExecutionException if an error occurs during parsing or execution, including
-     *                                    when a configured limit from {@link Sql4jsonSettings} is
-     *                                    exceeded (IN list size and LIKE wildcard count at parse
-     *                                    time; subquery depth, materialized row count, and JSON
-     *                                    codec limits at execution time)
+     * @throws SQL4JsonParseException if the SQL has syntax errors or exceeds the configured SQL length limit (see
+     *     {@link Sql4jsonSettings})
+     * @throws SQL4JsonExecutionException if an error occurs during parsing or execution, including when a configured
+     *     limit from {@link Sql4jsonSettings} is exceeded (IN list size and LIKE wildcard count at parse time; subquery
+     *     depth, materialized row count, and JSON codec limits at execution time)
      */
-    public static JsonValue queryAsJsonValue(String sql, Map<String, String> dataSources,
-                                             Sql4jsonSettings settings) {
+    public static JsonValue queryAsJsonValue(String sql, Map<String, String> dataSources, Sql4jsonSettings settings) {
         validateQuery(sql);
         if (dataSources == null || dataSources.isEmpty()) {
             throw new SQL4JsonException("Data sources must not be null or empty");
@@ -313,15 +288,14 @@ public final class SQL4Json {
     }
 
     /**
-     * Execute a query and map the result to {@code type}. Unwrap rules:
-     * single-element array collapses to the scalar/record target; zero or
-     * multiple rows for non-collection target throws
+     * Execute a query and map the result to {@code type}. Unwrap rules: single-element array collapses to the
+     * scalar/record target; zero or multiple rows for non-collection target throws
      * {@link io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonMappingException}.
      *
-     * @param sql      SQL SELECT query
+     * @param sql SQL SELECT query
      * @param jsonData input JSON data
-     * @param type     target class
-     * @param <T>      target type
+     * @param type target class
+     * @param <T> target type
      * @return mapped instance
      * @since 1.1.0
      */
@@ -332,16 +306,15 @@ public final class SQL4Json {
     /**
      * Execute a query with explicit settings and map the result to {@code type}.
      *
-     * @param sql      SQL SELECT query
+     * @param sql SQL SELECT query
      * @param jsonData input JSON data
-     * @param type     target class
+     * @param type target class
      * @param settings settings controlling limits, codec, mapping, and other behaviour
-     * @param <T>      target type
+     * @param <T> target type
      * @return mapped instance
      * @since 1.1.0
      */
-    public static <T> T queryAs(String sql, String jsonData, Class<T> type,
-                                Sql4jsonSettings settings) {
+    public static <T> T queryAs(String sql, String jsonData, Class<T> type, Sql4jsonSettings settings) {
         Objects.requireNonNull(type, "type");
         JsonValue raw = queryAsJsonValue(sql, jsonData, settings);
         return unwrapAndMap(raw, type, settings);
@@ -350,10 +323,10 @@ public final class SQL4Json {
     /**
      * Execute a query and map each result row to {@code type}.
      *
-     * @param sql      SQL SELECT query
+     * @param sql SQL SELECT query
      * @param jsonData input JSON data
-     * @param type     target class
-     * @param <T>      target type
+     * @param type target class
+     * @param <T> target type
      * @return immutable list of mapped instances
      * @since 1.1.0
      */
@@ -364,16 +337,15 @@ public final class SQL4Json {
     /**
      * Execute a query with explicit settings and map each result row to {@code type}.
      *
-     * @param sql      SQL SELECT query
+     * @param sql SQL SELECT query
      * @param jsonData input JSON data
-     * @param type     target class
+     * @param type target class
      * @param settings settings controlling limits, codec, mapping, and other behaviour
-     * @param <T>      target type
+     * @param <T> target type
      * @return immutable list of mapped instances
      * @since 1.1.0
      */
-    public static <T> List<T> queryAsList(String sql, String jsonData, Class<T> type,
-                                          Sql4jsonSettings settings) {
+    public static <T> List<T> queryAsList(String sql, String jsonData, Class<T> type, Sql4jsonSettings settings) {
         Objects.requireNonNull(type, "type");
         JsonValue raw = queryAsJsonValue(sql, jsonData, settings);
         return mapList(raw, type, settings);
@@ -382,10 +354,10 @@ public final class SQL4Json {
     /**
      * Execute a multi-source JOIN query and map the single-row result.
      *
-     * @param sql         SQL SELECT query (may contain JOINs)
+     * @param sql SQL SELECT query (may contain JOINs)
      * @param dataSources map from table name to JSON data
-     * @param type        target class
-     * @param <T>         target type
+     * @param type target class
+     * @param <T> target type
      * @return mapped instance
      * @since 1.1.0
      */
@@ -396,16 +368,15 @@ public final class SQL4Json {
     /**
      * Execute a multi-source JOIN query with explicit settings and map the single-row result.
      *
-     * @param sql         SQL SELECT query (may contain JOINs)
+     * @param sql SQL SELECT query (may contain JOINs)
      * @param dataSources map from table name to JSON data
-     * @param type        target class
-     * @param settings    settings controlling limits, codec, mapping, and other behaviour
-     * @param <T>         target type
+     * @param type target class
+     * @param settings settings controlling limits, codec, mapping, and other behaviour
+     * @param <T> target type
      * @return mapped instance
      * @since 1.1.0
      */
-    public static <T> T queryAs(String sql, Map<String, String> dataSources, Class<T> type,
-                                Sql4jsonSettings settings) {
+    public static <T> T queryAs(String sql, Map<String, String> dataSources, Class<T> type, Sql4jsonSettings settings) {
         Objects.requireNonNull(type, "type");
         JsonValue raw = queryAsJsonValue(sql, dataSources, settings);
         return unwrapAndMap(raw, type, settings);
@@ -414,10 +385,10 @@ public final class SQL4Json {
     /**
      * Execute a multi-source JOIN query and map each result row to {@code type}.
      *
-     * @param sql         SQL SELECT query (may contain JOINs)
+     * @param sql SQL SELECT query (may contain JOINs)
      * @param dataSources map from table name to JSON data
-     * @param type        target class
-     * @param <T>         target type
+     * @param type target class
+     * @param <T> target type
      * @return immutable list of mapped instances
      * @since 1.1.0
      */
@@ -428,16 +399,16 @@ public final class SQL4Json {
     /**
      * Execute a multi-source JOIN query with explicit settings and map each result row to {@code type}.
      *
-     * @param sql         SQL SELECT query (may contain JOINs)
+     * @param sql SQL SELECT query (may contain JOINs)
      * @param dataSources map from table name to JSON data
-     * @param type        target class
-     * @param settings    settings controlling limits, codec, mapping, and other behaviour
-     * @param <T>         target type
+     * @param type target class
+     * @param settings settings controlling limits, codec, mapping, and other behaviour
+     * @param <T> target type
      * @return immutable list of mapped instances
      * @since 1.1.0
      */
-    public static <T> List<T> queryAsList(String sql, Map<String, String> dataSources, Class<T> type,
-                                          Sql4jsonSettings settings) {
+    public static <T> List<T> queryAsList(
+            String sql, Map<String, String> dataSources, Class<T> type, Sql4jsonSettings settings) {
         Objects.requireNonNull(type, "type");
         JsonValue raw = queryAsJsonValue(sql, dataSources, settings);
         return mapList(raw, type, settings);
@@ -452,8 +423,7 @@ public final class SQL4Json {
         if (java.util.Collection.class.isAssignableFrom(type)
                 || java.util.Map.class.isAssignableFrom(type)
                 || type.isArray()) {
-            return io.github.mnesimiyilmaz.sql4json.mapper.JsonValueMapper.INSTANCE
-                    .map(raw, type, settings.mapping());
+            return io.github.mnesimiyilmaz.sql4json.mapper.JsonValueMapper.INSTANCE.map(raw, type, settings.mapping());
         }
         // Array result: apply unwrap rules
         if (raw instanceof io.github.mnesimiyilmaz.sql4json.json.JsonArrayValue(List<JsonValue> elements)) {
@@ -466,12 +436,11 @@ public final class SQL4Json {
                 throw new io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonMappingException(
                         "queryAs expected single row, got " + n + " — use queryAsList or adjust the query");
             }
-            return io.github.mnesimiyilmaz.sql4json.mapper.JsonValueMapper.INSTANCE
-                    .map(elements.getFirst(), type, settings.mapping());
+            return io.github.mnesimiyilmaz.sql4json.mapper.JsonValueMapper.INSTANCE.map(
+                    elements.getFirst(), type, settings.mapping());
         }
         // Object / scalar result — direct
-        return io.github.mnesimiyilmaz.sql4json.mapper.JsonValueMapper.INSTANCE
-                .map(raw, type, settings.mapping());
+        return io.github.mnesimiyilmaz.sql4json.mapper.JsonValueMapper.INSTANCE.map(raw, type, settings.mapping());
     }
 
     static <T> List<T> mapList(JsonValue raw, Class<T> type, Sql4jsonSettings settings) {
@@ -482,44 +451,39 @@ public final class SQL4Json {
         if (elements.isEmpty()) return List.of();
         List<T> out = new java.util.ArrayList<>(elements.size());
         for (JsonValue el : elements) {
-            out.add(io.github.mnesimiyilmaz.sql4json.mapper.JsonValueMapper.INSTANCE
-                    .map(el, type, settings.mapping()));
+            out.add(io.github.mnesimiyilmaz.sql4json.mapper.JsonValueMapper.INSTANCE.map(el, type, settings.mapping()));
         }
         return java.util.Collections.unmodifiableList(out);
     }
 
     /**
-     * Prepare a SQL query for repeated execution against different data.
-     * Parses the SQL once using {@link Sql4jsonSettings#defaults()}; subsequent
-     * {@link PreparedQuery#execute} calls skip parsing.
-     * Equivalent to {@link #prepare(String, Sql4jsonSettings) prepare(sql, Sql4jsonSettings.defaults())}.
+     * Prepare a SQL query for repeated execution against different data. Parses the SQL once using
+     * {@link Sql4jsonSettings#defaults()}; subsequent {@link PreparedQuery#execute} calls skip parsing. Equivalent to
+     * {@link #prepare(String, Sql4jsonSettings) prepare(sql, Sql4jsonSettings.defaults())}.
      *
      * @param sql SQL SELECT query
      * @return a reusable, thread-safe PreparedQuery
-     * @throws SQL4JsonParseException     if the SQL has syntax errors or exceeds the configured
-     *                                    SQL length limit (see {@link Sql4jsonSettings})
-     * @throws SQL4JsonExecutionException if a configured limit from {@link Sql4jsonSettings} is
-     *                                    exceeded at parse time (e.g. IN list size or LIKE
-     *                                    wildcard count)
+     * @throws SQL4JsonParseException if the SQL has syntax errors or exceeds the configured SQL length limit (see
+     *     {@link Sql4jsonSettings})
+     * @throws SQL4JsonExecutionException if a configured limit from {@link Sql4jsonSettings} is exceeded at parse time
+     *     (e.g. IN list size or LIKE wildcard count)
      */
     public static PreparedQuery prepare(String sql) {
         return prepare(sql, Sql4jsonSettings.defaults());
     }
 
     /**
-     * Prepare a SQL query for repeated execution against different data with explicit settings.
-     * Parses the SQL once; subsequent {@link PreparedQuery#execute} calls skip parsing.
-     * The bound {@link Sql4jsonSettings} governs both parse-time and execution-time limits for all
-     * subsequent {@link PreparedQuery#execute} calls.
+     * Prepare a SQL query for repeated execution against different data with explicit settings. Parses the SQL once;
+     * subsequent {@link PreparedQuery#execute} calls skip parsing. The bound {@link Sql4jsonSettings} governs both
+     * parse-time and execution-time limits for all subsequent {@link PreparedQuery#execute} calls.
      *
-     * @param sql      SQL SELECT query
+     * @param sql SQL SELECT query
      * @param settings settings controlling limits, codec, and other behaviour
      * @return a reusable, thread-safe PreparedQuery
-     * @throws SQL4JsonParseException     if the SQL has syntax errors or exceeds the configured
-     *                                    SQL length limit (see {@link Sql4jsonSettings})
-     * @throws SQL4JsonExecutionException if a configured limit from {@link Sql4jsonSettings} is
-     *                                    exceeded at parse time (e.g. IN list size or LIKE
-     *                                    wildcard count)
+     * @throws SQL4JsonParseException if the SQL has syntax errors or exceeds the configured SQL length limit (see
+     *     {@link Sql4jsonSettings})
+     * @throws SQL4JsonExecutionException if a configured limit from {@link Sql4jsonSettings} is exceeded at parse time
+     *     (e.g. IN list size or LIKE wildcard count)
      */
     public static PreparedQuery prepare(String sql, Sql4jsonSettings settings) {
         validateQuery(sql);

@@ -11,6 +11,9 @@
 Median of 3 runs; warmup excluded; wall-clock time captured via JMX. Single reference machine. Numbers will differ on
 other hardware — re-run locally to compare.
 
+**Single-threaded.** Each query runs end-to-end on the calling thread — SQL4Json does not parallelize a single query
+internally. Multi-core scaling, if any, comes from running independent queries concurrently in your application.
+
 Source: [`ProfilingTest.java`](../src/test/java/io/github/mnesimiyilmaz/sql4json/ProfilingTest.java). Regen:
 `./mvnw test -Plarge-tests -Dtest=ProfilingTest`.
 

@@ -1,25 +1,26 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.types;
 
 import io.github.mnesimiyilmaz.sql4json.json.*;
 import io.github.mnesimiyilmaz.sql4json.mapper.JsonValueMapper;
 import io.github.mnesimiyilmaz.sql4json.settings.Sql4jsonSettings;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 /**
- * A sealed interface representing a JSON value. This is the library's own JSON abstraction,
- * independent of any JSON library.
+ * A sealed interface representing a JSON value. This is the library's own JSON abstraction, independent of any JSON
+ * library.
  *
- * <p>Use the type-check methods ({@link #isObject()}, {@link #isArray()}, etc.) to determine
- * the runtime type, then call the corresponding accessor ({@link #asObject()}, {@link #asArray()},
- * etc.) to safely extract the underlying value as an {@link Optional}.
+ * <p>Use the type-check methods ({@link #isObject()}, {@link #isArray()}, etc.) to determine the runtime type, then
+ * call the corresponding accessor ({@link #asObject()}, {@link #asArray()}, etc.) to safely extract the underlying
+ * value as an {@link Optional}.
  *
- * <p>Implementations are Java records, so they support {@code equals}, {@code hashCode},
- * and {@code toString} out of the box.
+ * <p>Implementations are Java records, so they support {@code equals}, {@code hashCode}, and {@code toString} out of
+ * the box.
  *
  * <h2>Example usage:</h2>
+ *
  * <pre>{@code
  * JsonValue result = SQL4Json.queryAsJsonValue("SELECT name FROM $r", json);
  * result.asArray().ifPresent(rows -> {
@@ -34,8 +35,7 @@ import java.util.Optional;
  * @see io.github.mnesimiyilmaz.sql4json.SQL4Json#queryAsJsonValue(String, String)
  */
 public sealed interface JsonValue
-        permits JsonObjectValue, JsonArrayValue, JsonStringValue,
-        JsonNumberValue, JsonBooleanValue, JsonNullValue {
+        permits JsonObjectValue, JsonArrayValue, JsonStringValue, JsonNumberValue, JsonBooleanValue, JsonNullValue {
 
     /**
      * Returns {@code true} if this value is JSON {@code null}.
@@ -119,11 +119,12 @@ public sealed interface JsonValue
      *
      * <p>Equivalent to {@code as(type, Sql4jsonSettings.defaults())}.
      *
-     * @param <T>  target type
+     * @param <T> target type
      * @param type target class; must not be {@code null}
-     * @return mapped instance; may be {@code null} if this value is JSON {@code null}
-     * and {@code type} is a reference type
-     * @throws io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonMappingException if the value cannot be converted to {@code type}
+     * @return mapped instance; may be {@code null} if this value is JSON {@code null} and {@code type} is a reference
+     *     type
+     * @throws io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonMappingException if the value cannot be converted to
+     *     {@code type}
      * @since 1.1.0
      */
     default <T> T as(Class<T> type) {
@@ -133,16 +134,17 @@ public sealed interface JsonValue
     /**
      * Maps this {@code JsonValue} to an instance of {@code type} using the supplied settings.
      *
-     * <p>The {@link io.github.mnesimiyilmaz.sql4json.settings.MappingSettings} subsection
-     * of {@code settings} controls behaviour for missing record/POJO fields
-     * (see {@link io.github.mnesimiyilmaz.sql4json.settings.MissingFieldPolicy}).
+     * <p>The {@link io.github.mnesimiyilmaz.sql4json.settings.MappingSettings} subsection of {@code settings} controls
+     * behaviour for missing record/POJO fields (see
+     * {@link io.github.mnesimiyilmaz.sql4json.settings.MissingFieldPolicy}).
      *
-     * @param <T>      target type
-     * @param type     target class; must not be {@code null}
+     * @param <T> target type
+     * @param type target class; must not be {@code null}
      * @param settings mapping configuration; must not be {@code null}
-     * @return mapped instance; may be {@code null} if this value is JSON {@code null}
-     * and {@code type} is a reference type
-     * @throws io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonMappingException if the value cannot be converted to {@code type}
+     * @return mapped instance; may be {@code null} if this value is JSON {@code null} and {@code type} is a reference
+     *     type
+     * @throws io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonMappingException if the value cannot be converted to
+     *     {@code type}
      * @since 1.1.0
      */
     default <T> T as(Class<T> type, Sql4jsonSettings settings) {

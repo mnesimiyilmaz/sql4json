@@ -1,13 +1,13 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json;
 
 import java.util.Arrays;
 
 /**
- * Pure statistical helpers used by {@link ProfilingTest} when collapsing
- * multi-run measurements into a single number for the report.
+ * Pure statistical helpers used by {@link ProfilingTest} when collapsing multi-run measurements into a single number
+ * for the report.
  *
- * <p>Package-private — internal to the profiling test suite, not part of
- * the public API.
+ * <p>Package-private — internal to the profiling test suite, not part of the public API.
  */
 final class ProfilingStats {
 
@@ -16,9 +16,8 @@ final class ProfilingStats {
     }
 
     /**
-     * Returns the median of {@code values}. For odd-length input, returns the
-     * middle element after sorting. For even-length input, returns the integer
-     * mean of the two middle elements (truncating toward zero per Java's
+     * Returns the median of {@code values}. For odd-length input, returns the middle element after sorting. For
+     * even-length input, returns the integer mean of the two middle elements (truncating toward zero per Java's
      * {@code /} on longs).
      *
      * <p>Does not mutate the input — sorts a defensive copy.

@@ -1,12 +1,12 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.engine;
 
-import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
+import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException;
 import java.util.LinkedHashSet;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class RowSchemaTest {
 
@@ -18,14 +18,12 @@ class RowSchemaTest {
 
     @Test
     void of_buildsIndexAndFamilyMap() {
-        RowSchema s = RowSchema.of(List.of(
-                FieldKey.of("name"),
-                FieldKey.of("items[0].name"),
-                FieldKey.of("items[1].name")));
+        RowSchema s =
+                RowSchema.of(List.of(FieldKey.of("name"), FieldKey.of("items[0].name"), FieldKey.of("items[1].name")));
         assertEquals(3, s.size());
         assertEquals(0, s.indexOf(FieldKey.of("name")));
         assertEquals(2, s.indexOf(FieldKey.of("items[1].name")));
-        assertArrayEquals(new int[]{1, 2}, s.familyIndexes("items.name"));
+        assertArrayEquals(new int[] {1, 2}, s.familyIndexes("items.name"));
     }
 
     @Test
@@ -36,14 +34,12 @@ class RowSchemaTest {
 
     @Test
     void of_duplicateColumnThrows() {
-        assertThrows(SQL4JsonExecutionException.class,
-                () -> RowSchema.of(List.of(FieldKey.of("a"), FieldKey.of("a"))));
+        assertThrows(SQL4JsonExecutionException.class, () -> RowSchema.of(List.of(FieldKey.of("a"), FieldKey.of("a"))));
     }
 
     @Test
     void project_retainsSubset() {
-        RowSchema s = RowSchema.of(List.of(
-                FieldKey.of("a"), FieldKey.of("b"), FieldKey.of("c")));
+        RowSchema s = RowSchema.of(List.of(FieldKey.of("a"), FieldKey.of("b"), FieldKey.of("c")));
         var keep = new LinkedHashSet<FieldKey>();
         keep.add(FieldKey.of("a"));
         keep.add(FieldKey.of("c"));
@@ -78,9 +74,8 @@ class RowSchemaTest {
 
     @Test
     void withWindowSlots_nonEmpty_appendsAndIndexes() {
-        Expression.WindowFnCall call = new Expression.WindowFnCall(
-                "ROW_NUMBER", List.of(),
-                new WindowSpec(List.of(), List.of()));
+        Expression.WindowFnCall call =
+                new Expression.WindowFnCall("ROW_NUMBER", List.of(), new WindowSpec(List.of(), List.of()));
         RowSchema s = RowSchema.of(List.of(FieldKey.of("a"))).withWindowSlots(List.of(call));
         assertTrue(s.hasWindowSlots());
         assertEquals(1, s.windowSlot(call).getAsInt());
@@ -89,12 +84,11 @@ class RowSchemaTest {
 
     @Test
     void withWindowSlots_aliasMappingMakesAliasResolveToSlot() {
-        Expression.WindowFnCall call = new Expression.WindowFnCall(
-                "ROW_NUMBER", List.of(),
-                new WindowSpec(List.of(), List.of()));
+        Expression.WindowFnCall call =
+                new Expression.WindowFnCall("ROW_NUMBER", List.of(), new WindowSpec(List.of(), List.of()));
         FieldKey alias = FieldKey.of("rk");
-        RowSchema s = RowSchema.of(List.of(FieldKey.of("a")))
-                .withWindowSlots(List.of(call), java.util.Map.of(call, alias));
+        RowSchema s =
+                RowSchema.of(List.of(FieldKey.of("a"))).withWindowSlots(List.of(call), java.util.Map.of(call, alias));
         assertEquals(1, s.indexOf(alias));
         assertEquals(s.windowSlot(call).getAsInt(), s.indexOf(alias));
     }
@@ -133,28 +127,26 @@ class RowSchemaTest {
     @Test
     void windowSlot_returnsEmptyWhenSchemaHasNoSlotsMap() {
         RowSchema s = RowSchema.of(List.of(FieldKey.of("a")));
-        Expression.WindowFnCall call = new Expression.WindowFnCall(
-                "ROW_NUMBER", List.of(), new WindowSpec(List.of(), List.of()));
+        Expression.WindowFnCall call =
+                new Expression.WindowFnCall("ROW_NUMBER", List.of(), new WindowSpec(List.of(), List.of()));
         assertTrue(s.windowSlot(call).isEmpty());
     }
 
     @Test
     void windowSlot_returnsEmptyForUnknownCall() {
-        Expression.WindowFnCall present = new Expression.WindowFnCall(
-                "ROW_NUMBER", List.of(), new WindowSpec(List.of(), List.of()));
-        Expression.WindowFnCall absent = new Expression.WindowFnCall(
-                "RANK", List.of(), new WindowSpec(List.of(), List.of()));
-        RowSchema s = RowSchema.of(List.of(FieldKey.of("a")))
-                .withWindowSlots(List.of(present));
+        Expression.WindowFnCall present =
+                new Expression.WindowFnCall("ROW_NUMBER", List.of(), new WindowSpec(List.of(), List.of()));
+        Expression.WindowFnCall absent =
+                new Expression.WindowFnCall("RANK", List.of(), new WindowSpec(List.of(), List.of()));
+        RowSchema s = RowSchema.of(List.of(FieldKey.of("a"))).withWindowSlots(List.of(present));
         assertTrue(s.windowSlot(absent).isEmpty());
     }
 
     @Test
     void withWindowSlots_nullAliasMap_uses_synthetic_columnKeys() {
-        Expression.WindowFnCall call = new Expression.WindowFnCall(
-                "ROW_NUMBER", List.of(), new WindowSpec(List.of(), List.of()));
-        RowSchema s = RowSchema.of(List.of(FieldKey.of("a")))
-                .withWindowSlots(List.of(call), null);
+        Expression.WindowFnCall call =
+                new Expression.WindowFnCall("ROW_NUMBER", List.of(), new WindowSpec(List.of(), List.of()));
+        RowSchema s = RowSchema.of(List.of(FieldKey.of("a"))).withWindowSlots(List.of(call), null);
         assertTrue(s.hasWindowSlots());
         assertEquals(1, s.windowSlot(call).getAsInt());
         assertEquals(2, s.size());

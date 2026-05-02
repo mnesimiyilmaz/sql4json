@@ -1,11 +1,11 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.registry;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class BoundedPatternCacheTests {
 
@@ -13,10 +13,12 @@ class BoundedPatternCacheTests {
     void computes_pattern_on_miss() {
         var cache = new BoundedPatternCache(4);
         AtomicInteger compiles = new AtomicInteger();
-        Pattern p = cache.computeIfAbsent("%a%", k -> {
-            compiles.incrementAndGet();
-            return Pattern.compile("^.*a.*$");
-        });
+        Pattern p = cache.computeIfAbsent(
+                "%a%",
+                k -> {
+                    compiles.incrementAndGet();
+                    return Pattern.compile("^.*a.*$");
+                });
         assertNotNull(p);
         assertEquals(1, compiles.get());
     }
@@ -25,14 +27,18 @@ class BoundedPatternCacheTests {
     void returns_cached_pattern_on_hit() {
         var cache = new BoundedPatternCache(4);
         AtomicInteger compiles = new AtomicInteger();
-        cache.computeIfAbsent("%a%", k -> {
-            compiles.incrementAndGet();
-            return Pattern.compile("^.*a.*$");
-        });
-        cache.computeIfAbsent("%a%", k -> {
-            compiles.incrementAndGet();
-            return Pattern.compile("^.*a.*$");
-        });
+        cache.computeIfAbsent(
+                "%a%",
+                k -> {
+                    compiles.incrementAndGet();
+                    return Pattern.compile("^.*a.*$");
+                });
+        cache.computeIfAbsent(
+                "%a%",
+                k -> {
+                    compiles.incrementAndGet();
+                    return Pattern.compile("^.*a.*$");
+                });
         assertEquals(1, compiles.get());
     }
 

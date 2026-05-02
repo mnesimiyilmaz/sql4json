@@ -1,16 +1,16 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.parser;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.engine.FieldKey;
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonParseException;
 import io.github.mnesimiyilmaz.sql4json.registry.AndNode;
 import io.github.mnesimiyilmaz.sql4json.registry.OrNode;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-
-import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class QueryParserTest {
 
@@ -45,9 +45,9 @@ class QueryParserTest {
 
     @ParameterizedTest(name = "parse_where_referencesField[{0} -> {1}]")
     @CsvSource({
-            "SELECT * FROM $r WHERE age > 25, age",
-            "SELECT * FROM $r WHERE name LIKE 'A%', name",
-            "SELECT * FROM $r WHERE LOWER(name) = 'john', name"
+        "SELECT * FROM $r WHERE age > 25, age",
+        "SELECT * FROM $r WHERE name LIKE 'A%', name",
+        "SELECT * FROM $r WHERE LOWER(name) = 'john', name"
     })
     void parse_where_referencesField(String sql, String expectedField) {
         var qd = QueryParser.parse(sql);
@@ -70,8 +70,7 @@ class QueryParserTest {
     void referencedColumns_is_unmodifiable() {
         var qd = QueryParser.parse("SELECT name FROM $r");
         Set<FieldKey> cols = qd.referencedColumns();
-        assertThrows(UnsupportedOperationException.class,
-                () -> cols.add(FieldKey.of("extra")));
+        assertThrows(UnsupportedOperationException.class, () -> cols.add(FieldKey.of("extra")));
     }
 
     @Test
@@ -95,10 +94,10 @@ class QueryParserTest {
 
     @ParameterizedTest(name = "parse_where_clauseNotNull[{0}]")
     @CsvSource({
-            "SELECT * FROM $r WHERE email IS NULL",
-            "SELECT * FROM $r WHERE email IS NOT NULL",
-            "SELECT * FROM $r WHERE temp > -10",
-            "SELECT * FROM $r WHERE name = 'it''s'"
+        "SELECT * FROM $r WHERE email IS NULL",
+        "SELECT * FROM $r WHERE email IS NOT NULL",
+        "SELECT * FROM $r WHERE temp > -10",
+        "SELECT * FROM $r WHERE name = 'it''s'"
     })
     void parse_where_clauseNotNull(String sql) {
         var qd = QueryParser.parse(sql);
@@ -142,8 +141,7 @@ class QueryParserTest {
 
     @Test
     void parse_subquery_in_from() {
-        var qd = QueryParser.parse(
-                "SELECT name FROM (SELECT * FROM $r WHERE age > 25) WHERE name LIKE 'A%'");
+        var qd = QueryParser.parse("SELECT name FROM (SELECT * FROM $r WHERE age > 25) WHERE name LIKE 'A%'");
         assertNotNull(qd.fromSubQuery());
         // fromSubQuery preserves original whitespace from the char stream
         assertTrue(qd.fromSubQuery().contains("age > 25"));
@@ -161,13 +159,11 @@ class QueryParserTest {
 
     @Test
     void parse_invalid_sql_throws_parse_exception() {
-        assertThrows(SQL4JsonParseException.class,
-                () -> QueryParser.parse("NOT VALID SQL"));
+        assertThrows(SQL4JsonParseException.class, () -> QueryParser.parse("NOT VALID SQL"));
     }
 
     @Test
     void parse_empty_input_throws_parse_exception() {
-        assertThrows(SQL4JsonParseException.class,
-                () -> QueryParser.parse(""));
+        assertThrows(SQL4JsonParseException.class, () -> QueryParser.parse(""));
     }
 }

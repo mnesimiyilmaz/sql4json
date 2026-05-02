@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.engine.stage;
 
 import io.github.mnesimiyilmaz.sql4json.engine.FieldKey;
@@ -7,7 +8,6 @@ import io.github.mnesimiyilmaz.sql4json.engine.Row;
 import io.github.mnesimiyilmaz.sql4json.engine.RowAccessor;
 import io.github.mnesimiyilmaz.sql4json.engine.RowSchema;
 import io.github.mnesimiyilmaz.sql4json.parser.SelectColumnDef;
-
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.stream.Stream;
@@ -15,26 +15,23 @@ import java.util.stream.Stream;
 /**
  * Lazy pipeline stage that projects rows to selected columns (SELECT clause).
  *
- * <p>Since 1.2.0 the stage emits {@link FlatRow} per non-aggregated, non-window
- * row using a single shared {@link RowSchema} derived from the SELECT column
- * list. The original {@link io.github.mnesimiyilmaz.sql4json.types.JsonValue}
- * (when available on the input lazy {@link Row}) is retained on the output so
- * the unflattener can re-derive any column for computed expressions like
- * {@code CONCAT(name, ' - ', dept)}.</p>
+ * <p>Since 1.2.0 the stage emits {@link FlatRow} per non-aggregated, non-window row using a single shared
+ * {@link RowSchema} derived from the SELECT column list. The original
+ * {@link io.github.mnesimiyilmaz.sql4json.types.JsonValue} (when available on the input lazy {@link Row}) is retained
+ * on the output so the unflattener can re-derive any column for computed expressions like {@code CONCAT(name, ' - ',
+ * dept)}.
  *
- * <p>Pass-through cases:</p>
+ * <p>Pass-through cases:
+ *
  * <ul>
- *   <li>SELECT * / window-bearing SELECT: {@code projectionSchema == null}.</li>
- *   <li>Aggregated rows from GROUP BY: already carry the SELECT projection in
- *       their schema; passing through preserves the aggregated flag and source
- *       group needed for HAVING aggregate re-evaluation.</li>
- *   <li>Window-bearing rows (rows that have window results stored, regardless
- *       of whether the SELECT def's {@code containsWindow()} reports them):
- *       projection would strip the window slots and break the unflattener's
- *       schema-indexed window lookup. Window functions buried in CASE WHEN
- *       conditions slip past {@code containsWindow()} (it walks the Expression
- *       tree but not the CriteriaNode hierarchy), so the per-row check is the
- *       safety net.</li>
+ *   <li>SELECT * / window-bearing SELECT: {@code projectionSchema == null}.
+ *   <li>Aggregated rows from GROUP BY: already carry the SELECT projection in their schema; passing through preserves
+ *       the aggregated flag and source group needed for HAVING aggregate re-evaluation.
+ *   <li>Window-bearing rows (rows that have window results stored, regardless of whether the SELECT def's
+ *       {@code containsWindow()} reports them): projection would strip the window slots and break the unflattener's
+ *       schema-indexed window lookup. Window functions buried in CASE WHEN conditions slip past
+ *       {@code containsWindow()} (it walks the Expression tree but not the CriteriaNode hierarchy), so the per-row
+ *       check is the safety net.
  * </ul>
  */
 public final class SelectStage implements LazyPipelineStage {

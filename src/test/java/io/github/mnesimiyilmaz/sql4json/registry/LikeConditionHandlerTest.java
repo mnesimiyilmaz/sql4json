@@ -1,4 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.registry;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.engine.Expression;
 import io.github.mnesimiyilmaz.sql4json.engine.Expression.ColumnRef;
@@ -9,11 +12,8 @@ import io.github.mnesimiyilmaz.sql4json.json.JsonObjectValue;
 import io.github.mnesimiyilmaz.sql4json.json.JsonStringValue;
 import io.github.mnesimiyilmaz.sql4json.types.SqlNumber;
 import io.github.mnesimiyilmaz.sql4json.types.SqlString;
-import org.junit.jupiter.api.Test;
-
 import java.util.LinkedHashMap;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class LikeConditionHandlerTest {
 
@@ -35,10 +35,18 @@ class LikeConditionHandlerTest {
 
     private static ConditionContext likeCtx(String col, String pattern) {
         SqlString patternVal = new SqlString(pattern);
-        return new ConditionContext(ConditionContext.ConditionType.LIKE,
-                new ColumnRef(col), "LIKE", patternVal,
-                new Expression.LiteralVal(patternVal), null, null, null,
-                null, null, null);
+        return new ConditionContext(
+                ConditionContext.ConditionType.LIKE,
+                new ColumnRef(col),
+                "LIKE",
+                patternVal,
+                new Expression.LiteralVal(patternVal),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
     }
 
     private CriteriaNode nodeFor(String col, String pattern) {
@@ -54,10 +62,18 @@ class LikeConditionHandlerTest {
 
     @Test
     void canHandle_comparison_false() {
-        ConditionContext ctx = new ConditionContext(ConditionContext.ConditionType.COMPARISON,
-                new ColumnRef("age"), ">", SqlNumber.of(1),
-                new Expression.LiteralVal(SqlNumber.of(1)), null, null, null,
-                null, null, null);
+        ConditionContext ctx = new ConditionContext(
+                ConditionContext.ConditionType.COMPARISON,
+                new ColumnRef("age"),
+                ">",
+                SqlNumber.of(1),
+                new Expression.LiteralVal(SqlNumber.of(1)),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
         assertFalse(handler.canHandle(ctx));
     }
 
@@ -68,7 +84,7 @@ class LikeConditionHandlerTest {
         CriteriaNode node = nodeFor("name", "Al%");
         assertTrue(node.test(rowWithString("name", "Alice")));
         assertTrue(node.test(rowWithString("name", "Alan")));
-        assertTrue(node.test(rowWithString("name", "Al")));     // zero extra chars
+        assertTrue(node.test(rowWithString("name", "Al"))); // zero extra chars
         assertFalse(node.test(rowWithString("name", "Bob")));
     }
 
@@ -102,8 +118,8 @@ class LikeConditionHandlerTest {
         CriteriaNode node = nodeFor("name", "_lice");
         assertTrue(node.test(rowWithString("name", "Alice")));
         assertTrue(node.test(rowWithString("name", "Blice")));
-        assertFalse(node.test(rowWithString("name", "Alice2")));  // extra char
-        assertFalse(node.test(rowWithString("name", "lice")));    // no leading char
+        assertFalse(node.test(rowWithString("name", "Alice2"))); // extra char
+        assertFalse(node.test(rowWithString("name", "lice"))); // no leading char
     }
 
     @Test
@@ -111,7 +127,7 @@ class LikeConditionHandlerTest {
         CriteriaNode node = nodeFor("code", "A__");
         assertTrue(node.test(rowWithString("code", "A12")));
         assertTrue(node.test(rowWithString("code", "AXY")));
-        assertFalse(node.test(rowWithString("code", "A1")));   // too short
+        assertFalse(node.test(rowWithString("code", "A1"))); // too short
         assertFalse(node.test(rowWithString("code", "A123"))); // too long
     }
 
@@ -135,8 +151,8 @@ class LikeConditionHandlerTest {
     void dotInPattern_treatedAsLiteralNotRegexWildcard() {
         CriteriaNode node = nodeFor("price", "3.14");
         assertTrue(node.test(rowWithString("price", "3.14")));
-        assertFalse(node.test(rowWithString("price", "3X14")),
-                "Dot in LIKE pattern must be literal, not a regex wildcard");
+        assertFalse(
+                node.test(rowWithString("price", "3X14")), "Dot in LIKE pattern must be literal, not a regex wildcard");
         assertFalse(node.test(rowWithString("price", "3014")));
     }
 
@@ -145,24 +161,22 @@ class LikeConditionHandlerTest {
         CriteriaNode node = nodeFor("code", "[abc]");
         assertDoesNotThrow(() -> node.test(rowWithString("code", "[abc]")));
         assertTrue(node.test(rowWithString("code", "[abc]")));
-        assertFalse(node.test(rowWithString("code", "a")),
-                "Brackets must be literal in LIKE pattern");
+        assertFalse(node.test(rowWithString("code", "a")), "Brackets must be literal in LIKE pattern");
     }
 
     @Test
     void plusInPattern_treatedAsLiteral() {
         CriteriaNode node = nodeFor("value", "1+1");
         assertTrue(node.test(rowWithString("value", "1+1")));
-        assertFalse(node.test(rowWithString("value", "11")),
-                "Plus in LIKE pattern must be literal, not regex quantifier");
+        assertFalse(
+                node.test(rowWithString("value", "11")), "Plus in LIKE pattern must be literal, not regex quantifier");
     }
 
     @Test
     void asteriskInPattern_treatedAsLiteral() {
         CriteriaNode node = nodeFor("expr", "a*b");
         assertTrue(node.test(rowWithString("expr", "a*b")));
-        assertFalse(node.test(rowWithString("expr", "ab")),
-                "Asterisk in LIKE pattern must be literal");
+        assertFalse(node.test(rowWithString("expr", "ab")), "Asterisk in LIKE pattern must be literal");
     }
 
     @Test
@@ -187,8 +201,7 @@ class LikeConditionHandlerTest {
         CriteriaNode node = nodeFor("version", "1.%");
         assertTrue(node.test(rowWithString("version", "1.0")));
         assertTrue(node.test(rowWithString("version", "1.23")));
-        assertFalse(node.test(rowWithString("version", "1X0")),
-                "Dot before % must be literal");
+        assertFalse(node.test(rowWithString("version", "1X0")), "Dot before % must be literal");
     }
 
     // ── Case insensitivity ────────────────────────────────────────────────────
@@ -206,8 +219,7 @@ class LikeConditionHandlerTest {
     @Test
     void nonStringColumnValue_returnsFalse() {
         CriteriaNode node = nodeFor("age", "25%");
-        assertFalse(node.test(rowWithNumber("age", 25)),
-                "LIKE on a non-string value should return false");
+        assertFalse(node.test(rowWithNumber("age", 25)), "LIKE on a non-string value should return false");
     }
 
     // ── NULL column value ─────────────────────────────────────────────────────

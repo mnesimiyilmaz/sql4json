@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.exception;
 
 /**
@@ -22,10 +23,9 @@ public sealed class SQL4JsonException extends RuntimeException
      * Creates an exception with the given message and cause.
      *
      * @param message detail message
-     * @param cause   underlying cause
+     * @param cause underlying cause
      */
     public SQL4JsonException(String message, Throwable cause) {
         super(message, cause);
     }
-
 }

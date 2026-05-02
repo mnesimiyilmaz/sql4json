@@ -1,4 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.json;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.engine.FieldKey;
 import io.github.mnesimiyilmaz.sql4json.engine.Row;
@@ -6,35 +9,27 @@ import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
 import io.github.mnesimiyilmaz.sql4json.types.SqlNumber;
 import io.github.mnesimiyilmaz.sql4json.types.SqlString;
 import io.github.mnesimiyilmaz.sql4json.types.SqlValue;
-import org.junit.jupiter.api.Test;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 /**
- * Tests for json/JsonFlattener — the NEW streaming flattener.
- * Distinct from utils/JsonFlattenerTest (which tests the old pipeline's JsonFlattener).
+ * Tests for json/JsonFlattener — the NEW streaming flattener. Distinct from utils/JsonFlattenerTest (which tests the
+ * old pipeline's JsonFlattener).
  */
 class JsonFlattenerTest {
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
-    /**
-     * [{name: "A"}, {name: "B"}]
-     */
+    /** [{name: "A"}, {name: "B"}] */
     private static JsonArrayValue twoElementArray() {
         return new JsonArrayValue(List.of(
                 new JsonObjectValue(Map.of("name", new JsonStringValue("A"))),
-                new JsonObjectValue(Map.of("name", new JsonStringValue("B")))
-        ));
+                new JsonObjectValue(Map.of("name", new JsonStringValue("B")))));
     }
 
-    /**
-     * {name: "Alice", age: 30}
-     */
+    /** {name: "Alice", age: 30} */
     private static JsonObjectValue simpleObj() {
         var m = new java.util.LinkedHashMap<String, JsonValue>();
         m.put("name", new JsonStringValue("Alice"));
@@ -42,18 +37,15 @@ class JsonFlattenerTest {
         return new JsonObjectValue(m);
     }
 
-    /**
-     * {data: {items: [{id: 1}, {id: 2}]}}
-     */
+    /** {data: {items: [{id: 1}, {id: 2}]}} */
     private static JsonObjectValue nestedObj() {
         return new JsonObjectValue(Map.of(
-                "data", new JsonObjectValue(Map.of(
-                        "items", new JsonArrayValue(List.of(
+                "data",
+                new JsonObjectValue(Map.of(
+                        "items",
+                        new JsonArrayValue(List.of(
                                 new JsonObjectValue(Map.of("id", new JsonLongValue(1L))),
-                                new JsonObjectValue(Map.of("id", new JsonLongValue(2L)))
-                        ))
-                ))
-        ));
+                                new JsonObjectValue(Map.of("id", new JsonLongValue(2L)))))))));
     }
 
     // ── streamLazy() ─────────────────────────────────────────────────────────
@@ -61,40 +53,36 @@ class JsonFlattenerTest {
     @Test
     void streamLazy_arrayInput_producesOneRowPerElement() {
         FieldKey.Interner interner = new FieldKey.Interner();
-        List<Row> rows = JsonFlattener.streamLazy(twoElementArray(), "$r", interner)
-                .toList();
+        List<Row> rows =
+                JsonFlattener.streamLazy(twoElementArray(), "$r", interner).toList();
         assertEquals(2, rows.size());
     }
 
     @Test
     void streamLazy_objectInput_producesSingleRow() {
         FieldKey.Interner interner = new FieldKey.Interner();
-        List<Row> rows = JsonFlattener.streamLazy(simpleObj(), "$r", interner)
-                .toList();
+        List<Row> rows = JsonFlattener.streamLazy(simpleObj(), "$r", interner).toList();
         assertEquals(1, rows.size());
     }
 
     @Test
     void streamLazy_eachRow_holdsOriginalJsonValue() {
         FieldKey.Interner interner = new FieldKey.Interner();
-        List<Row> rows = JsonFlattener.streamLazy(twoElementArray(), "$r", interner)
-                .toList();
+        List<Row> rows =
+                JsonFlattener.streamLazy(twoElementArray(), "$r", interner).toList();
         // Every lazy row must have original reference (not pre-flattened)
-        rows.forEach(r -> assertTrue(r.originalValue().isPresent(),
-                "Each lazy row should hold original JsonValue"));
+        rows.forEach(r -> assertTrue(r.originalValue().isPresent(), "Each lazy row should hold original JsonValue"));
     }
 
     @Test
     void streamLazy_laziness_originalValuePreservedNotPreFlattened() {
         FieldKey.Interner interner = new FieldKey.Interner();
-        List<Row> rows = JsonFlattener.streamLazy(twoElementArray(), "$r", interner)
-                .toList();
+        List<Row> rows =
+                JsonFlattener.streamLazy(twoElementArray(), "$r", interner).toList();
         // Each row holds original reference and is not modified (not pre-flattened)
         rows.forEach(r -> {
-            assertTrue(r.originalValue().isPresent(),
-                    "Lazy row should preserve original JsonValue reference");
-            assertFalse(r.isModified(),
-                    "Lazy row should not be marked as modified");
+            assertTrue(r.originalValue().isPresent(), "Lazy row should preserve original JsonValue reference");
+            assertFalse(r.isModified(), "Lazy row should not be marked as modified");
         });
     }
 
@@ -110,8 +98,8 @@ class JsonFlattenerTest {
     void streamLazy_navigatesToPath() {
         FieldKey.Interner interner = new FieldKey.Interner();
         // nestedObj has data.items = [{id:1},{id:2}]
-        List<Row> rows = JsonFlattener.streamLazy(nestedObj(), "$r.data.items", interner)
-                .toList();
+        List<Row> rows =
+                JsonFlattener.streamLazy(nestedObj(), "$r.data.items", interner).toList();
         assertEquals(2, rows.size());
     }
 
@@ -133,10 +121,9 @@ class JsonFlattenerTest {
         FieldKey.Interner interner = new FieldKey.Interner();
         Map<FieldKey, SqlValue> target = new HashMap<>();
         JsonFlattener.flattenInto(
-                new JsonObjectValue(Map.of(
-                        "address", new JsonObjectValue(Map.of(
-                                "city", new JsonStringValue("LA"))))),
-                target, interner);
+                new JsonObjectValue(Map.of("address", new JsonObjectValue(Map.of("city", new JsonStringValue("LA"))))),
+                target,
+                interner);
 
         assertTrue(target.containsKey(FieldKey.of("address.city", interner)));
         assertEquals(new SqlString("LA"), target.get(FieldKey.of("address.city", interner)));
@@ -148,10 +135,9 @@ class JsonFlattenerTest {
         Map<FieldKey, SqlValue> target = new HashMap<>();
         JsonFlattener.flattenInto(
                 new JsonObjectValue(Map.of(
-                        "tags", new JsonArrayValue(List.of(
-                                new JsonStringValue("a"),
-                                new JsonStringValue("b"))))),
-                target, interner);
+                        "tags", new JsonArrayValue(List.of(new JsonStringValue("a"), new JsonStringValue("b"))))),
+                target,
+                interner);
 
         assertTrue(target.containsKey(FieldKey.of("tags[0]", interner)));
         assertTrue(target.containsKey(FieldKey.of("tags[1]", interner)));

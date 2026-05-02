@@ -1,14 +1,13 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json;
 
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
 
 /**
- * Abstraction for query result caching. Allows plugging in custom cache
- * implementations (Caffeine, Guava, etc.).
+ * Abstraction for query result caching. Allows plugging in custom cache implementations (Caffeine, Guava, etc.).
  *
- * <p>Implementations MUST be thread-safe if the Engine is used from multiple threads.
- * {@code get()} returns {@code null} for cache misses. Implementations MUST NOT
- * store {@code null} as a value.</p>
+ * <p>Implementations MUST be thread-safe if the Engine is used from multiple threads. {@code get()} returns
+ * {@code null} for cache misses. Implementations MUST NOT store {@code null} as a value.
  */
 public interface QueryResultCache {
 
@@ -23,14 +22,12 @@ public interface QueryResultCache {
     /**
      * Store a result in the cache. Implementations MUST NOT accept {@code null} values.
      *
-     * @param sql    the exact SQL string used as the cache key
+     * @param sql the exact SQL string used as the cache key
      * @param result the result to cache (never {@code null})
      */
     void put(String sql, JsonValue result);
 
-    /**
-     * Remove all entries from the cache.
-     */
+    /** Remove all entries from the cache. */
     void clear();
 
     /**

@@ -1,4 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.mapper;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonMappingException;
 import io.github.mnesimiyilmaz.sql4json.json.JsonDoubleValue;
@@ -8,29 +11,23 @@ import io.github.mnesimiyilmaz.sql4json.json.JsonStringValue;
 import io.github.mnesimiyilmaz.sql4json.settings.MappingSettings;
 import io.github.mnesimiyilmaz.sql4json.settings.MissingFieldPolicy;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
-import org.junit.jupiter.api.Test;
-
 import java.util.*;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class JsonValueMapperMissingFieldPolicyTest {
 
-    record WithOptional(String name, Optional<Integer> age) {
-    }
+    record WithOptional(String name, Optional<Integer> age) {}
 
-    record WithPrimitive(String name, int age) {
-    }
+    record WithPrimitive(String name, int age) {}
 
-    record Nested(String id, WithPrimitive inner) {
-    }
+    record Nested(String id, WithPrimitive inner) {}
 
-    record WithCollections(String id, List<String> tags, Set<Integer> ids, Map<String, Integer> counts, int[] nums) {
-    }
+    record WithCollections(String id, List<String> tags, Set<Integer> ids, Map<String, Integer> counts, int[] nums) {}
 
     private static final MappingSettings IGNORE = MappingSettings.defaults();
-    private static final MappingSettings FAIL   = MappingSettings.builder()
-            .missingFieldPolicy(MissingFieldPolicy.FAIL).build();
+    private static final MappingSettings FAIL = MappingSettings.builder()
+            .missingFieldPolicy(MissingFieldPolicy.FAIL)
+            .build();
 
     private static JsonValue obj(Map<String, JsonValue> m) {
         return new JsonObjectValue(new LinkedHashMap<>(m));
@@ -60,17 +57,17 @@ class JsonValueMapperMissingFieldPolicyTest {
     @Test
     void when_fail_and_missing_field_then_exception_with_path() {
         JsonValue v = obj(Map.of("name", new JsonStringValue("Bob")));
-        SQL4JsonMappingException e = assertThrows(SQL4JsonMappingException.class,
-                () -> JsonValueMapper.INSTANCE.map(v, WithPrimitive.class, FAIL));
+        SQL4JsonMappingException e = assertThrows(
+                SQL4JsonMappingException.class, () -> JsonValueMapper.INSTANCE.map(v, WithPrimitive.class, FAIL));
         assertTrue(e.getMessage().contains("$.age"));
     }
 
     @Test
     void when_fail_and_missing_nested_field_then_path_includes_chain() {
-        JsonValue inner = obj(Map.of("name", new JsonStringValue("x")));  // missing `age`
+        JsonValue inner = obj(Map.of("name", new JsonStringValue("x"))); // missing `age`
         JsonValue outer = obj(Map.of("id", new JsonStringValue("o1"), "inner", inner));
-        SQL4JsonMappingException e = assertThrows(SQL4JsonMappingException.class,
-                () -> JsonValueMapper.INSTANCE.map(outer, Nested.class, FAIL));
+        SQL4JsonMappingException e = assertThrows(
+                SQL4JsonMappingException.class, () -> JsonValueMapper.INSTANCE.map(outer, Nested.class, FAIL));
         assertTrue(e.getMessage().contains("$.inner.age"), e.getMessage());
     }
 
@@ -97,11 +94,9 @@ class JsonValueMapperMissingFieldPolicyTest {
         assertEquals(0, w.nums().length);
     }
 
-    record AllPrimitives(boolean b, char c, byte by, short s, int i, long l, float f, double d) {
-    }
+    record AllPrimitives(boolean b, char c, byte by, short s, int i, long l, float f, double d) {}
 
-    record WithIterable(String id, Iterable<String> tags) {
-    }
+    record WithIterable(String id, Iterable<String> tags) {}
 
     @Test
     void when_ignore_and_missing_iterable_field_then_empty_arrayList() {

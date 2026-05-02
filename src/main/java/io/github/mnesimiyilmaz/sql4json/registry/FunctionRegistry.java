@@ -1,9 +1,9 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.registry;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException;
 import io.github.mnesimiyilmaz.sql4json.sorting.SqlValueComparator;
 import io.github.mnesimiyilmaz.sql4json.types.*;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -15,22 +15,19 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 /**
- * Registry of all built-in SQL functions: scalar, value-producing, and aggregate.
- * A frozen singleton is shared JVM-wide via {@link #getDefault()}.
+ * Registry of all built-in SQL functions: scalar, value-producing, and aggregate. A frozen singleton is shared JVM-wide
+ * via {@link #getDefault()}.
  */
 public final class FunctionRegistry {
 
-    private Map<String, ScalarFunction>    scalarFunctions    = new HashMap<>();
-    private Map<String, ValueFunction>     valueFunctions     = new HashMap<>();
+    private Map<String, ScalarFunction> scalarFunctions = new HashMap<>();
+    private Map<String, ValueFunction> valueFunctions = new HashMap<>();
     private Map<String, AggregateFunction> aggregateFunctions = new HashMap<>();
 
-    /**
-     * Creates a new empty function registry.
-     */
+    /** Creates a new empty function registry. */
     public FunctionRegistry() {
         // Function maps are initialized eagerly; callers populate them via the register* methods.
     }
-
 
     private static final FunctionRegistry DEFAULT = createDefault();
 
@@ -43,9 +40,7 @@ public final class FunctionRegistry {
         return DEFAULT;
     }
 
-    /**
-     * Makes all function maps unmodifiable. Called after all functions are registered.
-     */
+    /** Makes all function maps unmodifiable. Called after all functions are registered. */
     public void freeze() {
         scalarFunctions = Collections.unmodifiableMap(scalarFunctions);
         valueFunctions = Collections.unmodifiableMap(valueFunctions);
@@ -112,8 +107,8 @@ public final class FunctionRegistry {
     /**
      * Returns the names of all registered scalar functions (lowercase).
      *
-     * <p>Intended for grammar/catalog introspection. Returns an unmodifiable
-     * snapshot; subsequent registrations are not reflected.
+     * <p>Intended for grammar/catalog introspection. Returns an unmodifiable snapshot; subsequent registrations are not
+     * reflected.
      *
      * @return the set of scalar function names
      * @since 1.2.0
@@ -143,9 +138,8 @@ public final class FunctionRegistry {
     }
 
     /**
-     * Returns a SqlNumber, normalizing whole-number doubles to {@link SqlLong}
-     * (so that {@code SqlNumber.of(3L)} equals {@code numOf(3.0)} via record
-     * equality on the underlying {@code long}).
+     * Returns a SqlNumber, normalizing whole-number doubles to {@link SqlLong} (so that {@code SqlNumber.of(3L)} equals
+     * {@code numOf(3.0)} via record equality on the underlying {@code long}).
      */
     private static SqlNumber numOf(double d) {
         if (d == Math.floor(d) && !Double.isInfinite(d) && d >= Long.MIN_VALUE && d <= Long.MAX_VALUE) {
@@ -155,19 +149,17 @@ public final class FunctionRegistry {
     }
 
     /**
-     * Returns a SqlNumber from a long &mdash; thin alias over
-     * {@link SqlNumber#of(long)}. Kept for symmetry with {@link #numOf(double)}.
+     * Returns a SqlNumber from a long &mdash; thin alias over {@link SqlNumber#of(long)}. Kept for symmetry with
+     * {@link #numOf(double)}.
      */
     private static SqlNumber numOf(long l) {
         return SqlNumber.of(l);
     }
 
     /**
-     * Coerces any non-null {@link SqlValue} to its string form via
-     * {@link SqlValue#rawValue()} {@code .toString()}. Used by the string-shaped
-     * scalar functions to accept numeric / boolean / temporal inputs uniformly,
-     * mirroring how {@code CONCAT} already behaves. Callers must short-circuit
-     * {@link SqlNull} themselves before calling.
+     * Coerces any non-null {@link SqlValue} to its string form via {@link SqlValue#rawValue()} {@code .toString()}.
+     * Used by the string-shaped scalar functions to accept numeric / boolean / temporal inputs uniformly, mirroring how
+     * {@code CONCAT} already behaves. Callers must short-circuit {@link SqlNull} themselves before calling.
      *
      * @param v the non-null value to coerce
      * @return the coerced string form
@@ -204,9 +196,11 @@ public final class FunctionRegistry {
     private static void registerCoreStringFunctions(FunctionRegistry r) {
         r.registerScalar(new ScalarFunction("lower", FunctionRegistry::lowerFn));
         r.registerScalar(new ScalarFunction("upper", FunctionRegistry::upperFn));
-        r.registerScalar(new ScalarFunction("coalesce", (val, args) -> val.isNull()
-                ? args.stream().filter(a -> !a.isNull()).findFirst().orElse(SqlNull.INSTANCE)
-                : val));
+        r.registerScalar(new ScalarFunction(
+                "coalesce",
+                (val, args) -> val.isNull()
+                        ? args.stream().filter(a -> !a.isNull()).findFirst().orElse(SqlNull.INSTANCE)
+                        : val));
         r.registerScalar(new ScalarFunction("to_date", FunctionRegistry::toDateFn));
     }
 
@@ -346,80 +340,85 @@ public final class FunctionRegistry {
 
     private static SqlValue castValue(SqlValue val, String typeName) {
         return switch (typeName) {
-            case "STRING" -> switch (val) {
-                case SqlString s -> s;
-                case SqlNumber n -> new SqlString(n.rawValue().toString());
-                case SqlBoolean(var value) -> new SqlString(Boolean.toString(value));
-                case SqlDate(var value) -> new SqlString(value.toString());
-                case SqlDateTime(var value) -> new SqlString(value.toString());
-                case SqlNull ignored -> SqlNull.INSTANCE;
-            };
-            case "NUMBER", "DECIMAL" -> switch (val) {
-                case SqlNumber n -> n;
-                case SqlString(var value) -> {
-                    try {
-                        yield SqlNumber.of(Double.parseDouble(value));
-                    } catch (NumberFormatException e) {
-                        throw new SQL4JsonExecutionException(
-                                "Cannot cast '" + value + "' to NUMBER", e);
+            case "STRING" ->
+                switch (val) {
+                    case SqlString s -> s;
+                    case SqlNumber n -> new SqlString(n.rawValue().toString());
+                    case SqlBoolean(var value) -> new SqlString(Boolean.toString(value));
+                    case SqlDate(var value) -> new SqlString(value.toString());
+                    case SqlDateTime(var value) -> new SqlString(value.toString());
+                    case SqlNull ignored -> SqlNull.INSTANCE;
+                };
+            case "NUMBER", "DECIMAL" ->
+                switch (val) {
+                    case SqlNumber n -> n;
+                    case SqlString(var value) -> {
+                        try {
+                            yield SqlNumber.of(Double.parseDouble(value));
+                        } catch (NumberFormatException e) {
+                            throw new SQL4JsonExecutionException("Cannot cast '" + value + "' to NUMBER", e);
+                        }
                     }
-                }
-                case SqlBoolean(var value) -> SqlNumber.of(value ? 1.0 : 0.0);
-                case SqlDate(var value) -> SqlNumber.of((double) value.toEpochDay());
-                case SqlDateTime(var value) -> SqlNumber.of(
-                        (double) value.toEpochSecond(ZoneOffset.UTC));
-                case SqlNull ignored -> SqlNull.INSTANCE;
-            };
-            case "INTEGER" -> switch (val) {
-                case SqlNumber n -> SqlNumber.of((double) (long) n.doubleValue());
-                case SqlString(var value) -> {
-                    try {
-                        long parsed = parseStringToLong(value);
-                        yield SqlNumber.of((double) parsed);
-                    } catch (NumberFormatException e) {
-                        throw new SQL4JsonExecutionException(
-                                "Cannot cast '" + value + "' to INTEGER", e);
+                    case SqlBoolean(var value) -> SqlNumber.of(value ? 1.0 : 0.0);
+                    case SqlDate(var value) -> SqlNumber.of((double) value.toEpochDay());
+                    case SqlDateTime(var value) -> SqlNumber.of((double) value.toEpochSecond(ZoneOffset.UTC));
+                    case SqlNull ignored -> SqlNull.INSTANCE;
+                };
+            case "INTEGER" ->
+                switch (val) {
+                    case SqlNumber n -> SqlNumber.of((double) (long) n.doubleValue());
+                    case SqlString(var value) -> {
+                        try {
+                            long parsed = parseStringToLong(value);
+                            yield SqlNumber.of((double) parsed);
+                        } catch (NumberFormatException e) {
+                            throw new SQL4JsonExecutionException("Cannot cast '" + value + "' to INTEGER", e);
+                        }
                     }
-                }
-                case SqlBoolean(var value) -> SqlNumber.of(value ? 1.0 : 0.0);
-                default -> throw new SQL4JsonExecutionException(
-                        "Cannot cast " + val.getClass().getSimpleName() + " to INTEGER");
-            };
-            case "BOOLEAN" -> switch (val) {
-                case SqlBoolean b -> b;
-                case SqlString(var value) -> SqlBoolean.of(Boolean.parseBoolean(value));
-                case SqlNumber n -> SqlBoolean.of(n.doubleValue() != 0);
-                default -> throw new SQL4JsonExecutionException(
-                        "Cannot cast " + val.getClass().getSimpleName() + " to BOOLEAN");
-            };
-            case "DATE" -> switch (val) {
-                case SqlDate d -> d;
-                case SqlDateTime(var value) -> new SqlDate(value.toLocalDate());
-                case SqlString(var value) -> {
-                    try {
-                        yield new SqlDate(LocalDate.parse(value));
-                    } catch (DateTimeParseException e) {
+                    case SqlBoolean(var value) -> SqlNumber.of(value ? 1.0 : 0.0);
+                    default ->
                         throw new SQL4JsonExecutionException(
-                                "Cannot cast '" + value + "' to DATE", e);
-                    }
-                }
-                default -> throw new SQL4JsonExecutionException(
-                        "Cannot cast " + val.getClass().getSimpleName() + " to DATE");
-            };
-            case "DATETIME" -> switch (val) {
-                case SqlDateTime dt -> dt;
-                case SqlDate(var value) -> new SqlDateTime(value.atStartOfDay());
-                case SqlString(var value) -> {
-                    try {
-                        yield new SqlDateTime(LocalDateTime.parse(value));
-                    } catch (DateTimeParseException e) {
+                                "Cannot cast " + val.getClass().getSimpleName() + " to INTEGER");
+                };
+            case "BOOLEAN" ->
+                switch (val) {
+                    case SqlBoolean b -> b;
+                    case SqlString(var value) -> SqlBoolean.of(Boolean.parseBoolean(value));
+                    case SqlNumber n -> SqlBoolean.of(n.doubleValue() != 0);
+                    default ->
                         throw new SQL4JsonExecutionException(
-                                "Cannot cast '" + value + "' to DATETIME", e);
+                                "Cannot cast " + val.getClass().getSimpleName() + " to BOOLEAN");
+                };
+            case "DATE" ->
+                switch (val) {
+                    case SqlDate d -> d;
+                    case SqlDateTime(var value) -> new SqlDate(value.toLocalDate());
+                    case SqlString(var value) -> {
+                        try {
+                            yield new SqlDate(LocalDate.parse(value));
+                        } catch (DateTimeParseException e) {
+                            throw new SQL4JsonExecutionException("Cannot cast '" + value + "' to DATE", e);
+                        }
                     }
-                }
-                default -> throw new SQL4JsonExecutionException(
-                        "Cannot cast " + val.getClass().getSimpleName() + " to DATETIME");
-            };
+                    default ->
+                        throw new SQL4JsonExecutionException(
+                                "Cannot cast " + val.getClass().getSimpleName() + " to DATE");
+                };
+            case "DATETIME" ->
+                switch (val) {
+                    case SqlDateTime dt -> dt;
+                    case SqlDate(var value) -> new SqlDateTime(value.atStartOfDay());
+                    case SqlString(var value) -> {
+                        try {
+                            yield new SqlDateTime(LocalDateTime.parse(value));
+                        } catch (DateTimeParseException e) {
+                            throw new SQL4JsonExecutionException("Cannot cast '" + value + "' to DATETIME", e);
+                        }
+                    }
+                    default ->
+                        throw new SQL4JsonExecutionException(
+                                "Cannot cast " + val.getClass().getSimpleName() + " to DATETIME");
+                };
             default -> throw new SQL4JsonExecutionException("Unknown CAST target type: " + typeName);
         };
     }
@@ -433,10 +432,10 @@ public final class FunctionRegistry {
     // ── Aggregate functions ──────────────────────────────────────────────
 
     private static void registerAggregateFunctions(FunctionRegistry r) {
-        r.registerAggregate(new AggregateFunction("count",
-                values -> SqlNumber.of(values.size())));
+        r.registerAggregate(new AggregateFunction("count", values -> SqlNumber.of(values.size())));
 
-        r.registerAggregate(new AggregateFunction("sum",
+        r.registerAggregate(new AggregateFunction(
+                "sum",
                 values -> SqlNumber.of(values.stream()
                         .filter(SqlNumber.class::isInstance)
                         .mapToDouble(v -> ((SqlNumber) v).doubleValue())
@@ -448,16 +447,19 @@ public final class FunctionRegistry {
                     .map(v -> (SqlNumber) v)
                     .toList();
             if (nums.isEmpty()) return SqlNull.INSTANCE;
-            return SqlNumber.of(nums.stream().mapToDouble(SqlNumber::doubleValue).sum() / nums.size());
+            return SqlNumber.of(
+                    nums.stream().mapToDouble(SqlNumber::doubleValue).sum() / nums.size());
         }));
 
-        r.registerAggregate(new AggregateFunction("min",
+        r.registerAggregate(new AggregateFunction(
+                "min",
                 values -> values.stream()
                         .filter(v -> !v.isNull())
                         .min(SqlValueComparator::compare)
                         .orElse(SqlNull.INSTANCE)));
 
-        r.registerAggregate(new AggregateFunction("max",
+        r.registerAggregate(new AggregateFunction(
+                "max",
                 values -> values.stream()
                         .filter(v -> !v.isNull())
                         .max(SqlValueComparator::compare)
@@ -470,8 +472,7 @@ public final class FunctionRegistry {
         if (val.isNull()) return SqlNull.INSTANCE;
         if (!args.isEmpty() && args.getFirst().isNull()) return SqlNull.INSTANCE;
         String value = coerceToString(val);
-        Locale locale = args.isEmpty() ? Locale.getDefault()
-                : Locale.forLanguageTag(coerceToString(args.getFirst()));
+        Locale locale = args.isEmpty() ? Locale.getDefault() : Locale.forLanguageTag(coerceToString(args.getFirst()));
         return new SqlString(value.toLowerCase(locale));
     }
 
@@ -479,8 +480,7 @@ public final class FunctionRegistry {
         if (val.isNull()) return SqlNull.INSTANCE;
         if (!args.isEmpty() && args.getFirst().isNull()) return SqlNull.INSTANCE;
         String value = coerceToString(val);
-        Locale locale = args.isEmpty() ? Locale.getDefault()
-                : Locale.forLanguageTag(coerceToString(args.getFirst()));
+        Locale locale = args.isEmpty() ? Locale.getDefault() : Locale.forLanguageTag(coerceToString(args.getFirst()));
         return new SqlString(value.toUpperCase(locale));
     }
 
@@ -666,10 +666,7 @@ public final class FunctionRegistry {
 
     // ── Private helper methods ───────────────────────────────────────────
 
-    /**
-     * Parses a date string without a format pattern: tries ISO datetime first,
-     * then falls back to ISO date.
-     */
+    /** Parses a date string without a format pattern: tries ISO datetime first, then falls back to ISO date. */
     private static SqlValue parseToDateWithoutFormat(String value) {
         try {
             return new SqlDateTime(LocalDateTime.parse(value, DateTimeFormatter.ISO_DATE_TIME));
@@ -678,10 +675,7 @@ public final class FunctionRegistry {
         }
     }
 
-    /**
-     * Parses a date string with a given format pattern: tries datetime first,
-     * then falls back to date-only.
-     */
+    /** Parses a date string with a given format pattern: tries datetime first, then falls back to date-only. */
     private static SqlValue parseToDateWithFormat(String value, String format) {
         DateTimeFormatter formatter;
         try {
@@ -696,10 +690,7 @@ public final class FunctionRegistry {
         }
     }
 
-    /**
-     * Parses a string to long, trying Long.parseLong first and falling back
-     * to parsing as double as truncating.
-     */
+    /** Parses a string to long, trying Long.parseLong first and falling back to parsing as double as truncating. */
     private static long parseStringToLong(String value) {
         try {
             return Long.parseLong(value);

@@ -1,22 +1,21 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.grammar;
-
-import io.github.mnesimiyilmaz.sql4json.generated.SQL4JsonLexer;
-import io.github.mnesimiyilmaz.sql4json.registry.FunctionRegistry;
-import org.junit.jupiter.api.Test;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.mnesimiyilmaz.sql4json.generated.SQL4JsonLexer;
+import io.github.mnesimiyilmaz.sql4json.registry.FunctionRegistry;
+import java.util.*;
+import java.util.stream.Collectors;
+import org.junit.jupiter.api.Test;
+
 /**
- * Enforces that {@link SQL4JsonGrammar}'s static tables stay in sync with
- * the generated lexer vocabulary and the {@link FunctionRegistry}.
+ * Enforces that {@link SQL4JsonGrammar}'s static tables stay in sync with the generated lexer vocabulary and the
+ * {@link FunctionRegistry}.
  *
- * <p>When this test fails, update the static catalog in {@link SQL4JsonGrammar}
- * to match the newly-added or removed grammar/registry entry. The drift test
- * exists precisely to prevent silent divergence.
+ * <p>When this test fails, update the static catalog in {@link SQL4JsonGrammar} to match the newly-added or removed
+ * grammar/registry entry. The drift test exists precisely to prevent silent divergence.
  */
 class SQL4JsonGrammarDriftTest {
 
@@ -27,12 +26,14 @@ class SQL4JsonGrammarDriftTest {
 
         Set<String> missingFromCatalog = new HashSet<>(derivedFromGrammar);
         missingFromCatalog.removeAll(catalog);
-        assertTrue(missingFromCatalog.isEmpty(),
+        assertTrue(
+                missingFromCatalog.isEmpty(),
                 "Grammar has keywords not in SQL4JsonGrammar.keywords(): " + missingFromCatalog);
 
         Set<String> extraInCatalog = new HashSet<>(catalog);
         extraInCatalog.removeAll(derivedFromGrammar);
-        assertTrue(extraInCatalog.isEmpty(),
+        assertTrue(
+                extraInCatalog.isEmpty(),
                 "SQL4JsonGrammar.keywords() has entries absent from the grammar: " + extraInCatalog);
     }
 
@@ -51,7 +52,9 @@ class SQL4JsonGrammarDriftTest {
         registryScalarPlusValue.addAll(FunctionRegistry.getDefault().scalarFunctionNames());
         registryScalarPlusValue.addAll(FunctionRegistry.getDefault().valueFunctionNames());
 
-        assertEquals(registryScalarPlusValue, catalogScalar,
+        assertEquals(
+                registryScalarPlusValue,
+                catalogScalar,
                 "Scalar+Value registry differs from the catalog's scalar categories (STRING/MATH/DATE_TIME/CONVERSION)");
     }
 
@@ -88,11 +91,9 @@ class SQL4JsonGrammarDriftTest {
     void tokenize_covers_array_operators_with_no_BAD_TOKEN() {
         String sql = "tags @> ARRAY[1] && ARRAY[2] AND tags <@ ARRAY[3]";
         var tokens = SQL4JsonGrammar.tokenize(sql);
-        var badTokens = tokens.stream()
-                .filter(t -> t.kind() == TokenKind.BAD_TOKEN)
-                .toList();
-        assertTrue(badTokens.isEmpty(),
-                "Expected no BAD_TOKEN entries; got: " + badTokens);
+        var badTokens =
+                tokens.stream().filter(t -> t.kind() == TokenKind.BAD_TOKEN).toList();
+        assertTrue(badTokens.isEmpty(), "Expected no BAD_TOKEN entries; got: " + badTokens);
     }
 
     @Test
@@ -109,15 +110,16 @@ class SQL4JsonGrammarDriftTest {
                 uncovered.add(symbolic + " (type " + t + ")");
             }
         }
-        assertTrue(uncovered.isEmpty(),
+        assertTrue(
+                uncovered.isEmpty(),
                 "TOKEN_KIND_BY_TYPE missing entries for grammar token types: " + uncovered
                         + ". Add the new lexer type(s) to SQL4JsonGrammar.buildTokenKindMap.");
     }
 
     /**
-     * Reads {@code SQL4JsonLexer.VOCABULARY} and extracts the subset of literal
-     * names that look like reserved keywords — uppercase alphabetic plus underscores,
-     * length >= 2. Excludes operator and punctuation literals ({@code '='}, {@code ','}, etc.).
+     * Reads {@code SQL4JsonLexer.VOCABULARY} and extracts the subset of literal names that look like reserved keywords
+     * — uppercase alphabetic plus underscores, length >= 2. Excludes operator and punctuation literals ({@code '='},
+     * {@code ','}, etc.).
      */
     private static Set<String> deriveKeywordLiteralsFromLexer() {
         var vocab = SQL4JsonLexer.VOCABULARY;

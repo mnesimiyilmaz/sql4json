@@ -1,12 +1,12 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json.json;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonExecutionException;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
-import org.junit.jupiter.api.Test;
-
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class StreamingJsonParserTest {
 
@@ -15,10 +15,24 @@ class StreamingJsonParserTest {
         String json = "[{\"id\":1},{\"id\":2},{\"id\":3}]";
         List<JsonValue> elements = StreamingJsonParser.streamArray(json).toList();
         assertEquals(3, elements.size());
-        assertEquals(1, elements.get(0).asObject().orElseThrow().get("id")
-                .asNumber().orElseThrow().intValue());
-        assertEquals(3, elements.get(2).asObject().orElseThrow().get("id")
-                .asNumber().orElseThrow().intValue());
+        assertEquals(
+                1,
+                elements.get(0)
+                        .asObject()
+                        .orElseThrow()
+                        .get("id")
+                        .asNumber()
+                        .orElseThrow()
+                        .intValue());
+        assertEquals(
+                3,
+                elements.get(2)
+                        .asObject()
+                        .orElseThrow()
+                        .get("id")
+                        .asNumber()
+                        .orElseThrow()
+                        .intValue());
     }
 
     @Test
@@ -61,7 +75,8 @@ class StreamingJsonParserTest {
         String json = "[{\"val\":\"he said \\\"hi\\\"\"}]";
         List<JsonValue> elements = StreamingJsonParser.streamArray(json).toList();
         assertEquals(1, elements.size());
-        assertEquals("he said \"hi\"",
+        assertEquals(
+                "he said \"hi\"",
                 elements.get(0).asObject().orElseThrow().get("val").asString().orElseThrow());
     }
 
@@ -70,8 +85,9 @@ class StreamingJsonParserTest {
         String json = "[{\"val\":\"\\u007B\"}]";
         List<JsonValue> elements = StreamingJsonParser.streamArray(json).toList();
         assertEquals(1, elements.size());
-        assertEquals("{", elements.get(0).asObject().orElseThrow()
-                .get("val").asString().orElseThrow());
+        assertEquals(
+                "{",
+                elements.get(0).asObject().orElseThrow().get("val").asString().orElseThrow());
     }
 
     @Test
@@ -79,7 +95,8 @@ class StreamingJsonParserTest {
         String json = "[{\"val\":\"end\\\\\"}]";
         List<JsonValue> elements = StreamingJsonParser.streamArray(json).toList();
         assertEquals(1, elements.size());
-        assertEquals("end\\",
+        assertEquals(
+                "end\\",
                 elements.get(0).asObject().orElseThrow().get("val").asString().orElseThrow());
     }
 
@@ -95,8 +112,15 @@ class StreamingJsonParserTest {
         String json = "[{\"tags\":[1,2,3]},{\"tags\":[4,5]}]";
         List<JsonValue> elements = StreamingJsonParser.streamArray(json).toList();
         assertEquals(2, elements.size());
-        assertEquals(3, elements.get(0).asObject().orElseThrow().get("tags")
-                .asArray().orElseThrow().size());
+        assertEquals(
+                3,
+                elements.get(0)
+                        .asObject()
+                        .orElseThrow()
+                        .get("tags")
+                        .asArray()
+                        .orElseThrow()
+                        .size());
     }
 
     @Test
@@ -125,7 +149,8 @@ class StreamingJsonParserTest {
     @Test
     void streamArray_with_rootPath() {
         String json = "{\"data\":{\"items\":[{\"id\":1},{\"id\":2}]}}";
-        List<JsonValue> elements = StreamingJsonParser.streamArray(json, "$r.data.items").toList();
+        List<JsonValue> elements =
+                StreamingJsonParser.streamArray(json, "$r.data.items").toList();
         assertEquals(2, elements.size());
     }
 
@@ -139,35 +164,36 @@ class StreamingJsonParserTest {
     @Test
     void streamArray_with_rootPath_null() {
         String json = "[{\"id\":1}]";
-        List<JsonValue> elements = StreamingJsonParser.streamArray(json, (String) null).toList();
+        List<JsonValue> elements =
+                StreamingJsonParser.streamArray(json, (String) null).toList();
         assertEquals(1, elements.size());
     }
 
     @Test
     void streamArray_with_rootPath_nonexistent_path() {
         String json = "{\"data\":{\"items\":[1,2]}}";
-        List<JsonValue> elements = StreamingJsonParser.streamArray(json, "$r.data.missing").toList();
+        List<JsonValue> elements =
+                StreamingJsonParser.streamArray(json, "$r.data.missing").toList();
         assertTrue(elements.isEmpty());
     }
 
     @Test
     void streamArray_with_rootPath_object_at_path() {
         String json = "{\"data\":{\"profile\":{\"name\":\"Alice\"}}}";
-        List<JsonValue> elements = StreamingJsonParser.streamArray(json, "$r.data.profile").toList();
+        List<JsonValue> elements =
+                StreamingJsonParser.streamArray(json, "$r.data.profile").toList();
         assertEquals(1, elements.size());
         assertTrue(elements.get(0).isObject());
     }
 
     @Test
     void streamArray_null_input_throws() {
-        assertThrows(SQL4JsonExecutionException.class,
-                () -> StreamingJsonParser.streamArray(null));
+        assertThrows(SQL4JsonExecutionException.class, () -> StreamingJsonParser.streamArray(null));
     }
 
     @Test
     void streamArray_blank_input_throws() {
-        assertThrows(SQL4JsonExecutionException.class,
-                () -> StreamingJsonParser.streamArray("   "));
+        assertThrows(SQL4JsonExecutionException.class, () -> StreamingJsonParser.streamArray("   "));
     }
 
     @Test
@@ -185,7 +211,8 @@ class StreamingJsonParserTest {
     @Test
     void streamArray_early_termination_via_limit() {
         String json = "[1,2,3,4,5,6,7,8,9,10]";
-        List<JsonValue> elements = StreamingJsonParser.streamArray(json).limit(3).toList();
+        List<JsonValue> elements =
+                StreamingJsonParser.streamArray(json).limit(3).toList();
         assertEquals(3, elements.size());
         assertEquals(1, elements.get(0).asNumber().orElseThrow().intValue());
         assertEquals(3, elements.get(2).asNumber().orElseThrow().intValue());
@@ -198,10 +225,7 @@ class StreamingJsonParserTest {
         List<JsonValue> tree = JsonParser.parse(json).asArray().orElseThrow();
         assertEquals(tree.size(), streamed.size());
         for (int i = 0; i < tree.size(); i++) {
-            assertEquals(
-                    JsonSerializer.serialize(tree.get(i)),
-                    JsonSerializer.serialize(streamed.get(i))
-            );
+            assertEquals(JsonSerializer.serialize(tree.get(i)), JsonSerializer.serialize(streamed.get(i)));
         }
     }
 
@@ -247,7 +271,8 @@ class StreamingJsonParserTest {
         String json = "[{\"val\":\"{not a real object}\"}]";
         List<JsonValue> elements = StreamingJsonParser.streamArray(json).toList();
         assertEquals(1, elements.size());
-        assertEquals("{not a real object}",
+        assertEquals(
+                "{not a real object}",
                 elements.get(0).asObject().orElseThrow().get("val").asString().orElseThrow());
     }
 
@@ -294,7 +319,8 @@ class StreamingJsonParserTest {
     void streamArray_with_settings() {
         // StreamingJsonParser: streamArray with settings overload
         var settings = io.github.mnesimiyilmaz.sql4json.settings.DefaultJsonCodecSettings.defaults();
-        List<JsonValue> elements = StreamingJsonParser.streamArray("[1,2]", settings).toList();
+        List<JsonValue> elements =
+                StreamingJsonParser.streamArray("[1,2]", settings).toList();
         assertEquals(2, elements.size());
     }
 
@@ -304,7 +330,6 @@ class StreamingJsonParserTest {
         var settings = io.github.mnesimiyilmaz.sql4json.settings.DefaultJsonCodecSettings.builder()
                 .maxInputLength(5)
                 .build();
-        assertThrows(SQL4JsonExecutionException.class,
-                () -> StreamingJsonParser.streamArray("[1,2,3,4,5]", settings));
+        assertThrows(SQL4JsonExecutionException.class, () -> StreamingJsonParser.streamArray("[1,2,3,4,5]", settings));
     }
 }

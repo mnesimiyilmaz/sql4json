@@ -1,27 +1,26 @@
+// SPDX-License-Identifier: Apache-2.0
 package io.github.mnesimiyilmaz.sql4json;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.mnesimiyilmaz.sql4json.exception.SQL4JsonException;
 import io.github.mnesimiyilmaz.sql4json.parser.QueryDefinition;
 import io.github.mnesimiyilmaz.sql4json.parser.QueryParser;
 import io.github.mnesimiyilmaz.sql4json.types.JsonValue;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 
 class PublicAPITest {
 
     @Nested
     class StaticApiTests {
 
-        private final String jsonArray =
-                "[{\"name\":\"Alice\",\"age\":30},{\"name\":\"Bob\",\"age\":20}]";
+        private final String jsonArray = "[{\"name\":\"Alice\",\"age\":30},{\"name\":\"Bob\",\"age\":20}]";
 
         // ── query(String, String) ──────────────────────────────────────────
 
@@ -63,29 +62,24 @@ class PublicAPITest {
 
         @Test
         void query_nullSql_throws() {
-            assertThrows(SQL4JsonException.class,
-                    () -> SQL4Json.query(null, jsonArray));
+            assertThrows(SQL4JsonException.class, () -> SQL4Json.query(null, jsonArray));
         }
 
         @Test
         void query_emptySql_throws() {
-            assertThrows(SQL4JsonException.class,
-                    () -> SQL4Json.query("", jsonArray));
+            assertThrows(SQL4JsonException.class, () -> SQL4Json.query("", jsonArray));
         }
 
         @Test
         void query_nullData_throws() {
-            assertThrows(SQL4JsonException.class,
-                    () -> SQL4Json.query("SELECT * FROM $r", (String) null));
+            assertThrows(SQL4JsonException.class, () -> SQL4Json.query("SELECT * FROM $r", (String) null));
         }
 
         // ── FROM subquery works ──────────────────────────────────────────────
 
         @Test
         void query_fromSubquery_works() {
-            String result = SQL4Json.query(
-                    "SELECT name FROM (SELECT * FROM $r WHERE age > 25)",
-                    jsonArray);
+            String result = SQL4Json.query("SELECT name FROM (SELECT * FROM $r WHERE age > 25)", jsonArray);
             assertTrue(result.contains("Alice"));
             assertFalse(result.contains("Bob"));
         }
@@ -142,8 +136,8 @@ class PublicAPITest {
                 futures.add(pool.submit(() -> {
                     List<String> results = new ArrayList<>();
                     for (int i = 0; i < iterationsPerThread; i++) {
-                        String json = "[{\"name\":\"T" + Thread.currentThread().threadId()
-                                + "\",\"age\":" + (26 + i) + "}]";
+                        String json =
+                                "[{\"name\":\"T" + Thread.currentThread().threadId() + "\",\"age\":" + (26 + i) + "}]";
                         results.add(prepared.execute(json));
                     }
                     return String.join(",", results);
@@ -164,8 +158,7 @@ class PublicAPITest {
 
         @Test
         void preparedQuery_withSubquery() {
-            PreparedQuery prepared = SQL4Json.prepare(
-                    "SELECT name FROM (SELECT * FROM $r WHERE age > 25)");
+            PreparedQuery prepared = SQL4Json.prepare("SELECT name FROM (SELECT * FROM $r WHERE age > 25)");
             String json = "[{\"name\":\"Alice\",\"age\":30},{\"name\":\"Bob\",\"age\":20}]";
             String result = prepared.execute(json);
             assertTrue(result.contains("Alice"));
@@ -196,8 +189,7 @@ class PublicAPITest {
 
         @Test
         void queryWithNowInFunction_isNonDeterministic() {
-            QueryDefinition qd = QueryParser.parse(
-                    "SELECT * FROM $r WHERE created > DATE_ADD(NOW(), -1, 'DAY')");
+            QueryDefinition qd = QueryParser.parse("SELECT * FROM $r WHERE created > DATE_ADD(NOW(), -1, 'DAY')");
             assertTrue(qd.containsNonDeterministic());
         }
     }

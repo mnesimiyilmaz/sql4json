@@ -6,25 +6,51 @@ on:
   pull_request:
     branches: [ main ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+        java: [ '21', '25' ]
+        include:
+          - os: ubuntu-latest
+            java: '21'
+            primary: true
     steps:
       - uses: actions/checkout@v6
 
-      - name: Set up JDK 21
+      - name: Set up JDK ${{ matrix.java }}
         uses: actions/setup-java@v5
         with:
-          java-version: '21'
+          java-version: ${{ matrix.java }}
           distribution: 'temurin'
           cache: maven
 
-      - name: Check formatting
-        run: ./mvnw spotless:check
-
       - name: Build and test
+        shell: bash
         run: ./mvnw clean verify
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports-${{ matrix.os }}-jdk${{ matrix.java }}
+          path: target/surefire-reports/
+          retention-days: 14
+
+      - name: Upload coverage to Codecov
+        if: matrix.primary
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: target/site/jacoco/jacoco.xml
+          fail_ci_if_error: true
