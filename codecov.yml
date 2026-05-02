@@ -1,0 +1,9 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 95%
+        threshold: 1%
+ignore:
+  - "**/generated/**"
+  - "src/main/java/io/github/mnesimiyilmaz/sql4json/cli/Main.java"

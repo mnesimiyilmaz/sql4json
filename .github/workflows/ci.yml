@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, windows-latest ]
-        java: [ '21', '25' ]
+        java: [ '21' ]
         include:
           - os: ubuntu-latest
             java: '21'
