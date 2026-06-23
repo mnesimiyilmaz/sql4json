@@ -42,7 +42,7 @@
     <properties>
         <antlr.version>4.13.2</antlr.version>
         <central-publishing-maven-plugin.version>0.10.0</central-publishing-maven-plugin.version>
-        <cyclonedx-maven-plugin.version>2.9.1</cyclonedx-maven-plugin.version>
+        <cyclonedx-maven-plugin.version>2.9.2</cyclonedx-maven-plugin.version>
         <dependency-check-maven.version>12.2.2</dependency-check-maven.version>
         <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
         <java.version>21</java.version>
